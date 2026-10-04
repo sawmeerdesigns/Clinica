@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Clinica — Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <nav class="tabs" aria-label="Who's using Clinica">
+      <button class="tab" data-tab="patient" onclick="pickTab('patient')">Patient</button>
+      <button class="tab" data-tab="doctor" onclick="pickTab('doctor')">Doctor (Mobile)</button>
+      <button class="tab" data-tab="desk" onclick="pickTab('desk')">Doctor Dashboard</button>
+      <button class="tab" data-tab="hr" onclick="pickTab('hr')">HR Manager</button>
+      <button class="tab" data-tab="reception" onclick="pickTab('reception')">Reception</button>
+      <button class="tab" data-tab="admin" onclick="pickTab('admin')">Top Level Management</button>
+    </nav>
+
+    <main class="stage"><div class="phone" id="phone" aria-live="polite"></div></main>
+
+    <nav class="tabs" aria-label="Cases">
+      <button class="tab" data-case="full" onclick="pickCase('full')">Full flow</button>
+      <button class="tab" data-case="empty" onclick="pickCase('empty')">Empty cases</button>
+      <button class="tab" data-case="edge" onclick="pickCase('edge')">Edge cases</button>
+    </nav>
+
+    <aside class="panel" id="cases" hidden>
+      <p class="panel-sub">Every tab shares the same day. Doctor: staff ID <code>CH-0231</code>. Admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>. Password <code>clinica</code>.</p>
+      <section class="note" id="note"></section>
+      <div class="hints">
+        <ul>
+          <li>Mobile number: 10 digits starting with 9, e.g. <code>9841234412</code></li>
+          <li>Code <code>123456</code> is right. <code>000000</code> has expired. Any other code is wrong; three wrong codes lock sign-in.</li>
+          <li>Any name containing “Sharma” counts as a possible match (22). Other names create a new profile.</li>
+          <li>Signing in lands on Home (B01). Book a visit → Dr. Priya Sharma → pick a time → Book → Confirm.</li>
+        </ul>
+        <ul style="margin-top:0">
+          <li>Health opens behind a Clinica PIN. The first unlock asks you to create one; after that, a wrong PIN five times locks it for 30 seconds.</li>
+          <li>With fingerprint on, the first touch isn't recognised and the second one is, so both states show.</li>
+        </ul>
+        <ul style="margin-top:0">
+          <li>Ask: tap a suggestion, type a question, or tap the mic (it “hears” “What's coming up?”). Try “I have chest pain”, “Is my thyroid result normal?” or “Show me my insurance details”.</li>
+        </ul>
+        <ul style="margin-top:0">
+          <li>Care and Profile: Switch person → Ramesh Sharma takes PIN <code>1961</code>.</li>
+        </ul>
+        <label class="toggle">Open the app as
+          <select id="open-as"><option value="signedin">Signed in — Home loads</option><option value="slow">Slow connection</option><option value="session">Session expired</option><option value="update">Update required</option><option value="maint">Maintenance</option><option value="lock">Lock screen — visit updates</option><option value="push">Lock screen — low-stock alert</option></select>
+          <button class="mini" onclick="openAs(document.getElementById('open-as').value)">Open</button></label>
+        <label class="toggle">Home today
+          <select data-s="homeState" onchange="setS(this)"><option value="default">Your visit</option><option value="cancelled">Doctor cancelled today</option><option value="walkin">Walk-in, checked in</option></select></label>
+        <label class="toggle">Notification centre shows
+          <select id="notif-set" onchange="notifSet(this.value)"><option value="visits">Visit updates</option><option value="more">More kinds of update</option><option value="meds">Medicine alerts</option></select></label>
+        <label class="toggle">Today's visit (Care, Home)
+          <select data-s="visitDay" onchange="setS(this)"><option value="booked">Booked</option><option value="late">Doctor running late</option><option value="ontime">Delay cleared</option><option value="checkedin">Checked in</option><option value="turn">Your turn</option><option value="with">With the doctor</option><option value="done">Visit complete</option><option value="missed">Missed</option></select></label>
+        <label class="toggle"><input type="checkbox" id="offline" data-s="offline" onchange="setS(this)"> Phone is offline (Ask A16, booking SB04, offline lines)</label>
+        <label class="toggle"><input type="checkbox" data-s="notifOff" onchange="setS(this)"> Phone blocks Clinica's notifications (N03, P09)</label>
+        <label class="toggle"><input type="checkbox" data-s="calOff" onchange="setS(this)"> Calendar access is off (K04)</label>
+        <label class="toggle"><input type="checkbox" data-s="fingerChanged" onchange="setS(this)"> A new fingerprint was added to the phone (HM07)</label>
+        <label class="toggle"><input type="checkbox" data-s="noSensor" onchange="setS(this)"> This phone has no fingerprint sensor (HM13)</label>
+        <label class="toggle"><input type="checkbox" data-s="cancelSoon" onchange="setS(this)"> The follow-up is within 2 hours (late cancel)</label>
+        <label class="toggle"><input type="checkbox" data-s="rsNone" onchange="setS(this)"> No other times this week (reschedule)</label>
+        <label class="toggle"><input type="checkbox" data-s="careErr" onchange="setS(this)"> Care fails to load</label>
+        <label class="toggle"><input type="checkbox" data-s="drNoPatients" onchange="setS(this)"> Doctor app: no patients today</label>
+        <label class="toggle"><input type="checkbox" data-s="stHoliday" onchange="setS(this)"> Staff app: public holiday (T01b, R01b)</label>
+        <label class="toggle">Next “Confirm booking” <select data-s="failNext" onchange="setS(this)"><option value="">works</option><option value="taken">fails — slot taken (B08; reschedule SC03)</option><option value="noreply">gets no reply (SB05)</option></select></label>
+      </div>
+    </aside>
+  </div>
+
+  <script src="vendor/nepali-date-converter.umd.js"></script>
+  <script src="app.js"></script>
+  <script src="booking.js"></script>
+  <script src="health.js"></script>
+  <script src="ask.js"></script>
+  <script src="care.js"></script>
+  <script src="meds.js"></script>
+  <script src="more.js"></script>
+  <script src="doctor.js"></script>
+  <script src="desk.js"></script>
+  <script src="staff.js"></script>
+</body>
+</html>
