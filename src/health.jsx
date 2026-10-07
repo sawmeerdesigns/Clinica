@@ -1,40 +1,49 @@
 // Clinica — Health tab: lock and PIN, visits, prescriptions, reports, medicines.
-// Figma: zw3saW6ot26E6gWH20K3ux, section 539:16334. Plugs into app.js (SCREENS, mount, ACTIONS, FLOW, NUM)
-// and reuses pieces from booking.js (bar, label, tag, rows, callBtn, backTo, rerender).
+// Figma: zw3saW6ot26E6gWH20K3ux, section 539:16334. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM)
+// and reuses pieces from booking.jsx (bar, label, tag, rows, callBtn, backTo).
+import { appBar, btn, digits, empty, heading, homeInd, listItem, masked, mmss, start, statusBar, support } from './app.jsx';
+import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
+import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
+import { csheet, notice, pinOf, switchTo } from './care.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin } from './core.jsx';
+import { labOf } from './doctor.jsx';
+import { med, ring } from './meds.jsx';
+import { openSys } from './more.jsx';
+import { img, now, person, results } from './staff.jsx';
 
-const RX = [
+export const RX = [
   { name: 'Paracetamol 500 mg', for: 'For fever and headache', how: '1 tablet 3 times a day, after food', dur: 'For 5 days, until Sep 2',
     form: 'Tablet — 1, 3 times a day, after food', disp: '5 days · Dispense 15 tablets' },
   { name: 'Cetirizine 10 mg', for: 'For the runny nose', how: '1 tablet at night', dur: 'For 5 days, until Sep 2',
     form: 'Tablet — 1 at night', disp: '5 days · Dispense 5 tablets' },
 ];
 
-const RX2 = [{ name: 'Amoxicillin 500 mg', for: 'For the ear infection', how: '1 capsule 3 times a day', dur: 'For 7 days, finished Aug 19' }];
+export const RX2 = [{ name: 'Amoxicillin 500 mg', for: 'For the ear infection', how: '1 capsule 3 times a day', dur: 'For 7 days, finished Aug 19' }];
 // Lab reports reach the patient only once a doctor has looked at them.
-const LABS = {
+export const LABS = {
   hba1c: { title: 'HbA1c blood test', sub: 'Sep 2, City Hospital lab', month: 'September 2026', date: 'Sep 2, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true,
     words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Sep 4' },
   cbc: { title: 'CBC blood test', sub: 'Aug 28, City Hospital lab', month: 'August 2026', tag: ['Being reviewed', 'neutral'], reviewing: true },
   thyroid: { title: 'Thyroid panel', sub: 'Jul 3, City Hospital lab', month: 'July 2026', date: 'Jul 3, 2026', tag: ['Ready', 'success'], pages: 2,
     words: 'Your thyroid levels are normal. No change to your treatment.', by: 'Reviewed by Dr. Anita Joshi on Jul 5' },
 };
-const VISITS = {
+export const VISITS = {
   aug28: { title: 'Visit on Aug 28', doc: ['PS', 'Dr. Priya Sharma', 'Aug 28, 4:30 PM', 'General medicine, OPD 2'], rx: 'aug28',
     words: 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.' },
   aug12: { title: 'Visit on Aug 12', doc: ['RS', 'Dr. Ramesh Shrestha', 'Aug 12, 11:00 AM', 'General medicine, OPD 3'], rx: 'aug12',
     words: "An ear infection. Take all of the amoxicillin, even once it feels better. Come back if the pain gets worse or there's discharge." },
 };
-const PRESCRIPTIONS = {
+export const PRESCRIPTIONS = {
   aug28: { doc: ['PS', 'Dr. Priya Sharma', 'Prescribed Aug 28', 'General medicine, OPD 2'], meds: RX, note: 'Finish the whole course, even if you feel better sooner.' },
   aug12: { doc: ['RS', 'Dr. Ramesh Shrestha', 'Prescribed Aug 12', 'General medicine, OPD 3'], meds: RX2, note: 'Take all of it, even once it feels better.', finished: 'Aug 19' },
 };
 
-window.EXTRA_STATE = () => ({
+extraState(() => ({
   unlocked: false, afterUnlock: null, healthEmpty: false, lockWhy: null, fingerChanged: false, pinChanged: false,
   labs: ['hba1c', 'cbc', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false,
   pin: null, pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, pinTries: 5, pinWait: 30,
   finger: null, bio: null, bioFails: 0, sheet: null, codeFor: null,
-  meds: [ // the Medicines tracker's data (meds.js)
+  meds: [ // the Medicines tracker's data (meds.jsx)
     { title: 'Paracetamol 500 mg', name: 'Paracetamol', strength: '500 mg', form: 'Tablet', generic: 'Acetaminophen tablets', each: '1 tablet', often: 'Twice a day',
       sched: 'Twice daily', sub: '1 tablet, twice a day', left: 6, total: 20, unit: 'tablets', perDay: 2, since: '3 weeks' },
     { title: 'Metformin 500 mg', name: 'Metformin', strength: '500 mg', form: 'Tablet', generic: 'Metformin hydrochloride tablets', each: '1 tablet', often: 'After breakfast',
@@ -43,338 +52,338 @@ window.EXTRA_STATE = () => ({
       sched: 'At night', sub: '5 ml, at night', left: 40, total: 50, unit: 'ml', perDay: 5, since: '1 week' },
   ],
   mform: {}, mErr: {},
-});
-Object.assign(S, EXTRA_STATE());
+}), ORDER.health);
 
 // ---------- pieces ----------
-const lbl = t => `<p class="sec-label lh20">${t}</p>`;
-const chev = `<img src="${A}icon-chevron-right.svg" width="20" height="20" alt="">`;
-const lead = icon => `<span class="lead-tile"><img src="${A}${icon}" width="20" height="20" alt=""></span>`;
-const list = items => `<div class="list">${items.join('<div class="sep" aria-hidden="true"></div>')}</div>`;
+export const lbl = t => <p className="sec-label lh20">{t}</p>;
+export const chev = <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" />;
+export const lead = icon => <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>;
+export const list = items => <div className="list">{sepJoin(items)}</div>;
 
 // Content/Medicine: what it is, what it is FOR, how to take it, for how long.
-const medText = m => `<span class="med-t"><span class="m1">${m.name}</span><span class="m2">${m.for}</span><span class="m3">${m.how}</span><span class="m4">${m.dur}</span></span>`;
-const medRow = (m, act) => act
-  ? `<button class="list-item" data-act="${act}">${lead('lt-rx.svg')}${medText(m)}${chev}</button>`
-  : `<div class="list-item static">${lead('lt-rx.svg')}${medText(m)}</div>`;
+export const medText = m => <span className="med-t"><span className="m1">{m.name}</span><span className="m2">{m.for}</span><span className="m3">{m.how}</span><span className="m4">{m.dur}</span></span>;
+export const medRow = (m, act) => act
+  ? <button className="list-item" data-act={act}>{lead('lt-rx.svg')}{medText(m)}{chev}</button>
+  : <div className="list-item static">{lead('lt-rx.svg')}{medText(m)}</div>;
 
-const docCard = (ini, name, l2, l3) => `<div class="card appt">
-  <span class="avatar l">${ini}</span>
-  <span class="appt-t"><span class="h-s">${name}</span><span class="when">${l2}</span><span class="where">${l3}</span></span></div>`;
+export const docCard = (ini, name, l2, l3) => <div className="card appt">
+  <span className="avatar l">{ini}</span>
+  <span className="appt-t"><span className="h-s">{name}</span><span className="when">{l2}</span><span className="where">{l3}</span></span></div>;
 
-const reportRow = (title, sub, status, act) => `<button class="list-item" data-act="${act}">${lead('lt-lab.svg')}
-  <span class="report-t"><span class="text"><span class="h-s">${title}</span><span class="body-s">${sub}</span></span>${status}</span>${chev}</button>`;
+export const reportRow = (title, sub, status, act) => <button className="list-item" data-act={act}>{lead('lt-lab.svg')}
+  <span className="report-t"><span className="text"><span className="h-s">{title}</span><span className="body-s">{sub}</span></span>{status}</span>{chev}</button>;
 
-const centred = inner => `<div class="body" style="justify-content:center">${inner}</div>`;
+export const centred = inner => <div className="body" style={{ justifyContent: 'center' }}>{inner}</div>;
 
 // ---------- PIN ----------
-const pinDots = (n, err) => `<div class="pin-dots" role="img" aria-label="${err ? 'PIN did not match' : `${n} of 4 digits entered`}">
-  ${[0, 1, 2, 3].map(i => `<span class="dot ${err ? 'err' : i < n ? 'on' : ''}"></span>`).join('')}</div>`;
-const keypad = () => `<div class="inset"><div class="keypad" aria-label="PIN keypad">
-  ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<button class="key" data-act="pin-digit:${d}">${d}</button>`).join('')}
-  <span class="key blank"></span><button class="key" data-act="pin-digit:0">0</button>
-  <button class="key" data-act="pin-del" aria-label="Delete"><img src="${A}icon-backspace.svg" width="24" height="24" alt=""></button>
-</div></div>`;
-const MISMATCH = "Those PINs didn't match. Choose one again.";
-const errLine = msg => `<div style="width:240px">${support(msg, 'err', 'icon-error.svg')}</div>`;
+export const pinDots = (n, err) => <div className="pin-dots" role="img" aria-label={err ? 'PIN did not match' : `${n} of 4 digits entered`}>
+  {[0, 1, 2, 3].map(i => <span key={i} className={`dot ${err ? 'err' : i < n ? 'on' : ''}`}></span>)}</div>;
+export const keypad = () => <div className="inset"><div className="keypad" aria-label="PIN keypad">
+  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <button key={d} className="key" data-act={`pin-digit:${d}`}>{d}</button>)}
+  <span className="key blank"></span><button className="key" data-act="pin-digit:0">0</button>
+  <button className="key" data-act="pin-del" aria-label="Delete"><img src={`${A}icon-backspace.svg`} width="24" height="24" alt="" /></button>
+</div></div>;
+export const MISMATCH = "Those PINs didn't match. Choose one again.";
+export const errLine = msg => <div style={{ width: 240 }}>{support(msg, 'err', 'icon-error.svg')}</div>;
 
-function pinScreen(title, sub, below = '') {
+export function pinScreen(title, sub, below = null) {
   const err = (S.screen === 'pin' || S.screen === 'pfpin') && S.pinErr;
-  return `
-  <div class="screen">
-    ${statusBar()}${appBar()}
-    <div class="body" style="overflow:hidden">
-      ${S.fingerChanged && S.screen === 'pin' ? `<div class="inset">${notice('warn', 'Fingerprint unlock is off', 'A new fingerprint was added to this phone. For your safety, enter your PIN.')}</div>` : ''}
-      ${heading(title, sub)}
-      <div class="entry">${pinDots(S.pinEntry.length, err)}${below}</div>
-      <div style="flex:1"></div>
-      ${keypad()}
+  return (
+  <div className="screen">
+    {statusBar()}{appBar()}
+    <div className="body" style={{ overflow: 'hidden' }}>
+      {S.fingerChanged && S.screen === 'pin' ? <div className="inset">{notice('warn', 'Fingerprint unlock is off', 'A new fingerprint was added to this phone. For your safety, enter your PIN.')}</div> : null}
+      {heading(title, sub)}
+      <div className="entry">{pinDots(S.pinEntry.length, err)}{below}</div>
+      <div style={{ flex: 1 }}></div>
+      {keypad()}
     </div>
-    ${homeInd()}
-  </div>`;
+    {homeInd()}
+  </div>);
 }
 
 // Bottom sheet — one decision; the scrim means the safe choice.
-const resetSheet = () => `
-  <div class="scrim" data-act="sheet-close"></div>
-  <div class="csheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
-    <span class="handle"></span>
-    <div class="cs-text"><h2 class="cs-t" id="cs-t">Reset your PIN</h2>
-      <p class="lede">We'll text a code to ${masked()}. If others read this phone's messages, reset at reception instead — bring your ID.</p></div>
-    <div class="cs-acts">${btn('Send code', 'reset-send')}${btn('Reset at reception', 'sheet-close', { kind: 'secondary' })}</div>
-  </div><div class="sheet-home"></div>`;
+export const resetSheet = () => <>
+  <div className="scrim" data-act="sheet-close"></div>
+  <div className="csheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
+    <span className="handle"></span>
+    <div className="cs-text"><h2 className="cs-t" id="cs-t">Reset your PIN</h2>
+      <p className="lede">We'll text a code to {masked()}. If others read this phone's messages, reset at reception instead — bring your ID.</p></div>
+    <div className="cs-acts">{btn('Send code', 'reset-send')}{btn('Reset at reception', 'sheet-close', { kind: 'secondary' })}</div>
+  </div><div className="sheet-home"></div></>;
 OVERLAY.reset = resetSheet;
 
 // System biometric prompt — a stand-in for the OS sheet. 'Use PIN instead' is always there.
-const bioSheet = () => {
+export const bioSheet = () => {
   const fail = S.bio === 'fail';
-  return `
-  <div class="scrim" data-act="bio-cancel"></div>
-  <div class="bio-sheet" role="dialog" aria-modal="true" aria-labelledby="bio-t">
-    <p class="cs-t" id="bio-t">Unlock your health records</p>
-    <p class="body-s">Clinica</p>
-    <button class="sensor ${fail ? 'err' : ''}" data-act="bio-touch" aria-label="Fingerprint sensor">
-      <img src="${A}icon-fingerprint-40${fail ? '-error' : ''}.svg" width="40" height="40" alt=""></button>
-    <p class="${fail ? 'bio-err' : 'body-s'}" role="status">${fail ? 'Not recognised. Try again.' : 'Touch the fingerprint sensor'}</p>
-    <button class="btn secondary" data-act="bio-pin">Use PIN instead</button>
-  </div><div class="sheet-home"></div>`;
+  return <>
+  <div className="scrim" data-act="bio-cancel"></div>
+  <div className="bio-sheet" role="dialog" aria-modal="true" aria-labelledby="bio-t">
+    <p className="cs-t" id="bio-t">Unlock your health records</p>
+    <p className="body-s">Clinica</p>
+    <button className={`sensor ${fail ? 'err' : ''}`} data-act="bio-touch" aria-label="Fingerprint sensor">
+      <img src={`${A}icon-fingerprint-40${fail ? '-error' : ''}.svg`} width="40" height="40" alt="" /></button>
+    <p className={fail ? 'bio-err' : 'body-s'} role="status">{fail ? 'Not recognised. Try again.' : 'Touch the fingerprint sensor'}</p>
+    <button className="btn secondary" data-act="bio-pin">Use PIN instead</button>
+  </div><div className="sheet-home"></div></>;
 };
 
 // ---------- medicines ----------
-const lowStock = m => m.left / m.perDay <= 3;
-const firstNum = s => +(/(\d+)/.exec(s || '') || [])[1] || 0;
-function perDayOf(often, each) {
+export const lowStock = m => m.left / m.perDay <= 3;
+export const firstNum = s => +(/(\d+)/.exec(s || '') || [])[1] || 0;
+export function perDayOf(often, each) {
   const o = (often || '').toLowerCase();
   const times = /(\d+)\s*times/.exec(o)?.[1] || (/twice/.test(o) ? 2 : /three/.test(o) ? 3 : 1);
   return +times * (firstNum(each) || 1);
 }
 
-function field(key, labelText, ph) {
+export function field(key, labelText, ph) {
   const err = S.mErr[key];
-  return `<div class="field-wrap">
-    <label class="label" for="mf-${key}">${labelText}</label>
-    <div class="field ${err ? 'err' : ''}"><input id="mf-${key}" data-f="${key}" placeholder="${ph}" value="${esc(S.mform[key] || '')}"></div>
-    ${err ? support(err, 'err') : ''}
-  </div>`;
+  return <div key={key} className="field-wrap">
+    <label className="label" htmlFor={`mf-${key}`}>{labelText}</label>
+    <div className={`field ${err ? 'err' : ''}`}><input id={`mf-${key}`} data-f={key} placeholder={ph} value={S.mform[key] || ''}
+      onChange={e => { S.mform[key] = e.target.value; delete S.mErr[key]; paint(); }} /></div>
+    {err ? support(err, 'err') : null}
+  </div>;
 }
 // ---------- screens ----------
 Object.assign(SCREENS, {
   // 01 / 15 / 16 — the lock, with the biometric prompt on top when fingerprint is on
-  hlocked: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ back: false, title: 'Health' })}
-      ${centred(empty('icon-lock.svg', 'Your health records are locked', {
+  hlocked: () => (
+    <div className="screen">
+      {statusBar()}{bar({ back: false, title: 'Health' })}
+      {centred(empty('icon-lock.svg', 'Your health records are locked', {
         report: 'Unlock to see your new lab report. This phone may be shared, so your records stay locked until you enter your Clinica PIN.',
         left: 'Locked because you left Clinica. On a shared phone, your records lock when you leave the app, or after 5 minutes without use.',
       }[S.lockWhy] || 'This phone may be shared, so your visits and prescriptions stay locked until you unlock them with your Clinica PIN.',
         btn('Unlock', 'unlock-start', { size: 'l' })))}
-      ${navBar('Health')}
-      ${S.bio ? bioSheet() : ''}
-    </div>`,
+      {navBar('Health')}
+      {S.bio ? bioSheet() : null}
+    </div>),
 
-  health: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ back: false, title: 'Health' })}${offLine()}
-      <div class="body g20">
-        <div class="stack8">
-          <div class="inset">${lbl('Taking now')}</div>
-          <div class="inset"><button class="card med-card" data-act="go:hrxd">${lead('lt-rx.svg')}${medText(RX[0])}${chev}</button></div>
+  health: () => (
+    <div className="screen">
+      {statusBar()}{bar({ back: false, title: 'Health' })}{offLine()}
+      <div className="body g20">
+        <div className="stack8">
+          <div className="inset">{lbl('Taking now')}</div>
+          <div className="inset"><button className="card med-card" data-act="go:hrxd">{lead('lt-rx.svg')}{medText(RX[0])}{chev}</button></div>
         </div>
         <div>
-          <div class="inset">${lbl('Your records')}</div>
-          ${list([
+          <div className="inset">{lbl('Your records')}</div>
+          {list([
             listItem('lt-followup.svg', 'Visit history', 'Last visit Aug 28, General medicine', 'go:hvisits'),
             listItem('lt-rx.svg', 'Prescriptions', '2 medicines to take now', 'go:hrx'),
-            S.offline ? '' : listItem('lt-rx.svg', 'Medicines', (n => n ? `${n} running low` : 'All stocked up')(S.meds.filter(lowStock).length), 'go:mtlist'), // stock needs a live count
+            S.offline ? null : listItem('lt-rx.svg', 'Medicines', (n => n ? `${n} running low` : 'All stocked up')(S.meds.filter(lowStock).length), 'go:mtlist'), // stock needs a live count
             listItem('lt-lab.svg', 'Lab reports', (r => [r.filter(k => !labOf(k).reviewing).length && `${r.filter(k => !labOf(k).reviewing).length} ready`,
               r.filter(k => labOf(k).reviewing).length && `${r.filter(k => labOf(k).reviewing).length} being reviewed`].filter(Boolean).join(', ') || 'None yet')(S.labs), 'go:hlabs'),
             listItem('lt-clipboard.svg', 'Follow-ups', '1 due around Sep 11', 'go:hfollow'),
           ].filter(Boolean))}
         </div>
       </div>
-      ${navBar('Health')}
-    </div>`,
+      {navBar('Health')}
+    </div>),
 
-  hempty: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ back: false, title: 'Health' })}
-      ${centred(empty('qa-book.svg', 'Nothing here yet',
+  hempty: () => (
+    <div className="screen">
+      {statusBar()}{bar({ back: false, title: 'Health' })}
+      {centred(empty('qa-book.svg', 'Nothing here yet',
         'After your first visit, what your doctor tells you, your prescriptions and your reports will appear here.',
         btn('Book a visit', 'go:finddoctor', { size: 'l' })))}
-      ${navBar('Health')}
-    </div>`,
+      {navBar('Health')}
+    </div>),
 
   hvisits: () => {
     const row = (title, sub, act) => listItem('lt-followup.svg', title, sub, act);
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Visit history' })}
-      <div class="body" style="gap:12px">
-        <div><div class="inset">${lbl('August 2026')}</div>${list([row('General medicine', 'Aug 28, Dr. Priya Sharma', 'visit:aug28'), row('General medicine', 'Aug 12, Dr. Ramesh Shrestha', 'visit:aug12')])}</div>
-        <div><div class="inset">${lbl('July 2026')}</div>${list([row('Dermatology', 'Jul 3, Dr. Anita Joshi', 'stub:Visit on Jul 3')])}</div>
-        <div><div class="inset">${lbl('June 2026')}</div>${list([row('General medicine, walk-in', 'Jun 20, Dr. Anita Joshi', 'stub:Visit on Jun 20')])}</div>
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Visit history' })}
+      <div className="body" style={{ gap: 12 }}>
+        <div><div className="inset">{lbl('August 2026')}</div>{list([row('General medicine', 'Aug 28, Dr. Priya Sharma', 'visit:aug28'), row('General medicine', 'Aug 12, Dr. Ramesh Shrestha', 'visit:aug12')])}</div>
+        <div><div className="inset">{lbl('July 2026')}</div>{list([row('Dermatology', 'Jul 3, Dr. Anita Joshi', 'stub:Visit on Jul 3')])}</div>
+        <div><div className="inset">{lbl('June 2026')}</div>{list([row('General medicine, walk-in', 'Jun 20, Dr. Anita Joshi', 'stub:Visit on Jun 20')])}</div>
       </div>
-      ${homeInd()}
-    </div>`;
+      {homeInd()}
+    </div>);
   },
 
   hvisit: () => {
     const v = VISITS[S.visit];
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: v.title })}
-      <div class="body g20">
-        <div class="inset">${docCard(...v.doc)}</div>
-        <div class="inset stack8">${lbl('What your doctor told you')}<p class="note-body">${esc(S.visit === 'aug28' && S.drNotes?.as || v.words)}</p></div>
-        <div class="stack8"><div class="inset">${lbl('Prescribed')}</div>${list(PRESCRIPTIONS[v.rx].meds.map(m => medRow(m, `rx:${v.rx}`)))}</div>
-        <div class="inset stack8">${lbl('Next step')}
-          ${S.visit === 'aug28' && S.fuAdvice !== 'none' ? `<div class="card notice"><div class="text"><p class="h-s">Follow-up in 2 weeks</p>
-            <p class="body-s">Around Sep 11. Book now to get a time that suits you.</p></div>
-            ${btn('Book follow-up', 'doctor:ps', { size: 'l' })}</div>`
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: v.title })}
+      <div className="body g20">
+        <div className="inset">{docCard(...v.doc)}</div>
+        <div className="inset stack8">{lbl('What your doctor told you')}<p className="note-body">{S.visit === 'aug28' && S.drNotes?.as || v.words}</p></div>
+        <div className="stack8"><div className="inset">{lbl('Prescribed')}</div>{list(PRESCRIPTIONS[v.rx].meds.map(m => medRow(m, `rx:${v.rx}`)))}</div>
+        <div className="inset stack8">{lbl('Next step')}
+          {S.visit === 'aug28' && S.fuAdvice !== 'none' ? <div className="card notice"><div className="text"><p className="h-s">Follow-up in 2 weeks</p>
+            <p className="body-s">Around Sep 11. Book now to get a time that suits you.</p></div>
+            {btn('Book follow-up', 'doctor:ps', { size: 'l' })}</div>
           : notice('', 'No follow-up needed', 'Come back only if it gets worse.')}</div>
       </div>
-      ${homeInd()}
-    </div>`;
+      {homeInd()}
+    </div>);
   },
 
   // Each follow-up says which visit asked for it, and leads to booking.
-  hfollow: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Follow-ups' })}
-      <div class="body g20"><div><div class="inset">${lbl('Due')}</div>${list([
+  hfollow: () => (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Follow-ups' })}
+      <div className="body g20"><div><div className="inset">{lbl('Due')}</div>{list([
         listItem('lt-calendar.svg', 'General medicine', S.followup ? `Booked for ${S.followup.day}, ${S.followup.time} · asked for at your Aug 28 visit` : 'Around Sep 11 · asked for at your Aug 28 visit', S.followup ? 'appt:fu' : 'doctor:ps'),
         listItem('lt-calendar.svg', 'Dermatology', 'Sep 14 · asked for at your Jul 3 visit', 'find-spec:Dermatology')])}</div></div>
-      ${homeInd()}
-    </div>`,
+      {homeInd()}
+    </div>),
 
-  hrx: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Prescriptions' })}
-      <div class="body g20" ${S.rxNone ? 'style="justify-content:center"' : ''}>
-        ${S.rxNone ? empty('qa-rx.svg', 'No prescriptions yet', 'When a doctor prescribes medicine, it appears here with how to take it.', '<div style="height:104px"></div>') : `
-        <div><div class="inset">${lbl('Taking now')}</div>${list(RX.map(m => medRow(m)))}</div>
-        <div><div class="inset">${lbl('All prescriptions')}</div>${list([
+  hrx: () => (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Prescriptions' })}
+      <div className="body g20" style={S.rxNone ? { justifyContent: 'center' } : undefined}>
+        {S.rxNone ? empty('qa-rx.svg', 'No prescriptions yet', 'When a doctor prescribes medicine, it appears here with how to take it.', <div style={{ height: 104 }}></div>) : <>
+        <div><div className="inset">{lbl('Taking now')}</div>{list(RX.map(m => medRow(m)))}</div>
+        <div><div className="inset">{lbl('All prescriptions')}</div>{list([
           listItem('lt-document.svg', 'Dr. Priya Sharma, Aug 28', '2 medicines', 'rx:aug28'),
-          listItem('lt-document.svg', 'Dr. Ramesh Shrestha, Aug 12', '1 medicine, finished', 'rx:aug12')])}</div>`}
+          listItem('lt-document.svg', 'Dr. Ramesh Shrestha, Aug 12', '1 medicine, finished', 'rx:aug12')])}</div></>}
       </div>
-      ${homeInd()}
-    </div>`,
+      {homeInd()}
+    </div>),
 
   hrxd: () => {
     const r = PRESCRIPTIONS[S.rx];
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Prescription' })}
-      <div class="body g20">
-        <div class="inset">${docCard(...r.doc)}</div>
-        <div><div class="inset">${lbl('Medicines')}</div>${list(r.meds.map(m => medRow(m)))}</div>
-        <div class="inset stack8">${lbl("Doctor's note")}<p class="note-body">${r.note}</p></div>
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Prescription' })}
+      <div className="body g20">
+        <div className="inset">{docCard(...r.doc)}</div>
+        <div><div className="inset">{lbl('Medicines')}</div>{list(r.meds.map(m => medRow(m)))}</div>
+        <div className="inset stack8">{lbl("Doctor's note")}<p className="note-body">{r.note}</p></div>
       </div>
-      <div class="cta">${r.finished // a finished course isn't handed over at a counter
-        ? `<p class="body-s">This course finished on ${r.finished}.</p>` : '<button class="btn secondary" data-act="go:hpharm">Show to pharmacist</button>'}</div>
-      ${homeInd()}
-    </div>`;
+      <div className="cta">{r.finished // a finished course isn't handed over at a counter
+        ? <p className="body-s">This course finished on {r.finished}.</p> : <button className="btn secondary" data-act="go:hpharm">Show to pharmacist</button>}</div>
+      {homeInd()}
+    </div>);
   },
 
   // 07 — read across a counter: 24 and 20px, all in primary ink, and no purpose line.
-  hpharm: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Show to pharmacist' })}
-      <div class="body g20" style="padding:8px 16px 16px">
-        <div class="pharm-who"><p class="pw-name">${esc(S.fullName)}, age 32</p><p>Prescribed by Dr. Priya Sharma</p><p>NMC reg. no. 12345</p><p>City Hospital, Aug 28, 2026</p></div>
-        <div class="rx-list">${RX.map(m => `<div class="rx-line"><p class="rx-n">${m.name}</p><p class="rx-d">${m.form}</p><p class="rx-q">${m.disp}</p></div>`).join('')}</div>
-        <div class="stack6"><p class="rx-ref">Prescription no. RX-0828-4821</p><p class="body-s">This screen stays on while it's open.</p></div>
+  hpharm: () => (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Show to pharmacist' })}
+      <div className="body g20" style={{ padding: '8px 16px 16px' }}>
+        <div className="pharm-who"><p className="pw-name">{S.fullName}, age 32</p><p>Prescribed by Dr. Priya Sharma</p><p>NMC reg. no. 12345</p><p>City Hospital, Aug 28, 2026</p></div>
+        <div className="rx-list">{RX.map(m => <div key={m.name} className="rx-line"><p className="rx-n">{m.name}</p><p className="rx-d">{m.form}</p><p className="rx-q">{m.disp}</p></div>)}</div>
+        <div className="stack6"><p className="rx-ref">Prescription no. RX-0828-4821</p><p className="body-s">This screen stays on while it's open.</p></div>
       </div>
-      <div class="cta"><button class="btn secondary" data-act="back">Done</button></div>
-      ${homeInd()}
-    </div>`,
+      <div className="cta"><button className="btn secondary" data-act="back">Done</button></div>
+      {homeInd()}
+    </div>),
 
   hlabs: () => {
     const months = [...new Set(S.labs.map(k => LABS[k].month))];
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Lab reports' })}
-      <div class="body g20" ${S.labs.length ? '' : 'style="justify-content:center"'}>
-        ${S.labs.length ? months.map(mo => `<div><div class="inset">${lbl(mo)}</div>${S.labs.filter(k => LABS[k].month === mo).map(k => {
-          const l = labOf(k); // released by the doctor (doctor.js), or still being reviewed
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Lab reports' })}
+      <div className="body g20" style={S.labs.length ? undefined : { justifyContent: 'center' }}>
+        {S.labs.length ? months.map(mo => <div key={mo}><div className="inset">{lbl(mo)}</div>{sepJoin(S.labs.filter(k => LABS[k].month === mo).map(k => {
+          const l = labOf(k); // released by the doctor (doctor.jsx), or still being reviewed
           return reportRow(l.title, l.sub, tag(...l.tag), l.reviewing ? 'go:hreviewing' : `report:${k}`);
-        }).join('<div class="sep" aria-hidden="true"></div>')}</div>`).join('')
-        : empty('qa-lab.svg', 'No lab reports yet', "When your doctor orders a test, the report appears here once they've looked at it.", '<div style="height:104px"></div>')}
+        }))}</div>)
+        : empty('qa-lab.svg', 'No lab reports yet', "When your doctor orders a test, the report appears here once they've looked at it.", <div style={{ height: 104 }}></div>)}
       </div>
-      ${homeInd()}
-    </div>`;
+      {homeInd()}
+    </div>);
   },
 
   hreport: () => {
     const l = labOf(S.report);
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: l.title })}
-      <div class="body g20">
-        <div class="inset"><div class="card">${lead('lt-lab.svg')}<span class="text"><span class="item-title">${l.title}</span><span class="body-s">${l.sub}</span></span></div></div>
-        <div class="inset stack8">${lbl('What your doctor says')}
-          <p class="note-body">${l.words}</p>
-          <p class="body-s tertiary">${l.by}</p></div>
-        ${l.follow ? `<div class="inset">${notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'doctor:ps', { size: 'l' }))}</div>` : ''}
-        <div class="inset stack8">${lbl('Report')}
-          <button class="card neutral" data-act="go:hfile">${lead('lt-document.svg')}<span class="text"><span class="item-title">${l.title} report</span><span class="body-s">PDF, ${l.pages} page${l.pages > 1 ? 's' : ''}</span></span>${chev}</button></div>
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: l.title })}
+      <div className="body g20">
+        <div className="inset"><div className="card">{lead('lt-lab.svg')}<span className="text"><span className="item-title">{l.title}</span><span className="body-s">{l.sub}</span></span></div></div>
+        <div className="inset stack8">{lbl('What your doctor says')}
+          <p className="note-body">{l.words}</p>
+          <p className="body-s tertiary">{l.by}</p></div>
+        {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'doctor:ps', { size: 'l' }))}</div> : null}
+        <div className="inset stack8">{lbl('Report')}
+          <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{l.title} report</span><span className="body-s">PDF, {l.pages} page{l.pages > 1 ? 's' : ''}</span></span>{chev}</button></div>
       </div>
-      <div class="cta"><button class="btn secondary" data-act="report-dl"><img src="${A}icon-download.svg" width="24" height="24" alt="">Download report</button></div>
-      ${homeInd()}
-    </div>`;
+      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />Download report</button></div>
+      {homeInd()}
+    </div>);
   },
 
   // The lab's own document; results stand in as bars.
   hfile: () => {
     const l = labOf(S.report);
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: `${l.title} report` })}
-      <div class="doc-view">
-        <div class="doc-page" role="img" aria-label="${l.title} report from City Hospital Laboratory, page 1">
-          <p class="dp-lab">City Hospital Laboratory</p><p class="body-s tertiary">Maharajgunj, Kathmandu</p>
-          <p class="dp-test">${l.title} · ${l.date}</p><p class="body-s">Patient: ${esc(S.fullName)} · CH-2381</p>
-          ${[280, 280, 160, 280, 280, 160, 280].map(w => `<span class="dp-bar" style="width:${w}px"></span>`).join('')}
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: `${l.title} report` })}
+      <div className="doc-view">
+        <div className="doc-page" role="img" aria-label={`${l.title} report from City Hospital Laboratory, page 1`}>
+          <p className="dp-lab">City Hospital Laboratory</p><p className="body-s tertiary">Maharajgunj, Kathmandu</p>
+          <p className="dp-test">{l.title} · {l.date}</p><p className="body-s">Patient: {S.fullName} · CH-2381</p>
+          {[280, 280, 160, 280, 280, 160, 280].map((w, i) => <span key={i} className="dp-bar" style={{ width: w }}></span>)}
         </div>
-        <p class="body-s">Page 1 of 1</p>
+        <p className="body-s">Page 1 of 1</p>
       </div>
-      <div class="cta"><button class="btn secondary" data-act="report-dl"><img src="${A}icon-download.svg" width="24" height="24" alt="">Download report</button></div>
-      ${homeInd()}
-    </div>`;
+      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />Download report</button></div>
+      {homeInd()}
+    </div>);
   },
 
-  hreviewing: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'CBC blood test' })}
-      ${centred(empty('qa-lab.svg', 'Your doctor is reviewing this report',
+  hreviewing: () => (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'CBC blood test' })}
+      {centred(empty('qa-lab.svg', 'Your doctor is reviewing this report',
         "Results reach you once Dr. Priya Sharma has looked at them, so they come with an explanation. We'll message you when it's ready. Feeling worse? Don't wait for it — call the clinic.",
         callBtn('l')))}
-      ${homeInd()}
-    </div>`,
+      {homeInd()}
+    </div>),
 
   pincreate: () => pinScreen('Choose a PIN for your health records', "Your phone's own PIN may be known to others who use it. This one is only yours.",
-    S.pinMismatch ? errLine(MISMATCH) : ''),
+    S.pinMismatch ? errLine(MISMATCH) : null),
   pinconfirm: () => pinScreen('Enter it again', "So we know it's right."),
   pin: () => pinScreen(...({ pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
       hreport: ['Enter your PIN', 'To open your lab report.'] }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
-    (S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : '')
-    + `<button class="btn secondary l hug" data-act="forgot">Forgot your PIN?</button>`),
-  pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : ''),
+    <>{S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
+      <button className="btn secondary l hug" data-act="forgot">Forgot your PIN?</button></>),
+  pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null),
   pinnewconfirm: () => pinScreen('Enter it again', "So we know it's right."),
 
-  finger: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ back: false })}
-      <div class="body" style="justify-content:center;align-items:center;gap:16px">
-        ${empty('icon-fingerprint-28.svg', 'Use your fingerprint next time?',
+  finger: () => (
+    <div className="screen">
+      {statusBar()}{bar({ back: false })}
+      <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+        {empty('icon-fingerprint-28.svg', 'Use your fingerprint next time?',
           "It's quicker than your PIN. But anyone whose fingerprint is saved on this phone could open your records too.",
-          btn('Use fingerprint', 'finger:on', { size: 'l' }) + btn('Just use my PIN', 'finger:off', { kind: 'secondary', size: 'l' }))}
+          <>{btn('Use fingerprint', 'finger:on', { size: 'l' })}{btn('Just use my PIN', 'finger:off', { kind: 'secondary', size: 'l' })}</>)}
       </div>
-      ${homeInd()}
-    </div>`,
+      {homeInd()}
+    </div>),
 
-  toomany: () => `
-    <div class="screen">
-      ${statusBar()}${appBar()}
-      <div class="body" style="justify-content:center;align-items:center;gap:16px">
-        ${empty('icon-lock.svg', 'Too many tries', `For your safety, wait before trying again, or reset your PIN with a code sent to ${masked()}.`,
+  toomany: () => (
+    <div className="screen">
+      {statusBar()}{appBar()}
+      <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+        {empty('icon-lock.svg', 'Too many tries', `For your safety, wait before trying again, or reset your PIN with a code sent to ${masked()}.`,
           btn('Reset with an SMS code', 'forgot', { size: 'l' }))}
-        <p class="wait">You can try again in <span id="pinwait">${mmss(S.pinWait)}</span></p>
+        <p className="wait">You can try again in <span id="pinwait">{mmss(S.pinWait)}</span></p>
       </div>
-      ${homeInd()}
-      </div>`,
+      {homeInd()}
+      </div>),
 
 });
 
 // ---------- behaviour ----------
-function openHealth(target = 'health') {
+export function openHealth(target = 'health') {
   S.stack = []; S.bio = null; S.sheet = null;
   S.lockWhy = target === 'hreport' ? 'report' : null; // says why the PIN is being asked for
   if (S.healthEmpty) { S.screen = 'hempty'; return render(); } // nothing to lock yet
   S.afterUnlock = target; S.screen = 'hlocked'; render();       // every time the tab opens
 }
 
-function unlock() {
+export function unlock() {
   const t = S.afterUnlock || 'health';
   Object.assign(S, { unlocked: true, afterUnlock: null, pinEntry: '', pinErr: false, pinMismatch: false, pinTries: 5, bio: null, sheet: null });
   S.lockWhy = null;
@@ -382,12 +391,12 @@ function unlock() {
   if (t === 'pfphone') { S.stack = ['pf', 'pfdetails']; S.screen = 'phone'; return render(); } // Profile › change number, after the PIN
   S.stack = t === 'health' || t === 'ask' ? [] : t === 'pflock' ? ['pf'] : t === 'mtmed' ? ['health', 'mtlist'] : t === 'hreport' ? ['health', 'hlabs'] : ['health'];
   S.screen = t;
-  if (t === 'ask') return resolveAskLock(); // ask.js: the locked answer now shows
+  if (t === 'ask') return resolveAskLock(); // ask.jsx: the locked answer now shows
   render();
 }
 
 // Leaving Clinica locks the records again (the design also locks after 5 idle minutes).
-const HEALTH_SCREENS = ['health', 'hvisits', 'hvisit', 'hfollow', 'hrx', 'hrxd', 'hpharm', 'hlabs', 'hreport', 'hfile', 'hreviewing', 'mtlist', 'mtmed', 'mtdose'];
+export const HEALTH_SCREENS = ['health', 'hvisits', 'hvisit', 'hfollow', 'hrx', 'hrxd', 'hpharm', 'hlabs', 'hreport', 'hfile', 'hreviewing', 'mtlist', 'mtmed', 'mtdose'];
 document.addEventListener('visibilitychange', () => {
   if (document.hidden || !S.unlocked || !HEALTH_SCREENS.includes(S.screen)) return;
   Object.assign(S, { unlocked: false, lockWhy: 'left', afterUnlock: 'health', stack: [], screen: 'hlocked', bio: null, sheet: null });
@@ -395,7 +404,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // A PDF of the report, through the browser's own save prompt.
-function downloadReport(l) {
+export function downloadReport(l) {
   const lines = ['City Hospital Laboratory', 'Maharajgunj, Kathmandu', `${l.title} - ${l.date}`, `Patient: ${S.fullName} - CH-2381`, '', l.words, l.by];
   const text = lines.map((t, i) => `BT /F1 ${i ? 11 : 14} Tf 50 ${780 - i * 22} Td (${t.replace(/[()\\]/g, '\\$&')}) Tj ET`).join('\n');
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
@@ -410,9 +419,9 @@ function downloadReport(l) {
   openSys({ title: `${l.title} report.pdf`, sub: "Saved to your phone's Files.", confirm: 'Open file', href: url }); // the phone's own save prompt
 }
 
-const PIN_SCREENS = ['pincreate', 'pinconfirm', 'pin', 'pinnew', 'pinnewconfirm', 'pfpin'];
+export const PIN_SCREENS = ['pincreate', 'pinconfirm', 'pin', 'pinnew', 'pinnewconfirm', 'pfpin'];
 
-function pinDigit(d) {
+export function pinDigit(d) {
   if (S.pinEntry.length >= 4) return;
   if (S.pinErr || S.pinMismatch) { S.pinErr = false; S.pinMismatch = false; S.pinEntry = ''; }
   S.pinEntry += d;
@@ -420,7 +429,7 @@ function pinDigit(d) {
   if (S.pinEntry.length === 4) after(pinComplete, 180); // the fourth digit moves on; there is no button
 }
 
-function pinComplete() {
+export function pinComplete() {
   const e = S.pinEntry;
   S.pinEntry = '';
   if (S.sheet === 'askpin') { // Ask: the PIN sheet over the conversation; the right PIN opens the answer
@@ -439,7 +448,7 @@ function pinComplete() {
     case 'pinnewconfirm':
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
       S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; return unlock(); // then straight back into Health, or to Health lock
-    case 'pfpin': // care.js — Switch person
+    case 'pfpin': // care.jsx — Switch person
       if (e === pinOf(S.switchTo)) return switchTo(S.switchTo);
       S.pinErr = true; return render();
     case 'pin':
@@ -460,13 +469,13 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Backspace') ACTIONS['pin-del']();
 });
 
-// Saves the medicine form (meds.js). Buying more of one already listed is a restock, which fills its ring.
-function saveMed() {
+// Saves the medicine form (meds.jsx). Buying more of one already listed is a restock, which fills its ring.
+export function saveMed() {
   const f = S.mform, n = firstNum(f.qty);
   S.mErr = {};
   if (!(f.name || '').trim()) S.mErr.name = "Enter the medicine's name.";
   if (!n) S.mErr.qty = 'Enter how many you have, as a number — for example 20 tablets.';
-  if (Object.keys(S.mErr).length) return rerender();
+  if (Object.keys(S.mErr).length) return render();
   const name = f.name.trim(), existing = S.meds.find(m => m.title.toLowerCase().startsWith(name.toLowerCase()));
   if (existing) { existing.left += n; existing.total = existing.left; }
   else {
@@ -480,22 +489,14 @@ function saveMed() {
   S.stack.includes('mtlist') ? backTo('mtlist') : go('mtlist', { replace: true });
 }
 
-function bindMedForm() {
-  document.querySelectorAll('[data-f]').forEach(i => i.oninput = () => {
-    S.mform[i.dataset.f] = i.value;
-    if (S.mErr[i.dataset.f]) { delete S.mErr[i.dataset.f]; i.closest('.field').classList.remove('err'); i.closest('.field').nextElementSibling?.remove(); }
-  });
-  document.getElementById('mf').onsubmit = e => { e.preventDefault(); saveMed(); };
-}
-
 Object.assign(mount, {
   toomany: () => every(() => {
     S.pinWait--;
     if (S.pinWait <= 0) { S.pinTries = 5; S.sheet = null; return go('pin', { replace: true }); }
-    const el = document.getElementById('pinwait'); if (el) el.textContent = mmss(S.pinWait);
+    paint();
   }, 1000),
   hpharm: () => { // "This screen stays on while it's open."
-    navigator.wakeLock?.request('screen').then(lock => { window.onLeave = () => lock.release(); }).catch(() => {});
+    navigator.wakeLock?.request('screen').then(lock => onLeave(() => lock.release())).catch(() => {});
   },
 });
 
@@ -542,7 +543,7 @@ Object.assign(NUM, {
   pinnew: s => s.afterUnlock === 'pflock' ? 'PM02' : 'H22', pinnewconfirm: s => s.afterUnlock === 'pflock' ? 'PM03' : 'H23',
 });
 
-const U = { unlocked: true };
+export const U = { unlocked: true };
 FLOW.push(
   ['Health — visits', [
     ['H01', 'Health locked', 'Unlocks', 'Every time the tab opens, with a Clinica PIN — not the phone\'s, which others who share the phone may know. Unlock leads to 12 the first time, then to 15 or 17.', () => ({ screen: 'hlocked' })],

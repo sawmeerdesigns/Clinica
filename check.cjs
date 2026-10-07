@@ -1,11 +1,12 @@
-// Click-through check of the prototype flow. Run: npx -y -p playwright node check.js
+// Click-through check of the prototype flow. Run `npm run dev` (or `npm run preview`), then: npm run check
+// Set URL to point somewhere else, e.g. URL=http://localhost:4173 npm run check
 const { chromium } = require('playwright');
 const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('ok -', m); };
 (async () => {
   const b = await chromium.launch(process.env.EX ? { executablePath: process.env.EX } : {});
   const p = await b.newPage({ viewport: { width: 1200, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('file://' + __dirname + '/index.html');
+  await p.goto(process.env.URL || 'http://localhost:5173');
   await p.waitForTimeout(2200);
   assert(await p.isVisible('text=Choose your language'), 'splash auto-advances to language');
   await p.click('.tile[data-v="ne"]'); assert(await p.getAttribute('.tile[data-v="ne"]','aria-checked')==='true', 'Nepali tile selects');
@@ -68,7 +69,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.pick.time >> text=4:30 PM'); await p.click('text=Book 4:30 PM today');
   assert(await p.isVisible('.appbar >> text=Review booking'), 'review (B04)');
   await p.fill('#reason', 'Fever for three days');
-  await p.evaluate(() => { document.getElementById('cases').hidden = false; }); await p.selectOption('[data-s="failNext"]', 'taken'); await p.click('text=Confirm booking');
+  await p.evaluate(() => showCases()); await p.selectOption('[data-s="failNext"]', 'taken'); await p.click('text=Confirm booking');
   assert(await p.isVisible('text=4:30 PM was just taken'), 'booking failed (B08)');
   assert(await p.inputValue('#reason') === 'Fever for three days', 'reason kept after failure');
   await p.click('text=Choose another time');
@@ -163,7 +164,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await p.isVisible('text=Should I keep taking cetirizine?') && await p.isVisible('text=Add another'), 'question saved (A19)');
   await p.fill('#ask-in', 'Summarise my last visit'); await p.press('#ask-in', 'Enter'); await p.waitForTimeout(800);
   assert(await p.isVisible('text=Unlock with PIN'), 'new conversation asks for the PIN again');
-  await p.evaluate(() => { document.getElementById('cases').hidden = false; }); await p.check('#offline');
+  await p.evaluate(() => showCases()); await p.check('#offline');
   await p.fill('#ask-in', 'When is my next visit?'); await p.press('#ask-in', 'Enter'); await p.waitForTimeout(800);
   assert(await p.isVisible('text=Saved at 9:12 AM'), 'offline answer (A16)');
   await p.uncheck('#offline');
@@ -187,7 +188,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.evaluate(() => jumpTo('C02')); await p.click('#phone >> text=So you get a reminder too'); await p.click('.syscal >> text=Add');
   await p.click('button:text-is("Cancel visit")'); await p.click('.csheet >> text=Cancel visit');
   assert(await p.isVisible('#phone >> text=Remove it from your calendar'), 'cancelled after adding → remove it (K06)');
-  await p.evaluate(() => jumpTo('B05')); await p.evaluate(() => { document.getElementById('cases').hidden = false; }); await p.check('[data-s="calOff"]');
+  await p.evaluate(() => jumpTo('B05')); await p.evaluate(() => showCases()); await p.check('[data-s="calOff"]');
   await p.click('#phone >> text=Add to calendar'); assert(await p.isVisible("#phone >> text=Clinica can't add to your calendar"), 'access refused (K04)');
   await scrim(); assert(!(await p.isVisible('.csheet')), 'Not now / scrim closes it'); await p.uncheck('[data-s="calOff"]');
   // ---- Care: visit day ----
@@ -249,7 +250,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   // ---- Section 2: more states ----
   const J = async n => { await p.evaluate(n => jumpTo(n), n); await p.waitForTimeout(150); };
   const P = sel => p.isVisible('#phone >> ' + sel);
-  await p.evaluate(() => { document.getElementById('cases').hidden = false; });
+  await p.evaluate(() => showCases());
   // booking for someone else; a reply that never came
   await J('B04'); await p.click('#phone >> text=Booking for'); assert(await P('text=Who is this visit for?'), 'who is this visit for (SB01)');
   await p.click('.radio-row:has-text("Ramesh Sharma")'); assert(!(await P('.sheet')) && await P('text=Ramesh Sharma'), 'choosing closes the sheet (SB02)');
@@ -340,8 +341,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.evaluate(() => start('full')); await p.waitForTimeout(2200); assert(await P('text=Choose your language'), 'Full: starts at the splash');
   await p.evaluate(() => jumpTo('B01')); await p.click('[data-case=edge]');
   for (const [v, t] of [['slow', 'Taking longer than usual'], ['session', 'Send a code to'], ['update', 'Update Clinica to keep going'], ['maint', 'Clinica is down for maintenance'], ['lock', 'Your 4:30 PM visit is running late'], ['push', 'Paracetamol is almost out of stock']]) {
-    await p.selectOption('#open-as', v); await p.click('#open-as + .mini'); assert(await P(`text=${t}`), `open the app as: ${v}`); }
-  await p.selectOption('#open-as', 'signedin'); await p.click('#open-as + .mini'); await p.waitForTimeout(1900); assert(await P('.sk'), 'signed in: splash, then Home loads (20, GX04)'); await p.waitForTimeout(1100);
+    await p.selectOption('#open-as', v); await p.click('#open-as + button'); assert(await P(`text=${t}`), `open the app as: ${v}`); }
+  await p.selectOption('#open-as', 'signedin'); await p.click('#open-as + button'); await p.waitForTimeout(1900); assert(await P('.sk'), 'signed in: splash, then Home loads (20, GX04)'); await p.waitForTimeout(1100);
   await p.selectOption('[data-s="homeState"]', 'cancelled'); assert(await P('text=Book another time'), 'doctor cancelled today (B09)');
   await p.selectOption('[data-s="homeState"]', 'walkin'); assert(await P('text=Waiting for Dr. Anita Joshi'), 'walk-in (B10)'); await p.selectOption('[data-s="homeState"]', 'default');
   await p.selectOption('#notif-set', 'meds'); await p.click('[aria-label^="Notifications"]'); assert(await P('text=Time for your Metformin'), 'medicine alerts (MT07)');

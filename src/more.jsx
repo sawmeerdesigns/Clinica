@@ -1,85 +1,94 @@
 // Clinica — "Section 2": more states across Home, booking, Care, Health, Profile, the Notification centre and Ask,
 // and states that apply across the app. Figma: zw3saW6ot26E6gWH20K3ux, section 546:19195.
-// Most states live beside the screens they vary (booking.js, care.js, health.js, ask.js); this file holds the
+// Most states live beside the screens they vary (booking.jsx, care.jsx, health.jsx, ask.jsx); this file holds the
 // new sheets and standalone screens, and the side-panel entries.
+import { Fragment } from 'react';
+import { Phone, RECORDS, btn, empty, homeInd, statusBar, toHome } from './app.jsx';
+import { T, acts, answer, ask, feedback, say, src, words } from './ask.jsx';
+import { BOOKING_STACK, DOCTORS, bookFor, filtMatch, label, plural, rel, row, rows, tag, when } from './booking.jsx';
+import { MAPS, NOTIFS, emergency, setting } from './care.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, fresh, go, later, render, reset } from './core.jsx';
+import { errLine, keypad, list, openHealth, pinDots, unlock } from './health.jsx';
+import { MED_NOTIFS, ring } from './meds.jsx';
+import { clock, filtered, img, now, patients, people, person, results } from './staff.jsx';
 
-const radioRow = (on, label, act) => `<button class="radio-row" role="radio" aria-checked="${on}" data-act="${esc(act)}"><span class="ring"></span>${label}</button>`;
-const sheetOf = (inner, label) => `<div class="scrim" data-act="sheet-close"></div>
-  <div class="sheet" role="dialog" aria-modal="true" aria-label="${label}"><span class="grabber"></span>${inner}</div><div class="sheet-home"></div>`;
+export const radioRow = (on, label, act) => <button className="radio-row" role="radio" aria-checked={on} data-act={act}><span className="ring"></span>{label}</button>;
+export const sheetOf = (inner, label) => <><div className="scrim" data-act="sheet-close"></div>
+  <div className="sheet" role="dialog" aria-modal="true" aria-label={label}><span className="grabber"></span>{inner}</div><div className="sheet-home"></div></>;
 
 Object.assign(OVERLAY, {
   // Only people whose records use this phone number. Choosing closes the sheet — a single choice needs no Done.
-  bookfor: () => sheetOf(`
-    <div class="stack4"><p class="h-s">Who is this visit for?</p><p class="body-s">People whose clinic records use this phone number. To add someone, ask at reception.</p></div>
-    <div class="stack4" role="radiogroup" aria-label="Booking for"><p class="sec-label lh20" style="color:var(--text-primary)">Booking for</p>
-      ${[S.fullName, ...RECORDS.map(r => r.name).filter(n => n !== S.fullName)].map(n =>
-        radioRow((S.bookFor || S.fullName) === n, n === S.fullName ? `${esc(n)} (you)` : esc(n), `book-for:${n}`)).join('')}</div>
-    ${btn('Cancel', 'sheet-close', { kind: 'secondary' })}`, 'Who is this visit for?'),
+  bookfor: () => sheetOf(<>
+    <div className="stack4"><p className="h-s">Who is this visit for?</p><p className="body-s">People whose clinic records use this phone number. To add someone, ask at reception.</p></div>
+    <div className="stack4" role="radiogroup" aria-label="Booking for"><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>Booking for</p>
+      {[S.fullName, ...RECORDS.map(r => r.name).filter(n => n !== S.fullName)].map(n =>
+        <Fragment key={n}>{radioRow((S.bookFor || S.fullName) === n, n === S.fullName ? `${n} (you)` : n, `book-for:${n}`)}</Fragment>)}</div>
+    {btn('Cancel', 'sheet-close', { kind: 'secondary' })}</>, 'Who is this visit for?'),
 
   // Two filters that matter here. The button states the count before it's applied.
   filter: () => {
     const f = S.fdraft, n = Object.keys(DOCTORS).filter(id => DOCTORS[id].spec === S.specialty && filtMatch(id, f)).length;
-    return sheetOf(`
-      <p class="h-s">Filter doctors</p>
-      <div class="list" style="margin:0 -16px">${setting('Available today', 'Only doctors with a time left today', f.today, 'fd-today')}</div>
-      <div class="stack4" role="radiogroup" aria-label="Doctor"><p class="sec-label lh20" style="color:var(--text-primary)">Doctor</p>
-        <div class="radio-inline">${['Any', 'Female', 'Male'].map(v => radioRow(f.sex === v, v, `fd-sex:${v}`)).join('')}</div></div>
-      <div class="stack12">${btn(n ? `Show ${plural(n, 'doctor')}` : 'No doctors match', 'filter-apply', { disabled: !n })}${btn('Clear filters', 'filter-clear', { kind: 'secondary' })}</div>`, 'Filter doctors');
+    return sheetOf(<>
+      <p className="h-s">Filter doctors</p>
+      <div className="list" style={{ margin: '0 -16px' }}>{setting('Available today', 'Only doctors with a time left today', f.today, 'fd-today')}</div>
+      <div className="stack4" role="radiogroup" aria-label="Doctor"><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>Doctor</p>
+        <div className="radio-inline">{['Any', 'Female', 'Male'].map(v => <Fragment key={v}>{radioRow(f.sex === v, v, `fd-sex:${v}`)}</Fragment>)}</div></div>
+      <div className="stack12">{btn(n ? `Show ${plural(n, 'doctor')}` : 'No doctors match', 'filter-apply', { disabled: !n })}{btn('Clear filters', 'filter-clear', { kind: 'secondary' })}</div></>, 'Filter doctors');
   },
 
   // The real PIN step, as a sheet over the conversation.
-  askpin: () => sheetOf(`
-    <div class="stack4" style="text-align:center"><p class="h-s">Enter your Clinica PIN</p>
-      <p class="body-s">${S.chat.findLast?.(t => t.then)?.then === 'lastvisit' ? 'To see your visit notes.' : 'To see your health records.'}</p></div>
-    <div class="entry" style="padding:0">${pinDots(S.pinEntry.length, S.pinErr)}${S.pinErr ? errLine("That PIN didn't match. Try again.") : ''}</div>
-    <div style="margin:0 -16px">${keypad()}</div>
-    ${btn('Cancel', 'sheet-close', { kind: 'secondary' })}`, 'Enter your Clinica PIN'),
+  askpin: () => sheetOf(<>
+    <div className="stack4" style={{ textAlign: 'center' }}><p className="h-s">Enter your Clinica PIN</p>
+      <p className="body-s">{S.chat.findLast?.(t => t.then)?.then === 'lastvisit' ? 'To see your visit notes.' : 'To see your health records.'}</p></div>
+    <div className="entry" style={{ padding: 0 }}>{pinDots(S.pinEntry.length, S.pinErr)}{S.pinErr ? errLine("That PIN didn't match. Try again.") : null}</div>
+    <div style={{ margin: '0 -16px' }}>{keypad()}</div>
+    {btn('Cancel', 'sheet-close', { kind: 'secondary' })}</>, 'Enter your Clinica PIN'),
 
   // The phone's own permission prompt. Tapping outside does nothing: the OS alert is modal.
-  micperm: () => `<div class="scrim"></div>
-    <div class="sys-alert" role="alertdialog" aria-modal="true" aria-labelledby="sa-t">
-      <div class="sa-text"><p class="sa-t" id="sa-t">Let Clinica use the microphone?</p><p class="body-s">Clinica listens only while you're asking a question.</p></div>
-      <div class="sa-btns"><button data-act="mic-deny">Don't allow</button><button data-act="mic-allow"><b>Allow</b></button></div>
-    </div>`,
+  micperm: () => <><div className="scrim"></div>
+    <div className="sys-alert" role="alertdialog" aria-modal="true" aria-labelledby="sa-t">
+      <div className="sa-text"><p className="sa-t" id="sa-t">Let Clinica use the microphone?</p><p className="body-s">Clinica listens only while you're asking a question.</p></div>
+      <div className="sa-btns"><button data-act="mic-deny">Don't allow</button><button data-act="mic-allow"><b>Allow</b></button></div>
+    </div></>,
 });
 
 // A notification opened from the lock screen: the most public surface, so no names of tests, medicines or doctors.
-const LOCK_NOTIFS = [
+export const LOCK_NOTIFS = [
   { t: 'A lab report is ready', b: 'Open Clinica to see it.', when: 'now', act: 'lock-open:report' },
   { t: 'Your 4:30 PM visit is running late', b: "Your slot is kept. We'll message you when it's time.", when: '10m ago', act: 'lock-open:late' },
 ];
 // The Notification centre, with more kinds of update. The follow-up says only that one is due — not what for.
-const MORE_NOTIFS = [
+export const MORE_NOTIFS = [
   { g: 'Today', icon: 'lt-check-circle.svg', t: 'Dr. Sharma is back on time', b: 'Your 4:30 PM slot is on time. Check in when you arrive.', when: 'Just now', go: 'ontime' },
   { g: 'Today', icon: 'lt-calendar.svg', t: 'City Hospital cancelled your visit', b: "Dr. Sharma can't see patients that day. Book another time.", when: '1 hour ago', go: 'clinic-cancel' },
   { g: 'Earlier', icon: 'lt-calendar.svg', t: 'A follow-up is due', b: 'Book a time that suits you.', when: 'Yesterday', go: 'fu', read: true },
   { g: 'Earlier', icon: 'lt-document.svg', t: 'Your visit notes are ready', b: 'Open Health to read them.', when: 'Aug 28', go: 'hvisit', read: true },
 ];
 
-const blocking = (icon, title, body, actions, after = '') => `
-  <div class="screen">
-    ${statusBar()}
-    <div class="body" style="justify-content:center;padding:0 16px 16px;gap:0">${empty(icon, title, body, actions)}${after}</div>
-    ${homeInd()}
-  </div>`;
+export const blocking = (icon, title, body, actions, after = null) => (
+  <div className="screen">
+    {statusBar()}
+    <div className="body" style={{ justifyContent: 'center', padding: '0 16px 16px', gap: 0 }}>{empty(icon, title, body, actions)}{after}</div>
+    {homeInd()}
+  </div>);
 
 Object.assign(SCREENS, {
-  lockscreen: () => `
-    <div class="screen lock">
-      <img src="${A}lt-lock.svg" width="20" height="20" alt="Locked">
-      <p class="l-clock">9:41</p><p class="l-date">Thursday, 28 August</p>
-      <div style="height:32px"></div>
-      ${LOCK_NOTIFS.map(n => `<a href="#" class="l-card" data-act="${n.act}"><span class="l-app"><b>CLINICA</b><span>${n.when}</span></span>
-        <span class="l-t">${n.t}</span><span class="l-b">${n.b}</span></a>`).join('')}
-      <div class="l-home"></div>
-    </div>`,
+  lockscreen: () => (
+    <div className="screen lock">
+      <img src={`${A}lt-lock.svg`} width="20" height="20" alt="Locked" />
+      <p className="l-clock">9:41</p><p className="l-date">Thursday, 28 August</p>
+      <div style={{ height: 32 }}></div>
+      {LOCK_NOTIFS.map(n => <a key={n.act} href="#" className="l-card" data-act={n.act}><span className="l-app"><b>CLINICA</b><span>{n.when}</span></span>
+        <span className="l-t">{n.t}</span><span className="l-b">{n.b}</span></a>)}
+      <div className="l-home"></div>
+    </div>),
 
   // When the app can't be used, a way to reach help stays on screen.
   update: () => blocking('icon-download-secondary-28.svg', 'Update Clinica to keep going', 'This version is out of date. The update is free.',
-    btn('Update', 'os:App store', { size: 'l' }) + '<a class="btn secondary l" href="tel:+97710000000">Call the clinic</a>',
-    '<p class="body-s" style="padding:0 16px">In an emergency, call <a class="link" href="tel:102">102</a>.</p>'),
+    <>{btn('Update', 'os:App store', { size: 'l' })}<a className="btn secondary l" href="tel:+97710000000">Call the clinic</a></>,
+    <p className="body-s" style={{ padding: '0 16px' }}>In an emergency, call <a className="link" href="tel:102">102</a>.</p>),
   maint: () => blocking('icon-settings-secondary-28.svg', 'Clinica is down for maintenance', 'Scheduled until 6:00 AM. Your records are safe.',
-    '<a class="btn primary l" href="tel:+97714412345">Call reception</a><a class="btn secondary l" href="tel:102">Call 102</a>'),
+    <><a className="btn primary l" href="tel:+97714412345">Call reception</a><a className="btn secondary l" href="tel:102">Call 102</a></>),
 });
 
 Object.assign(ACTIONS, {
@@ -90,14 +99,17 @@ Object.assign(ACTIONS, {
 });
 
 Object.assign(NUM, { lockscreen: () => 'NM03', update: () => 'GX08', maint: () => 'GX09' });
-const notifsNum = NUM.notifs;
-NUM.notifs = s => s.notifs.some(n => n.go === 'ontime') ? 'NM02' : !s.healthEmpty && s.notifs.length && s.notifs.every(n => n.read) ? 'NM01' : notifsNum(s);
+later(() => { // wraps the Notification centre's number from meds.jsx
+  const notifsNum = NUM.notifs;
+  NUM.notifs = s => s.notifs.some(n => n.go === 'ontime') ? 'NM02' : !s.healthEmpty && s.notifs.length && s.notifs.every(n => n.read) ? 'NM01' : notifsNum(s);
+}, ORDER.more);
 
 // ---------- side panel ----------
-const TODAY_HOME = { screen: 'home', meds: fresh().meds.map(m => ({ ...m, left: m.total })) }; // Figma's Home states show no low stock
-const RESCHED = { screen: 'cresched', stack: ['care', 'cappt'], rsKey: 'fu', rsDay: 2 };
-const HU = { unlocked: true };
-const PFS = ['pf'];
+export let TODAY_HOME; // Figma's Home states show no low stock
+later(() => { TODAY_HOME = { screen: 'home', meds: fresh().meds.map(m => ({ ...m, left: m.total })) }; }, ORDER.more);
+export const RESCHED = { screen: 'cresched', stack: ['care', 'cappt'], rsKey: 'fu', rsDay: 2 };
+export const HU = { unlocked: true };
+export const PFS = ['pf'];
 FLOW.push(
   ['Home — states', [
     ['SH01', 'Home — nothing booked', 'A patient with nothing booked', "The card keeps its place, so Home doesn't reshuffle when a visit is booked. With nothing new, the bell is quiet: no dot.", () => ({ screen: 'home', careEmpty: true, followup: null, healthEmpty: true })],
@@ -191,17 +203,17 @@ FLOW.push(
 
 // ---------- System prompts (prototype overlays, section 549:19196) ----------
 // The phone's own action sheet before a call, the maps hand-off, settings, a saved file or the calendar.
-function openSys(p) { S.sys = p; S.sheet = 'sys'; rerender(); }
-const CLINIC_TEL = 'tel:+97714412345';
-const SYS_OS = {
+export function openSys(p) { S.sys = p; S.sheet = 'sys'; render(); }
+export const CLINIC_TEL = 'tel:+97714412345';
+export const SYS_OS = {
   'Phone settings': () => ({ title: "Open your phone's settings for Clinica?", sub: 'You can turn on notifications or calendar access there.', confirm: 'Open Settings' }),
   Calendar: () => ({ title: `Open your calendar at ${S.cancelled?.day || 'Thu, Sep 11'}?`, sub: 'You can delete the old visit there.', confirm: 'Open Calendar' }),
 };
-function interceptLink(e) {
+export function interceptLink(e) {
   const ok = e.target.closest('.as a.as-btn');
   if (ok) { // the sheet's own confirm goes through to the phone, then the sheet closes
     if (ok.getAttribute('href') === '#') e.preventDefault();
-    setTimeout(() => { S.sheet = null; rerender(); });
+    setTimeout(() => { S.sheet = null; render(); });
     return true;
   }
   const a = e.target.closest('a[href^="tel:"], a[href^="https://www.google.com/maps"]');
@@ -214,15 +226,15 @@ function interceptLink(e) {
   return true;
 }
 OVERLAY.sys = () => {
-  const p = S.sys, go = p.href ? `href="${p.href}" ${p.blank || !p.href.startsWith('tel:') ? 'target="_blank" rel="noopener"' : ''}` : 'href="#"';
-  return `<div class="scrim" data-act="sheet-close"></div>
-  <div class="as" role="dialog" aria-modal="true" aria-label="${esc(p.title)}">
-    <div class="as-group"><div class="as-msg"><p class="as-t">${esc(p.title)}</p><p>${esc(p.sub)}</p></div>
-      <a class="as-btn" ${go}>${esc(p.confirm)}</a></div>
-    <button class="as-btn as-cancel" data-act="sheet-close">Cancel</button>
-  </div>`;
+  const p = S.sys, link = p.href ? { href: p.href, ...(p.blank || !p.href.startsWith('tel:') ? { target: '_blank', rel: 'noopener' } : {}) } : { href: '#' };
+  return <><div className="scrim" data-act="sheet-close"></div>
+  <div className="as" role="dialog" aria-modal="true" aria-label={p.title}>
+    <div className="as-group"><div className="as-msg"><p className="as-t">{p.title}</p><p>{p.sub}</p></div>
+      <a className="as-btn" {...link}>{p.confirm}</a></div>
+    <button className="as-btn as-cancel" data-act="sheet-close">Cancel</button>
+  </div></>;
 };
-const SYSP = (title, sub, confirm) => () => ({ screen: 'home', sheet: 'sys', sys: { title, sub, confirm, href: '#' } });
+export const SYSP = (title, sub, confirm) => () => ({ screen: 'home', sheet: 'sys', sys: { title, sub, confirm, href: '#' } });
 FLOW.push(
   ['Book a visit — other doctors', [
     ['OD11', 'Doctor profile — Ramesh Shrestha', 'From Find doctor', "From Find doctor. Available today; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'rs', day: 0, time: '11:30 AM' })],
@@ -241,18 +253,18 @@ FLOW.push(
     ['SY6', 'Open calendar', 'Open calendar, after a cancellation', 'Opens the calendar at the old visit, so it can be deleted.', () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', day: 'Thu, Sep 11', cal: true }, sheet: 'sys', sys: SYS_OS.Calendar() })],
   ]],
 );
-const SYS_NUM = p => ({ 'City Hospital reception': 'SY1', Ambulance: 'SY2', 'Open Maps for directions to': 'SY3' })[p.title]
+export const SYS_NUM = p => ({ 'City Hospital reception': 'SY1', Ambulance: 'SY2', 'Open Maps for directions to': 'SY3' })[p.title]
   || ({ 'Open Settings': 'SY4', 'Open file': 'SY5', 'Open Calendar': 'SY6' })[p.confirm];
-{ const n = { ...NUM }; // system prompts light their own row
+later(() => { const n = { ...NUM }; // system prompts light their own row
   for (const k of Object.keys(n)) NUM[k] = s => (s.sheet === 'sys' && SYS_NUM(s.sys)) || n[k](s);
   NUM.doctor = (f => s => s.doc === 'rs' ? 'OD11' : s.doc === 'aj' ? 'OD14' : f(s))(NUM.doctor);
   NUM.review = (f => s => s.sheet ? f(s) : s.doc === 'rs' ? 'OD12' : s.doc === 'aj' ? 'OD15' : f(s))(NUM.review);
-  NUM.confirmed = (f => s => s.sheet ? f(s) : (s.booked || s.appt).doc === 'rs' ? 'OD13' : (s.booked || s.appt).doc === 'aj' ? 'OD16' : f(s))(NUM.confirmed); }
+  NUM.confirmed = (f => s => s.sheet ? f(s) : (s.booked || s.appt).doc === 'rs' ? 'OD13' : (s.booked || s.appt).doc === 'aj' ? 'OD16' : f(s))(NUM.confirmed); }, ORDER.more);
 
 // ---------- Demo inputs: situations the patient can't tap their way into ----------
-function openAs(v) { // reopen the app, keeping the patient's data
+export function openAs(v) { // reopen the app, keeping the patient's data
   const [screen, extra] = { signedin: ['returning'], slow: ['home', { loading: 'slow' }], session: ['session'], update: ['update'], maint: ['maint'], lock: ['lockscreen'], push: ['mtpush'] }[v];
   Object.assign(S, { stack: [], sheet: null, picker: null, bio: null, unlocked: false, loading: null, screen }, extra || {});
   render();
 }
-function notifSet(v) { S.notifs = ({ visits: NOTIFS, more: MORE_NOTIFS, meds: MED_NOTIFS })[v].map(n => ({ ...n })); render(); }
+export function notifSet(v) { S.notifs = ({ visits: NOTIFS, more: MORE_NOTIFS, meds: MED_NOTIFS })[v].map(n => ({ ...n })); render(); }
