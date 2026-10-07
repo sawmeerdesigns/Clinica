@@ -1,93 +1,100 @@
 // Clinica — Ask: the Assistant tab.
-// Figma: zw3saW6ot26E6gWH20K3ux, section 158:4493. Plugs into app.js (SCREENS, mount, ACTIONS, FLOW, NUM)
-// and reuses pieces from booking.js and health.js.
+// Figma: zw3saW6ot26E6gWH20K3ux, section 158:4493. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM)
+// and reuses pieces from booking.jsx and health.jsx.
+import { Fragment, createElement } from 'react';
+import { Phone, btn, empty, heading, homeInd, start, statusBar, support } from './app.jsx';
+import { DOCTORS, bar, iconBtn, label, navBar, row, rows, tag, when } from './booking.jsx';
+import { emergency, notice, openCal } from './care.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, extraState, go, mount, paint, render } from './core.jsx';
+import { RX, RX2, VISITS, centred, field, lbl, lead, medText, unlock } from './health.jsx';
+import { chip, img, now, patients, person, results } from './staff.jsx';
 
-const EXTRA_STATE_ASK = () => ({
+export const EXTRA_STATE_ASK = () => ({
   askSeen: false, chat: [], askUnlocked: false, askInput: '', listening: false, offline: false,
   followup: null, askDay: 1, askTime: null, askQuestion: 'When can I stop taking paracetamol?',
 });
-{ const base = window.EXTRA_STATE; window.EXTRA_STATE = () => ({ ...base(), ...EXTRA_STATE_ASK() }); }
-Object.assign(S, EXTRA_STATE_ASK());
+extraState(EXTRA_STATE_ASK, ORDER.ask);
 
-const CHIPS = [
+export const CHIPS = [
   ['icon-clipboard-action-18.svg', 'Prepare for my visit'],
   ['icon-location-action-18.svg', 'Where do I go?'],
   ['icon-document-action-18.svg', 'Summarise my last visit'],
   ['icon-calendar-action-18.svg', "What's coming up?"],
 ];
-const FOLLOW_DAYS = [['Wed', 'Sep 10'], ['Thu', 'Sep 11'], ['Fri', 'Sep 12'], ['Sat', 'Sep 13', true], ['Sun', 'Sep 14'], ['Mon', 'Sep 15'], ['Tue', 'Sep 16']];
-const FOLLOW_TIMES = [['9:00 AM', true], ['10:30 AM'], ['11:00 AM'], ['3:30 PM'], ['4:00 PM', true], ['4:30 PM']];
-const HEALTH_KEYS = ['lastvisit', 'visit12', 'which', 'rx', 'report', 'result', 'reviewing']; // these open through the lock
-const FB_KEYS = ['coming', 'where', 'lastvisit', 'visit12', 'rx', 'prepare', 'report', 'result', 'reviewing', 'insurance', 'unknown']; // answers that can be rated
+export const FOLLOW_DAYS = [['Wed', 'Sep 10'], ['Thu', 'Sep 11'], ['Fri', 'Sep 12'], ['Sat', 'Sep 13', true], ['Sun', 'Sep 14'], ['Mon', 'Sep 15'], ['Tue', 'Sep 16']];
+export const FOLLOW_TIMES = [['9:00 AM', true], ['10:30 AM'], ['11:00 AM'], ['3:30 PM'], ['4:00 PM', true], ['4:30 PM']];
+export const HEALTH_KEYS = ['lastvisit', 'visit12', 'which', 'rx', 'report', 'result', 'reviewing']; // these open through the lock
+export const FB_KEYS = ['coming', 'where', 'lastvisit', 'visit12', 'rx', 'prepare', 'report', 'result', 'reviewing', 'insurance', 'unknown']; // answers that can be rated
 
 // ---------- pieces ----------
-const src = (icon, text) => `<p class="source"><img src="${A}${icon}" width="16" height="16" alt="">${text}</p>`;
-const acts = (...b) => `<div class="ans-acts">${b.join('')}</div>`;
-const obtn = (label, act) => `<button class="btn secondary l hug" data-act="${act}">${label}</button>`;
-const ocall = label => `<a class="btn secondary l hug" href="tel:+97710000000">${label}</a>`;
-const say = t => `<p class="ans-p">${t}</p>`;
-const chipRow = items => `<div class="chips">${items.map(([i, t, a]) => { const ic = i ? `<img src="${A}${i}" width="18" height="18" alt="">` : '';
-  return a.startsWith('tel:') ? `<a class="chip" href="${a}">${ic}${t}</a>` : `<button class="chip" data-act="${esc(a)}">${ic}${t}</button>`; }).join('')}</div>`;
-const words = (who, text) => `<div class="words"><span class="bar"></span><div><p class="w-who">${who} wrote</p><p class="w-text">${text}</p></div></div>`;
-const noteCard = (icon, title, body, cls = '', extra = '') => `<div class="card notice-row ${cls}">${icon ? lead(icon) : ''}
-  <div class="nr-t"><div class="text"><p class="h-s">${title}</p><p class="body-s">${body}</p></div>${extra}</div></div>`;
-const visitCard = (when, where, act) => `<${act ? 'button' : 'div'} class="card appt" ${act ? `data-act="${act}"` : ''}>
-  <span class="avatar l">PS</span>
-  <span class="appt-t"><span class="h-s">Dr. Priya Sharma</span><span class="when">${when}</span><span class="where">${where}</span></span>
-  ${act ? `<img src="${A}icon-chevron-right.svg" width="20" height="20" alt="">` : ''}</${act ? 'button' : 'div'}>`;
-const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today'); };
-const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 2', S.followup === f && 'appt:fu'); // an old snapshot links nowhere
+export const src = (icon, text) => <p className="source"><img src={`${A}${icon}`} width="16" height="16" alt="" />{text}</p>;
+export const acts = (...b) => createElement('div', { className: 'ans-acts' }, ...b);
+export const obtn = (label, act) => <button className="btn secondary l hug" data-act={act}>{label}</button>;
+export const ocall = label => <a className="btn secondary l hug" href="tel:+97710000000">{label}</a>;
+export const say = t => <p className="ans-p">{t}</p>;
+export const chipRow = items => <div className="chips">{items.map(([i, t, a]) => { const ic = i ? <img src={`${A}${i}`} width="18" height="18" alt="" /> : null;
+  return a.startsWith('tel:') ? <a key={t} className="chip" href={a}>{ic}{t}</a> : <button key={t} className="chip" data-act={a}>{ic}{t}</button>; })}</div>;
+export const words = (who, text) => <div className="words"><span className="bar"></span><div><p className="w-who">{who} wrote</p><p className="w-text">{text}</p></div></div>;
+export const noteCard = (icon, title, body, cls = '', extra = null) => <div className={`card notice-row ${cls}`}>{icon ? lead(icon) : null}
+  <div className="nr-t"><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div></div>;
+export const visitCard = (when, where, act) => { const T = act ? 'button' : 'div'; return <T className="card appt" data-act={act || undefined}>
+  <span className="avatar l">PS</span>
+  <span className="appt-t"><span className="h-s">Dr. Priya Sharma</span><span className="when">{when}</span><span className="where">{where}</span></span>
+  {act ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}</T>; };
+export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today'); };
+export const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 2', S.followup === f && 'appt:fu'); // an old snapshot links nowhere
 
 // App bar, Chat shape: back arrow and its label as one tap target, title centred.
-const chatBar = (action = true) => `
-  <div class="appbar chat">
-    <div class="side"><a href="#" class="back-l" data-act="home"><span class="icon-btn"><img src="${A}icon-back.svg" width="24" height="24" alt=""></span>Home</a></div>
-    <div class="c-title">Ask</div>
-    <div class="side end">${action ? iconBtn('icon-add-24.svg', 'New conversation', 'ask-new') : '<div class="slot"></div>'}</div>
-  </div>`;
+export const chatBar = (action = true) => (
+  <div className="appbar chat">
+    <div className="side"><a href="#" className="back-l" data-act="home"><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>Home</a></div>
+    <div className="c-title">Ask</div>
+    <div className="side end">{action ? iconBtn('icon-add-24.svg', 'New conversation', 'ask-new') : <div className="slot"></div>}</div>
+  </div>);
 
 // Input bar: Voice beside the field; Send stays disabled until there is a question.
-function inputBar() {
+export function inputBar() {
   const typed = S.askInput.trim();
-  return `<div class="ask-input">
-    <div class="ib-row">
-      ${S.listening
-        ? `<div class="ib-field" role="status">Listening…</div>`
-        : `<input class="ib-in" id="ask-in" placeholder="Ask about your care" aria-label="Ask about your care" value="${esc(S.askInput)}" autocomplete="off">`}
-      <button class="ib-btn ${S.listening ? 'voice' : 'ghost'}" data-act="ask-voice" aria-pressed="${S.listening}" aria-label="${S.listening ? 'Stop listening' : 'Ask by voice'}">
-        <img src="${A}icon-mic${S.listening ? '-white' : ''}-24.svg" width="24" height="24" alt=""></button>
-      <button class="ib-btn ${typed ? 'send' : ''}" id="ask-send" data-act="ask-send" aria-label="Send" ${typed ? '' : 'disabled'}>
-        <img src="${A}icon-send-${typed ? 'white' : 'disabled'}-24.svg" width="24" height="24" alt=""></button>
+  return <div className="ask-input">
+    <div className="ib-row">
+      {S.listening
+        ? <div className="ib-field" role="status">Listening…</div>
+        : <input className="ib-in" id="ask-in" placeholder="Ask about your care" aria-label="Ask about your care" autoComplete="off" value={S.askInput}
+            onChange={e => { S.askInput = e.target.value; paint(); }} onKeyDown={e => { if (e.key === 'Enter') ask(e.target.value); }} />}
+      <button className={`ib-btn ${S.listening ? 'voice' : 'ghost'}`} data-act="ask-voice" aria-pressed={S.listening} aria-label={S.listening ? 'Stop listening' : 'Ask by voice'}>
+        <img src={`${A}icon-mic${S.listening ? '-white' : ''}-24.svg`} width="24" height="24" alt="" /></button>
+      <button className={`ib-btn ${typed ? 'send' : ''}`} id="ask-send" data-act="ask-send" aria-label="Send" disabled={!typed}>
+        <img src={`${A}icon-send-${typed ? 'white' : 'disabled'}-24.svg`} width="24" height="24" alt="" /></button>
     </div>
-    <p class="body-s tertiary" style="text-align:center">Answers come from your Clinica records, not a doctor.</p>
-  </div>`;
+    <p className="body-s tertiary" style={{ textAlign: 'center' }}>Answers come from your Clinica records, not a doctor.</p>
+  </div>;
 }
 
 // ---------- answers ----------
-function answer(turn) {
+export function answer(turn) {
   const k = turn.key;
   const fu = 'fu' in turn ? turn.fu : S.followup; // an answer stays as it was when it was given
   switch (k) {
     case 'coming': {
-      return [say(fu ? 'You have two visits coming up.' : 'You have one visit coming up.'), todayCard(true), fu ? followCard(fu) : '',
+      return [say(fu ? 'You have two visits coming up.' : 'You have one visit coming up.'), todayCard(true), fu ? followCard(fu) : null,
         src('icon-calendar-tertiary-16.svg', 'From your appointments'), acts(obtn('View appointments', 'care-tab'))];
     }
     case 'where': return [say('Go to OPD 2 at City Hospital. Arrive by 4:15 PM and check in at reception.'), todayCard(true),
       src('icon-calendar-tertiary-16.svg', 'From your appointments'), acts(obtn('View appointment', 'appt:today'))];
     case 'lock': return [say("That's in your health records, which are locked on this phone."),
       noteCard('lt-lock.svg', 'Enter your Clinica PIN', 'On a shared phone, your records stay locked until you enter your PIN.', '',
-        `<button class="btn secondary l" data-act="ask-unlock">Unlock with PIN</button>`)];
+        <button className="btn secondary l" data-act="ask-unlock">Unlock with PIN</button>)];
     case 'lastvisit': return [say('Your visit with Dr. Priya Sharma on Aug 28, General medicine.'),
       words('Dr. Priya Sharma', 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.'),
-      `<div class="card">${lead('lt-rx.svg')}${medText({ ...RX[0], how: '1 tablet, three times a day, after food' })}</div>`,
+      <div className="card">{lead('lt-rx.svg')}{medText({ ...RX[0], how: '1 tablet, three times a day, after food' })}</div>,
       say(fu ? `Your follow-up is booked for ${fu.day}, ${fu.time}.` : "A follow-up in 2 weeks isn't booked yet."),
       src('icon-description-16.svg', 'From your visit on Aug 28'),
-      acts(obtn('View visit', 'ask-visit:aug28'), fu ? '' : obtn('Book follow-up', 'ask-book'))];
+      acts(obtn('View visit', 'ask-visit:aug28'), fu ? null : obtn('Book follow-up', 'ask-book'))];
     // When a question could mean two records, Ask asks rather than guesses.
     case 'which': return [say('You had two visits in August. Which one do you mean?'),
       chipRow([['icon-calendar-action-18.svg', 'Aug 28 · Dr. Priya Sharma', 'ask-chip:Aug 28 · Dr. Priya Sharma'], ['icon-calendar-action-18.svg', 'Aug 12 · Dr. Ramesh Shrestha', 'ask-chip:Aug 12 · Dr. Ramesh Shrestha']])];
     case 'visit12': return [say('Your visit with Dr. Ramesh Shrestha on Aug 12, General medicine.'),
-      words('Dr. Ramesh Shrestha', VISITS.aug12.words), `<div class="card">${lead('lt-rx.svg')}${medText(RX2[0])}</div>`,
+      words('Dr. Ramesh Shrestha', VISITS.aug12.words), <div className="card">{lead('lt-rx.svg')}{medText(RX2[0])}</div>,
       say('No follow-up was needed.'), src('icon-description-16.svg', 'From your visit on Aug 12'), acts(obtn('View visit', 'ask-visit:aug12'))];
     case 'nocatch': return [say("I didn't catch that. Try again a little closer to the phone, or type your question."),
       chipRow([['icon-mic-action-18.svg', 'Speak again', 'ask-voice'], ['', 'Type instead', 'ask-type']])];
@@ -109,7 +116,7 @@ function answer(turn) {
       src('icon-lab-tertiary-16.svg', 'From your thyroid panel, Jul 3'), acts(obtn('View report', 'ask-open:hreport'))];
     case 'reviewing': return [say("Your CBC report is still with Dr. Priya Sharma. You'll get it with her explanation, and we'll message you when it's ready."),
       noteCard('lt-lab.svg', 'CBC blood test', 'Aug 28, City Hospital lab', '', tag('Being reviewed', 'neutral')),
-      `<p class="ans-warn">If you feel worse, don't wait for the report — call the clinic.</p>`, acts(ocall('Call the clinic'))];
+      <p className="ans-warn">If you feel worse, don't wait for the report — call the clinic.</p>, acts(ocall('Call the clinic'))];
     case 'insurance': return [say("Clinica doesn't keep insurance details, so I can't find them here. Reception at City Hospital can help."), acts(ocall('Call City Hospital'))];
     case 'unknown': return [say("I can't find that in your Clinica records. Reception at City Hospital can help."), acts(ocall('Call City Hospital'))];
     case 'offline': return [say("You're offline, so I can't look anything up. Here's your next visit, saved when you were last online:"),
@@ -117,38 +124,38 @@ function answer(turn) {
     case 'offline-only': return [say("You're offline, so I can't look anything up.")];
     case 'booked': return [say("Your follow-up is booked. We've sent the details by SMS."), followCard(fu),
       src('icon-calendar-tertiary-16.svg', 'From your appointments'),
-      acts(obtn('View appointment', 'appt:fu'), S.cal.fu ? '' : obtn('Add to calendar', 'ask-cal'))];
+      acts(obtn('View appointment', 'appt:fu'), S.cal.fu ? null : obtn('Add to calendar', 'ask-cal'))];
     case 'qsaved': return [say(`Saved with your health records, for today's ${S.appt.time} visit with Dr. Sharma.`),
-      noteCard('', 'Your question for Dr. Sharma', esc(turn.text), 'filled'),
+      noteCard('', 'Your question for Dr. Sharma', turn.text, 'filled'),
       acts(obtn('View appointment', 'appt:today'), obtn('Add another', 'ask-q'))];
   }
   return [];
 }
 
 // The Safety card: first and alone, and calling 102 is the first action.
-const safetyCard = () => `<div class="safety" role="alert">
-  <div class="sf-h"><img src="${A}icon-emergency-error-24.svg" width="24" height="24" alt=""><p class="h-s">If it's severe, call 102 now</p></div>
-  <p class="sf-b">Call 102 for an ambulance if the pain is severe or spreads to your arm or jaw, or if you're short of breath.</p>
-  <p class="body-s">I can't check symptoms, but the clinic can help.</p>
-  <a class="btn primary" href="tel:102"><img src="${A}icon-call-on-action-24.svg" width="24" height="24" alt="">Call 102</a>
-  <a class="btn secondary" href="tel:+97710000000"><img src="${A}icon-call.svg" width="24" height="24" alt="">Call City Hospital</a>
-</div>`;
+export const safetyCard = () => <div className="safety" role="alert">
+  <div className="sf-h"><img src={`${A}icon-emergency-error-24.svg`} width="24" height="24" alt="" /><p className="h-s">If it's severe, call 102 now</p></div>
+  <p className="sf-b">Call 102 for an ambulance if the pain is severe or spreads to your arm or jaw, or if you're short of breath.</p>
+  <p className="body-s">I can't check symptoms, but the clinic can help.</p>
+  <a className="btn primary" href="tel:102"><img src={`${A}icon-call-on-action-24.svg`} width="24" height="24" alt="" />Call 102</a>
+  <a className="btn secondary" href="tel:+97710000000"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />Call City Hospital</a>
+</div>;
 
 // Asks about the answer, not the doctor's words. Only the rating is sent — never the conversation.
-const feedback = t => t.fb === 'yes' ? '<p class="body-s">Thanks — that helps us improve Ask.</p>' : `<div class="fb">
-  <p class="fb-q">Was this what you needed?</p>${chipRow([['', 'Yes', 'ask-fb:yes'], ['', 'No', 'ask-fb:no']])}
-  <p class="body-s tertiary">Only your answer is sent — not this conversation.</p></div>`;
-const rateable = (t, i) => i === S.chat.length - 1 && FB_KEYS.includes(t.key) && t.fb !== 'hide' && t.fb !== 'no';
+export const feedback = t => t.fb === 'yes' ? <p className="body-s">Thanks — that helps us improve Ask.</p> : <div className="fb">
+  <p className="fb-q">Was this what you needed?</p>{chipRow([['', 'Yes', 'ask-fb:yes'], ['', 'No', 'ask-fb:no']])}
+  <p className="body-s tertiary">Only your answer is sent — not this conversation.</p></div>;
+export const rateable = (t, i) => i === S.chat.length - 1 && FB_KEYS.includes(t.key) && t.fb !== 'hide' && t.fb !== 'no';
 
-function turnHtml(t, i) {
-  const q = t.q ? `<div class="inset"><div class="qb"><p>${esc(t.q)}</p></div></div>` : '';
+export function turnHtml(t, i) {
+  const q = t.q ? <div className="inset"><div className="qb"><p>{t.q}</p></div></div> : null;
   if (t.pending) return q;
-  const a = t.key === 'urgent' ? safetyCard() : `<div class="answer">${answer(t).join('')}${rateable(t, i) || t.fb === 'yes' ? feedback(t) : ''}</div>`;
-  return q + `<div class="inset">${a}</div>`;
+  const a = t.key === 'urgent' ? safetyCard() : <div className="answer">{answer(t).map((x, j) => <Fragment key={j}>{x}</Fragment>)}{rateable(t, i) || t.fb === 'yes' ? feedback(t) : null}</div>;
+  return <>{q}<div className="inset">{a}</div></>;
 }
 
 // ---------- routing a question ----------
-function keyFor(text) {
+export function keyFor(text) {
   const q = text.toLowerCase();
   if (/chest pain|can't breathe|short of breath|breathing|bleeding|faint|unconscious|stroke|seizure|emergency|severe/.test(q)) return 'urgent';
   let k;
@@ -169,7 +176,7 @@ function keyFor(text) {
   return k;
 }
 
-function ask(text) {
+export function ask(text) {
   text = text.trim();
   if (!text) return;
   const key = keyFor(text);
@@ -180,8 +187,8 @@ function ask(text) {
   after(() => { S.chat.at(-1).pending = false; render(); }, 600); // answer arrives
 }
 
-// Called by health.js unlock() when the PIN was asked for from a conversation.
-function resolveAskLock() {
+// Called by health.jsx unlock() when the PIN was asked for from a conversation.
+export function resolveAskLock() {
   S.askUnlocked = true; // lasts until the conversation clears
   const t = [...S.chat].reverse().find(x => x.key === 'lock' && x.then);
   if (t) { t.key = t.then; t.then = null; }
@@ -190,113 +197,98 @@ function resolveAskLock() {
 
 // ---------- screens ----------
 Object.assign(SCREENS, {
-  askfirst: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ back: false, title: 'Ask' })}
-      <div class="body g20">
-        <div class="inset">${noteCard('', 'Messages is now Ask', 'To reach a person at the clinic, call reception.', 'info')}</div>
-        ${heading('Ask about your care', 'Find, summarise and prepare, from your own records at City Hospital.')}
-        ${rows([row('lt-calendar.svg', "What's coming up", 'And where to go when you arrive'), row('lt-document.svg', 'What your doctor told you', 'In their own words'),
+  askfirst: () => (
+    <div className="screen">
+      {statusBar()}{bar({ back: false, title: 'Ask' })}
+      <div className="body g20">
+        <div className="inset">{noteCard('', 'Messages is now Ask', 'To reach a person at the clinic, call reception.', 'info')}</div>
+        {heading('Ask about your care', 'Find, summarise and prepare, from your own records at City Hospital.')}
+        {rows([row('lt-calendar.svg', "What's coming up", 'And where to go when you arrive'), row('lt-document.svg', 'What your doctor told you', 'In their own words'),
           row('lt-clipboard.svg', 'What to do next', 'And how to prepare for a visit')])}
-        <div class="inset"><p class="ask-limit">It isn't a doctor. It can't check symptoms or give medical advice — for that, call the clinic, or 102 in an emergency.</p></div>
+        <div className="inset"><p className="ask-limit">It isn't a doctor. It can't check symptoms or give medical advice — for that, call the clinic, or 102 in an emergency.</p></div>
       </div>
-      <div class="cta">${btn('Start', 'ask-start')}</div>
-      ${homeInd()}
-    </div>`,
+      <div className="cta">{btn('Start', 'ask-start')}</div>
+      {homeInd()}
+    </div>),
 
   ask: () => {
-    if (!S.chat.length) return `
-    <div class="screen">
-      ${statusBar()}${chatBar(false)}
-      <div class="body g20 ${S.listening ? 'inert' : ''}">
-        <div class="inset greet2"><p class="g1">Good afternoon, ${esc(S.first)}</p><p class="lede">Here's what's coming up.</p></div>
-        ${S.micPerm === 'denied' ? `<div class="inset voice-off"><p class="body-s">Voice is off. You can still type.</p><button class="btn secondary s" data-act="os:Phone settings">Settings</button></div>` : ''}
-        <div class="inset stack8">${lbl('Today')}${todayCard(true)}</div>
-        <div class="inset stack8">${lbl('You could ask')}
-          <div class="chips">${CHIPS.map(([i, t]) => `<button class="chip" data-act="ask-chip:${esc(t)}" ${S.listening ? 'tabindex="-1"' : ''}><img src="${A}${i}" width="18" height="18" alt="">${t}</button>`).join('')}</div></div>
+    if (!S.chat.length) return (
+    <div className="screen">
+      {statusBar()}{chatBar(false)}
+      <div className={`body g20 ${S.listening ? 'inert' : ''}`}>
+        <div className="inset greet2"><p className="g1">Good afternoon, {S.first}</p><p className="lede">Here's what's coming up.</p></div>
+        {S.micPerm === 'denied' ? <div className="inset voice-off"><p className="body-s">Voice is off. You can still type.</p><button className="btn secondary s" data-act="os:Phone settings">Settings</button></div> : null}
+        <div className="inset stack8">{lbl('Today')}{todayCard(true)}</div>
+        <div className="inset stack8">{lbl('You could ask')}
+          <div className="chips">{CHIPS.map(([i, t]) => <button key={t} className="chip" data-act={`ask-chip:${t}`} tabIndex={S.listening ? -1 : undefined}><img src={`${A}${i}`} width="18" height="18" alt="" />{t}</button>)}</div></div>
       </div>
-      ${inputBar()}
-      ${homeInd()}
-    </div>`;
-    return `
-    <div class="screen">
-      ${statusBar()}${chatBar()}
-      <div class="thread" id="thread"><div class="thread-in">${S.chat.map(turnHtml).join('')}</div></div>
-      ${inputBar()}
-      ${homeInd()}
-    </div>`;
+      {inputBar()}
+      {homeInd()}
+    </div>);
+    return (
+    <div className="screen">
+      {statusBar()}{chatBar()}
+      <div className="thread" id="thread"><div className="thread-in">{S.chat.map((t, i) => <Fragment key={i}>{turnHtml(t, i)}</Fragment>)}</div></div>
+      {inputBar()}
+      {homeInd()}
+    </div>);
   },
 
-  askempty: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ back: false, title: 'Ask' })}
-      ${centred(empty('icon-help-28.svg', 'Nothing to look up yet',
+  askempty: () => (
+    <div className="screen">
+      {statusBar()}{bar({ back: false, title: 'Ask' })}
+      {centred(empty('icon-help-28.svg', 'Nothing to look up yet',
         'After your first visit, I can find your notes, medicines and reports. For now, I can help you book one.',
         btn('Book a visit', 'go:finddoctor', { size: 'l' })))}
-      ${inputBar()}
-      ${navBar('Ask')}
-    </div>`,
+      {inputBar()}
+      {navBar('Ask')}
+    </div>),
 
   askbook: () => {
     const can = S.askTime && !FOLLOW_TIMES.find(t => t[0] === S.askTime)[1];
     const [wd, date] = FOLLOW_DAYS[S.askDay];
-    return `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Book follow-up' })}
-      <div class="body g20">
-        <div class="inset"><div class="card"><span class="avatar">PS</span>
-          <span class="text doctor"><span class="h-s">Dr. Priya Sharma</span><span class="spec">General medicine</span>${tag('Follow-up from your Aug 28 visit', 'neutral')}</span></div></div>
-        <div class="inset stack8">${lbl('Choose a day')}
-          <div class="hscroll days" role="radiogroup" aria-label="Day">${FOLLOW_DAYS.map(([d, dt, closed], i) =>
-            `<button class="pick day" role="radio" aria-checked="${i === S.askDay}" ${closed ? 'disabled' : ''} data-act="ask-day:${i}" aria-label="${d}, ${dt}${closed ? ', closed' : ''}"><span class="d1">${d}</span><span class="d2">${dt}</span></button>`).join('')}</div></div>
-        <div class="inset stack8">${lbl('Choose a time')}
-          <div class="times" role="radiogroup" aria-label="Time">${FOLLOW_TIMES.map(([t, off]) =>
-            `<button class="pick time" role="radio" aria-checked="${t === S.askTime}" ${off ? 'disabled' : ''} data-act="ask-time:${t}" aria-label="${t}${off ? ', taken' : ''}">${t}</button>`).join('')}</div></div>
+    return (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Book follow-up' })}
+      <div className="body g20">
+        <div className="inset"><div className="card"><span className="avatar">PS</span>
+          <span className="text doctor"><span className="h-s">Dr. Priya Sharma</span><span className="spec">General medicine</span>{tag('Follow-up from your Aug 28 visit', 'neutral')}</span></div></div>
+        <div className="inset stack8">{lbl('Choose a day')}
+          <div className="hscroll days" role="radiogroup" aria-label="Day">{FOLLOW_DAYS.map(([d, dt, closed], i) =>
+            <button key={i} className="pick day" role="radio" aria-checked={i === S.askDay} disabled={!!closed} data-act={`ask-day:${i}`} aria-label={`${d}, ${dt}${closed ? ', closed' : ''}`}><span className="d1">{d}</span><span className="d2">{dt}</span></button>)}</div></div>
+        <div className="inset stack8">{lbl('Choose a time')}
+          <div className="times" role="radiogroup" aria-label="Time">{FOLLOW_TIMES.map(([t, off]) =>
+            <button key={t} className="pick time" role="radio" aria-checked={t === S.askTime} disabled={!!off} data-act={`ask-time:${t}`} aria-label={`${t}${off ? ', taken' : ''}`}>{t}</button>)}</div></div>
       </div>
-      <div class="cta">${btn(can ? `Book ${wd}, ${date}, ${S.askTime}` : 'Choose a time', 'ask-booked', { disabled: !can })}</div>
-      ${homeInd()}
-    </div>`;
+      <div className="cta">{btn(can ? `Book ${wd}, ${date}, ${S.askTime}` : 'Choose a time', 'ask-booked', { disabled: !can })}</div>
+      {homeInd()}
+    </div>);
   },
 
-  askq: () => `
-    <div class="screen">
-      ${statusBar()}${bar({ title: 'Add a question' })}
-      <div class="body g20">
-        ${heading('What would you like to ask Dr. Sharma?', "Write it down now so you don't forget it at your visit.")}
-        <div class="inset"><div class="field-wrap">
-          <label class="label" for="askq" style="line-height:20px">Your question</label>
-          <div class="field textarea"><textarea id="askq">${esc(S.askQuestion)}</textarea></div>
-          ${support('Kept with your health records, behind your Clinica PIN. Not sent to the clinic.')}
+  askq: () => (
+    <div className="screen">
+      {statusBar()}{bar({ title: 'Add a question' })}
+      <div className="body g20">
+        {heading('What would you like to ask Dr. Sharma?', "Write it down now so you don't forget it at your visit.")}
+        <div className="inset"><div className="field-wrap">
+          <label className="label" htmlFor="askq" style={{ lineHeight: '20px' }}>Your question</label>
+          <div className="field textarea"><textarea id="askq" value={S.askQuestion} onChange={e => { S.askQuestion = e.target.value; paint(); }}></textarea></div>
+          {support('Kept with your health records, behind your Clinica PIN. Not sent to the clinic.')}
         </div></div>
       </div>
-      <div class="cta">${btn('Save question', 'ask-save')}</div>
-      ${homeInd()}
-    </div>`,
+      <div className="cta">{btn('Save question', 'ask-save')}</div>
+      {homeInd()}
+    </div>),
 });
 
 // ---------- behaviour ----------
-function bindAskInput() {
-  const i = document.getElementById('ask-in');
-  if (!i) return;
-  i.oninput = () => {
-    S.askInput = i.value;
-    const s = document.getElementById('ask-send'), on = !!i.value.trim();
-    s.disabled = !on; s.classList.toggle('send', on);
-    s.querySelector('img').src = `${A}icon-send-${on ? 'white' : 'disabled'}-24.svg`;
-  };
-  i.onkeydown = e => { if (e.key === 'Enter') ask(i.value); };
-}
-
 Object.assign(mount, {
   ask: () => {
-    bindAskInput();
     const t = document.getElementById('thread');
     if (t) t.scrollTop = t.scrollHeight; // newest at the bottom, above the input bar
     if (S.listening) after(() => ask("What's coming up?"), 2200); // stand-in for speech recognition
   },
-  askempty: bindAskInput,
-  askbook: () => phone.querySelector('.days [aria-checked="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
-  askq: () => { const q = document.getElementById('askq'); q.oninput = () => { S.askQuestion = q.value; }; },
+  askbook: () => $phone().querySelector('.days [aria-checked="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
 });
 
 Object.assign(ACTIONS, {
@@ -327,8 +319,8 @@ Object.assign(ACTIONS, {
   'ask-unlock': () => { S.afterUnlock = 'ask'; if (!S.pin) return go('pincreate'); Object.assign(S, { sheet: 'askpin', pinEntry: '', pinErr: false }); render(); }, // a sheet over the conversation
   'ask-open': arg => go(arg), // records open through the unlock this conversation already has
   'ask-book': () => { S.askDay = 1; S.askTime = null; go('askbook'); },
-  'ask-day': arg => { S.askDay = +arg; S.askTime = null; rerender(); },
-  'ask-time': arg => { S.askTime = arg; rerender(); },
+  'ask-day': arg => { S.askDay = +arg; S.askTime = null; render(); },
+  'ask-time': arg => { S.askTime = arg; render(); },
   'ask-booked': () => { // the patient books it; the Assistant never books on its own
     const [wd, date] = FOLLOW_DAYS[S.askDay];
     S.followup = { day: `${wd}, ${date}`, time: S.askTime, iso: [2026, 8, 10 + S.askDay] };
@@ -347,7 +339,7 @@ Object.assign(ACTIONS, {
   },
 });
 
-const LAST_NUM = { which: 'AM02', nocatch: 'AM05', sorry: 'AM07', visit12: 'A06', coming: 'A04', lock: 'A05', lastvisit: 'A06', rx: 'A07', prepare: 'A08', report: 'A09', booked: 'A11', urgent: 'A12',
+export const LAST_NUM = { which: 'AM02', nocatch: 'AM05', sorry: 'AM07', visit12: 'A06', coming: 'A04', lock: 'A05', lastvisit: 'A06', rx: 'A07', prepare: 'A08', report: 'A09', booked: 'A11', urgent: 'A12',
   result: 'A13', reviewing: 'A14', insurance: 'A15', offline: 'A16', qsaved: 'A19' };
 Object.assign(NUM, {
   askfirst: () => 'A01',
@@ -357,9 +349,9 @@ Object.assign(NUM, {
   askbook: () => 'A10', askempty: () => 'A17', askq: () => 'A18',
 });
 
-const T = (q, key, extra = {}) => ({ q, key, fb: 'hide', ...extra }); // Figma's A-screens predate the rating
-const ASK = { screen: 'ask', askSeen: true };
-const FU = { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] };
+export const T = (q, key, extra = {}) => ({ q, key, fb: 'hide', ...extra }); // Figma's A-screens predate the rating
+export const ASK = { screen: 'ask', askSeen: true };
+export const FU = { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] };
 FLOW.push(
   ['Ask — starting', [
     ['A01', 'First open', 'First time the tab opens', "Says what it does and what it isn't. Existing users learn Messages is now Ask — and how to reach a person.", () => ({ screen: 'askfirst' })],

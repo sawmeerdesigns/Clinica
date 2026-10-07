@@ -1,19 +1,28 @@
 // Clinica — Care, Profile, Notification centre and Add to calendar.
-// Figma: zw3saW6ot26E6gWH20K3ux, section 542:19194. Plugs into app.js (SCREENS, mount, ACTIONS, FLOW, NUM, OVERLAY)
-// and reuses pieces from booking.js, health.js and ask.js.
+// Figma: zw3saW6ot26E6gWH20K3ux, section 542:19194. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM, OVERLAY)
+// and reuses pieces from booking.jsx, health.jsx and ask.jsx.
+import { Fragment } from 'react';
+import { AD_SHORT, Phone, RECORDS, bsText, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
+import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
+import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, extraState, go, later, mount, render, reset } from './core.jsx';
+import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
+import { med } from './meds.jsx';
+import { SYS_OS, openSys } from './more.jsx';
+import { counts, img, now, patients, people, person } from './staff.jsx';
 
-const MAPS = 'https://www.google.com/maps/search/?api=1&query=City+Hospital+Maharajgunj+Kathmandu';
-const CAL_NOTE = 'Check in at reception 15 minutes early. Details are in the Clinica app.';
-const NOTIFS = [
+export const MAPS = 'https://www.google.com/maps/search/?api=1&query=City+Hospital+Maharajgunj+Kathmandu';
+export const CAL_NOTE = 'Check in at reception 15 minutes early. Details are in the Clinica app.';
+export const NOTIFS = [
   { g: 'Today', icon: 'lt-schedule.svg', t: 'Dr. Sharma is running late', b: "Your 4:30 PM slot is kept. We'll message you when she's ready.", when: '10 min ago', go: 'late' },
   { g: 'Today', icon: 'lt-lab.svg', t: 'A lab report is ready', b: 'Open Health to see it.', when: '2 hours ago', go: 'hreport' },
   { g: 'Earlier', icon: 'lt-calendar.svg', t: 'Your visit is tomorrow', b: '4:30 PM with Dr. Priya Sharma at OPD 2. Arrive by 4:15 PM.', when: 'Yesterday', go: 'today', read: true },
   { g: 'Earlier', icon: 'lt-document.svg', t: 'Your visit notes are ready', b: 'From your visit on Aug 12. Open Health to read them.', when: 'Aug 13', go: 'hvisit', read: true },
 ];
 // Shown, not edited — the clinic's record counts. Other people's details are at reception.
-const DETAILS = { 'Anisha Sharma': { dob: '14 / 03 / 1994', sex: 'Female', no: 'CH-2381' } };
+export const DETAILS = { 'Anisha Sharma': { dob: '14 / 03 / 1994', sex: 'Female', no: 'CH-2381' } };
 
-const EXTRA_STATE_CARE = () => ({
+export const EXTRA_STATE_CARE = () => ({
   followup: { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] }, // booked, as Care 01 and Ask 04 show it
   careEmpty: false, visitDay: 'booked', cancelled: null, moved: null,
   rsKey: 'fu', rsDay: null, rsTime: null, rsErr: null, rsTaken: [], rsNone: false, cancelSoon: false,
@@ -21,49 +30,50 @@ const EXTRA_STATE_CARE = () => ({
   nset: { remind: true, late: true, fu: false, labs: true },
   notifs: NOTIFS.map(n => ({ ...n })), switchTo: 1,
 });
-{ const base = window.EXTRA_STATE; window.EXTRA_STATE = () => ({ ...base(), ...EXTRA_STATE_CARE() }); }
-Object.assign(S, EXTRA_STATE_CARE());
+extraState(EXTRA_STATE_CARE, ORDER.care);
 
 // ---------- pieces ----------
-const unread = () => !S.healthEmpty && S.notifs.some(n => !n.read);
-const sect = (label, inner, gap = 4) => `<div class="sect" style="gap:${gap}px"><div class="inset">${lbl(label)}</div>${inner}</div>`;
-const listP = items => `<div class="list">${items.join('<div class="sep page" aria-hidden="true"></div>')}</div>`; // Separator, Page inset
-const notice = (tone, title, body, extra = '') => `<div class="card notice ${tone}"><div class="text"><p class="h-s">${title}</p><p class="body-s">${body}</p></div>${extra}</div>`;
-const linkRow = (icon, title, sub, href) => `<a class="list-item" href="${href}" ${href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>
-  ${lead(icon)}<span class="text"><span class="item-title">${title}</span><span class="body-s">${sub}</span></span>${chev}</a>`;
-const inCal = row('lt-followup.svg', 'In your calendar', 'Alerts 1 day and 2 hours before'); // iOS reports the save; Android can't
-const calBtn = (key, label = 'Add to calendar') => `<button class="btn secondary" data-act="add-cal:${key}"><img src="${A}icon-calendar-add.svg" width="24" height="24" alt="">${label}</button>`;
-const dirBtn = (opd = 'OPD 2') => `<a class="btn primary" href="${MAPS}" target="_blank" rel="noopener" data-where="${opd}, City Hospital, Maharajgunj"><img src="${A}icon-map-white-24.svg" width="24" height="24" alt="">Get directions</a>`;
-const fuCard = (act = '') => visitCard(`${S.followup.day}, ${S.followup.time}`, 'Follow-up, OPD 2', act);
-const switchEl = (on, off) => `<span class="switch ${on ? 'on' : ''}" aria-hidden="true"><span class="thumb">${on ? `<img src="${A}icon-tick-${off ? 'disabled' : 'action'}-16.svg" width="16" height="16" alt="">` : ''}</span></span>`;
-const setting = (title, body, on, act, off, tile = '') => `<button class="list-item setting" role="switch" aria-checked="${on}" data-act="${act}" ${off ? 'disabled' : ''}>
-  ${tile}<span class="text st"><span class="st-t">${title}</span><span class="body-s">${body}</span></span>${switchEl(on, off)}</button>`;
+export const unread = () => !S.healthEmpty && S.notifs.some(n => !n.read);
+export const sect = (label, inner, gap = 4) => <div className="sect" style={{ gap }}><div className="inset">{lbl(label)}</div>{inner}</div>;
+export const listP = items => <div className="list">{items.map((x, i) => <Fragment key={i}>{i > 0 && <div className="sep page" aria-hidden="true" />}{x}</Fragment>)}</div>; // Separator, Page inset
+export const notice = (tone, title, body, extra = null) => <div className={`card notice ${tone}`}><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div>;
+export const linkRow = (icon, title, sub, href) => <a className="list-item" href={href} {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}>
+  {lead(icon)}<span className="text"><span className="item-title">{title}</span><span className="body-s">{sub}</span></span>{chev}</a>;
+export let inCal; // iOS reports the save; Android can't
+later(() => { inCal = row('lt-followup.svg', 'In your calendar', 'Alerts 1 day and 2 hours before'); }, ORDER.care);
+export const calBtn = (key, label = 'Add to calendar') => <button className="btn secondary" data-act={`add-cal:${key}`}><img src={`${A}icon-calendar-add.svg`} width="24" height="24" alt="" />{label}</button>;
+export const dirBtn = (opd = 'OPD 2') => <a className="btn primary" href={MAPS} target="_blank" rel="noopener" data-where={`${opd}, City Hospital, Maharajgunj`}><img src={`${A}icon-map-white-24.svg`} width="24" height="24" alt="" />Get directions</a>;
+export const fuCard = (act = '') => visitCard(`${S.followup.day}, ${S.followup.time}`, 'Follow-up, OPD 2', act);
+export const switchEl = (on, off) => <span className={`switch ${on ? 'on' : ''}`} aria-hidden="true"><span className="thumb">{on ? <img src={`${A}icon-tick-${off ? 'disabled' : 'action'}-16.svg`} width="16" height="16" alt="" /> : null}</span></span>;
+export const setting = (title, body, on, act, off, tile = null) => <button className="list-item setting" role="switch" aria-checked={on} data-act={act} disabled={!!off}>
+  {tile}<span className="text st"><span className="st-t">{title}</span><span className="body-s">{body}</span></span>{switchEl(on, off)}</button>;
 
-const frame = (title, body, { cta = '', actions = '', back = true, tab = '', gap = 20 } = {}) => `
-  <div class="screen">
-    ${statusBar()}${bar({ back, title, actions })}${tab ? offLine() : ''}
-    ${body.startsWith('<div class="body"') ? body : `<div class="body" style="gap:${gap}px">${body}</div>`}
-    ${cta ? `<div class="cta">${cta}</div>` : ''}
-    ${tab ? navBar(tab) : homeInd()}
-  </div>`;
+// body: the screen's content, or a whole .body (e.g. centred()) used as it is
+export const frame = (title, body, { cta = null, actions = null, back = true, tab = '', gap = 20 } = {}) => (
+  <div className="screen">
+    {statusBar()}{bar({ back, title, actions })}{tab ? offLine() : null}
+    {body?.props?.className === 'body' ? body : <div className="body" style={{ gap }}>{body}</div>}
+    {cta ? <div className="cta">{cta}</div> : null}
+    {tab ? navBar(tab) : homeInd()}
+  </div>);
 
 // e.g. addMin('4:30 PM', -15) → '4:15 PM'
-function addMin(t, m) {
+export function addMin(t, m) {
   const [, h, mm, ap] = /(\d+):(\d+) (AM|PM)/.exec(t);
   const x = ((+h % 12) + (ap === 'PM' ? 12 : 0)) * 60 + +mm + m, H = Math.floor(x / 60) % 24;
   return `${H % 12 || 12}:${pad(x % 60)} ${H < 12 ? 'AM' : 'PM'}`;
 }
-const pinOf = i => RECORDS[i].name === 'Ramesh Sharma' ? '1961' : S.pin || '1234'; // demo PINs
+export const pinOf = i => RECORDS[i].name === 'Ramesh Sharma' ? '1961' : S.pin || '1234'; // demo PINs
 
 // What the phone's add-event sheet is pre-filled with. Names the clinic, never the doctor or specialty.
-function calEvent(key) {
+export function calEvent(key) {
   if (key === 'fu') { const f = S.followup; return { starts: `${f.day}, ${f.time}`, ends: addMin(f.time, 30), iso: f.iso, time: f.time, loc: 'OPD 2, City Hospital, Maharajgunj' }; }
   const a = S.appt;
   return { starts: when(a.day, a.time), ends: addMin(a.time, 30), iso: DAYS[a.day].iso, time: a.time, loc: `${DOCTORS[a.doc].opd}, City Hospital, Maharajgunj` };
 }
 
 // Reschedule works for the follow-up (Sep dates, from Ask) and for today's visit (the booking week).
-function reschedOpts() {
+export function reschedOpts() {
   if (S.rsKey === 'fu') {
     const f = S.followup, cur = FOLLOW_DAYS.findIndex(([w, d]) => `${w}, ${d}` === f.day);
     return { cur, now: `${f.day}, ${f.time}`, who: 'Dr. Priya Sharma, General medicine',
@@ -76,18 +86,18 @@ function reschedOpts() {
     times: i => d.times.map(t => ({ t, off: isTaken(a.doc, i, t) || mine(i, t) })) }; // a slot taken meanwhile goes into S.taken
 }
 
-const notifRow = (n, i) => `<button class="list-item" data-act="notif-open:${i}">${n.tile ? `<span class="lead-tile ${n.tile}"><img src="${A}${n.icon}" width="20" height="20" alt=""></span>` : lead(n.icon)}
-  <span class="nt ${n.read ? '' : 'unread'}"><span class="nt-dot" aria-hidden="true"></span>
-    <span class="text"><span class="nt-t">${n.read ? '' : '<span class="vh">Unread: </span>'}${n.t}</span><span class="body-s">${n.b}</span><span class="body-s tertiary">${n.when}</span></span></span>${chev}</button>`;
+export const notifRow = (n, i) => <button className="list-item" data-act={`notif-open:${i}`}>{n.tile ? <span className={`lead-tile ${n.tile}`}><img src={`${A}${n.icon}`} width="20" height="20" alt="" /></span> : lead(n.icon)}
+  <span className={`nt ${n.read ? '' : 'unread'}`}><span className="nt-dot" aria-hidden="true"></span>
+    <span className="text"><span className="nt-t">{n.read ? null : <span className="vh">Unread: </span>}{n.t}</span><span className="body-s">{n.b}</span><span className="body-s tertiary">{n.when}</span></span></span>{chev}</button>;
 
 // ---------- sheets ----------
-const csheet = (title, body, primary, secondary) => `
-  <div class="scrim" data-act="sheet-close"></div>
-  <div class="csheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
-    <span class="handle"></span>
-    <div class="cs-text"><h2 class="cs-t" id="cs-t">${title}</h2><p class="lede">${body}</p></div>
-    <div class="cs-acts">${primary}${secondary}</div>
-  </div><div class="sheet-home"></div>`;
+export const csheet = (title, body, primary, secondary) => <>
+  <div className="scrim" data-act="sheet-close"></div>
+  <div className="csheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
+    <span className="handle"></span>
+    <div className="cs-text"><h2 className="cs-t" id="cs-t">{title}</h2><p className="lede">{body}</p></div>
+    <div className="cs-acts">{primary}{secondary}</div>
+  </div><div className="sheet-home"></div></>;
 
 Object.assign(OVERLAY, {
   cancel: () => csheet(`Cancel your visit on ${S.followup.day}?`, S.cancelSoon // within 2 hours: nothing is prepaid, so nothing to charge
@@ -102,228 +112,232 @@ Object.assign(OVERLAY, {
     btn('Open phone settings', 'os:Phone settings'), btn('Not now', 'sheet-close', { kind: 'secondary' })),
   // System calendar sheet — device chrome, a stand-in for the phone's own add-event sheet.
   cal: () => {
-    const e = calEvent(S.calFor), grp = r => `<div class="sc-g">${r.join('<div class="sc-sep" aria-hidden="true"></div>')}</div>`;
-    const one = t => `<div class="sc-r"><span>${t}</span></div>`, kv = (k, v) => `<div class="sc-r"><span>${k}</span><span class="v">${v}</span></div>`;
-    return `<div class="scrim" data-act="sheet-close"></div>
-    <div class="syscal" role="dialog" aria-modal="true" aria-label="New event">
-      <div class="sc-h"><button data-act="sheet-close">Cancel</button><span>New event</span><button class="add" data-act="cal-add">Add</button></div>
-      ${grp([one('Appointment — City Hospital'), one(e.loc)])}${grp([kv('Starts', e.starts), kv('Ends', e.ends)])}
-      ${grp([kv('Alert', '1 day before'), kv('Second alert', '2 hours before')])}${grp([one(CAL_NOTE)])}
-    </div><div class="sheet-home"></div>`;
+    const e = calEvent(S.calFor), grp = r => <div className="sc-g">{r.map((x, i) => <Fragment key={i}>{i > 0 && <div className="sc-sep" aria-hidden="true" />}{x}</Fragment>)}</div>;
+    const one = t => <div className="sc-r"><span>{t}</span></div>, kv = (k, v) => <div className="sc-r"><span>{k}</span><span className="v">{v}</span></div>;
+    return <>
+      <div className="scrim" data-act="sheet-close"></div>
+      <div className="syscal" role="dialog" aria-modal="true" aria-label="New event">
+        <div className="sc-h"><button data-act="sheet-close">Cancel</button><span>New event</span><button className="add" data-act="cal-add">Add</button></div>
+        {grp([one('Appointment — City Hospital'), one(e.loc)])}{grp([kv('Starts', e.starts), kv('Ends', e.ends)])}
+        {grp([kv('Alert', '1 day before'), kv('Second alert', '2 hours before')])}{grp([one(CAL_NOTE)])}
+      </div><div className="sheet-home"></div></>;
   },
 });
 
 // ---------- screens ----------
+export const emergency = () => notice('', 'In an emergency', "Call 102 for an ambulance, or go straight to an emergency department. Don't wait for the app.",
+  <a className="btn secondary l" href="tel:102"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />Call 102</a>);
+export const clinicCall = <a className="btn secondary l" href="tel:+97710000000">Call the clinic</a>;
+
 Object.assign(SCREENS, {
   care: () => {
     const a = S.appt, f = S.followup;
-    const today = `<div class="inset stack8">${lbl('Today')}${visitCard(when(a.day, a.time), `${DOCTORS[a.doc].opd}, City Hospital`, 'appt:today')}</div>`;
-    const coming = f ? `<div class="inset stack8">${lbl('Coming up')}${fuCard('appt:fu')}</div>` : '';
+    const today = <div className="inset stack8">{lbl('Today')}{visitCard(when(a.day, a.time), `${DOCTORS[a.doc].opd}, City Hospital`, 'appt:today')}</div>;
+    const coming = f ? <div className="inset stack8">{lbl('Coming up')}{fuCard('appt:fu')}</div> : null;
     let body;
-    if (S.visitDay === 'missed') body = `<div class="inset">${notice('warn', `We missed you at ${a.time}`, "Things come up. Book again when you're ready, or call the clinic to be seen today.",
-      btn('Book again', 'go:finddoctor', { size: 'l' }) + callBtn('l'))}</div>${coming}`;
-    else if (S.cancelled) body = `<div class="inset">${S.cancelled.byClinic // done to the patient: Error. Their own choice: Neutral.
+    if (S.visitDay === 'missed') body = <><div className="inset">{notice('warn', `We missed you at ${a.time}`, "Things come up. Book again when you're ready, or call the clinic to be seen today.",
+      <>{btn('Book again', 'go:finddoctor', { size: 'l' })}{callBtn('l')}</>)}</div>{coming}</>;
+    else if (S.cancelled) body = <><div className="inset">{S.cancelled.byClinic // done to the patient: Error. Their own choice: Neutral.
       ? notice('error', `The clinic cancelled your ${S.cancelled.date} visit`, "Dr. Sharma can't see patients that day. We're sorry for the change.",
-        tag('Cancelled', 'neutral') + btn('Book another time', 'doctor:ps', { size: 'l' }))
+        <>{tag('Cancelled', 'neutral')}{btn('Book another time', 'doctor:ps', { size: 'l' })}</>)
       : notice('', `Your ${S.cancelled.date} visit is cancelled`, 'The time has gone back to other patients. Book again whenever you need to.',
-        tag('Cancelled', 'neutral') + btn('Book again', 'go:finddoctor', { size: 'l' }))}</div>
-      ${S.cancelled.cal ? `<div class="inset">${notice('warn', 'Remove it from your calendar', "If you added this visit to your calendar, it's still there. We can't delete it for you.",
-        btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div>` : ''}${today}`;
+        <>{tag('Cancelled', 'neutral')}{btn('Book again', 'go:finddoctor', { size: 'l' })}</>)}</div>
+      {S.cancelled.cal ? <div className="inset">{notice('warn', 'Remove it from your calendar', "If you added this visit to your calendar, it's still there. We can't delete it for you.",
+        btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{today}</>;
     else if (S.careErr) body = centred(empty('icon-info-secondary-28.svg', 'Something went wrong', // not the patient's fault, and nothing has changed
       "We couldn't load your appointments. It's not something you did, and nothing has changed.",
-      btn('Try again', 'care-refresh', { size: 'l' }) + '<a class="btn secondary l" href="tel:+97710000000">Call the clinic</a>'));
+      <>{btn('Try again', 'care-refresh', { size: 'l' })}{clinicCall}</>));
     else if (S.careEmpty && !f) body = centred(empty('icon-event-secondary-28.svg', 'No upcoming visits', 'When you book a visit, it will show up here.', btn('Book a visit', 'go:finddoctor', { size: 'l' })));
-    else body = `${S.refreshing ? `<div class="refresh" role="status"><img src="${A}icon-spinner-24.svg" width="24" height="24" alt="">Updating…</div>` : ''}${today}${coming}
-      <div>${`<div class="inset">${lbl('Earlier')}</div>`}${list([listItem('lt-followup.svg', 'Past visits', "Kept in Health with your doctor's notes", 'health-go:hvisits')])}</div>
-      <div class="inset"><button class="btn secondary" data-act="go:finddoctor"><img src="${A}icon-add-24.svg" width="24" height="24" alt="">Book a visit</button></div>`;
+    else body = <>{S.refreshing ? <div className="refresh" role="status"><img src={`${A}icon-spinner-24.svg`} width="24" height="24" alt="" />Updating…</div> : null}{today}{coming}
+      <div><div className="inset">{lbl('Earlier')}</div>{list([listItem('lt-followup.svg', 'Past visits', "Kept in Health with your doctor's notes", 'health-go:hvisits')])}</div>
+      <div className="inset"><button className="btn secondary" data-act="go:finddoctor"><img src={`${A}icon-add-24.svg`} width="24" height="24" alt="" />Book a visit</button></div></>;
     return frame('Care', body, { back: false, tab: 'Care' });
   },
 
-  cappt: () => frame('Appointment', `
-    <div class="inset">${fuCard()}</div>
-    <div class="inset stack8">${lbl('Before you come')}<p class="body-m">Arrive 15 minutes early and check in at reception. Bring any medicines you're taking.</p></div>
-    ${sect('Details', list([linkRow('lt-location.svg', 'OPD 2, City Hospital', 'Ground floor. Get directions', MAPS), row('lt-fee.svg', 'Fee', 'NPR 800, paid at reception'),
-      S.cal.fu ? inCal : listItem('lt-calendar.svg', 'Add to calendar', 'So you get a reminder too', 'add-cal:fu')]), 8)}`,
-    { cta: btn('Reschedule', 'resched:fu', { kind: 'secondary' }) + btn('Cancel visit', 'sheet:cancel', { kind: 'secondary' }) }), // red waits for the confirmation
+  cappt: () => frame('Appointment', <>
+    <div className="inset">{fuCard()}</div>
+    <div className="inset stack8">{lbl('Before you come')}<p className="body-m">Arrive 15 minutes early and check in at reception. Bring any medicines you're taking.</p></div>
+    {sect('Details', list([linkRow('lt-location.svg', 'OPD 2, City Hospital', 'Ground floor. Get directions', MAPS), row('lt-fee.svg', 'Fee', 'NPR 800, paid at reception'),
+      S.cal.fu ? inCal : listItem('lt-calendar.svg', 'Add to calendar', 'So you get a reminder too', 'add-cal:fu')]), 8)}</>,
+    { cta: <>{btn('Reschedule', 'resched:fu', { kind: 'secondary' })}{btn('Cancel visit', 'sheet:cancel', { kind: 'secondary' })}</> }), // red waits for the confirmation
 
   cresched: () => {
     const o = reschedOpts(), sel = S.rsDay, times = sel == null ? [] : o.times(sel);
     const can = S.rsTime && times.some(x => x.t === S.rsTime && !x.off), day = o.days.find(x => x.i === sel);
     const still = S.rsKey === 'fu' ? `Your ${S.followup.day.split(', ')[1]} visit is still booked.` : `Your visit ${rel(S.appt.day)} is still booked.`;
     const now = sect('Currently', list([row('lt-calendar.svg', o.now, o.who)]), 0);
-    if (S.rsNone || o.days.every(x => x.off)) return frame('Reschedule', `${now}${empty('icon-event-secondary-28.svg', 'No other times this week',
+    if (S.rsNone || o.days.every(x => x.off)) return frame('Reschedule', <>{now}{empty('icon-event-secondary-28.svg', 'No other times this week',
       `${S.rsKey === 'fu' ? `Your ${S.followup.day} visit` : `Your visit ${rel(S.appt.day)}`} is still booked. Call the clinic to ask about next week.`,
-      btn('Keep my visit', 'back', { size: 'l' }) + '<a class="btn secondary l" href="tel:+97710000000">Call the clinic</a>')}`);
-    return frame('Reschedule', `
-      ${S.rsErr ? `<div class="inset" role="alert">${notice('error', `${S.rsErr.t} on ${S.rsErr.wd} was just taken`, `${still} Choose another time.`)}</div>` : ''}
-      ${now}
-      <div class="inset stack8">${lbl('Choose a new day')}
-        <div class="hscroll days" role="radiogroup" aria-label="Day">${o.days.map(x =>
-          `<button class="pick day" role="radio" aria-checked="${x.i === sel}" ${x.off ? 'disabled' : ''} data-act="rs-day:${x.i}" aria-label="${x.wd}, ${x.date}${x.off ? ', unavailable' : ''}"><span class="d1">${x.wd}</span><span class="d2">${x.date}</span></button>`).join('')}</div></div>
-      <div class="inset stack8">${lbl('Choose a new time')}
-        <div class="times" role="radiogroup" aria-label="Time">${times.map(x =>
-          `<button class="pick time" role="radio" aria-checked="${x.t === S.rsTime}" ${x.off ? 'disabled' : ''} data-act="rs-time:${x.t}" aria-label="${x.t}${x.off ? ', taken' : ''}">${x.t}</button>`).join('')}</div></div>`,
+      <>{btn('Keep my visit', 'back', { size: 'l' })}{clinicCall}</>)}</>);
+    return frame('Reschedule', <>
+      {S.rsErr ? <div className="inset" role="alert">{notice('error', `${S.rsErr.t} on ${S.rsErr.wd} was just taken`, `${still} Choose another time.`)}</div> : null}
+      {now}
+      <div className="inset stack8">{lbl('Choose a new day')}
+        <div className="hscroll days" role="radiogroup" aria-label="Day">{o.days.map(x =>
+          <button key={x.i} className="pick day" role="radio" aria-checked={x.i === sel} disabled={!!x.off} data-act={`rs-day:${x.i}`} aria-label={`${x.wd}, ${x.date}${x.off ? ', unavailable' : ''}`}><span className="d1">{x.wd}</span><span className="d2">{x.date}</span></button>)}</div></div>
+      <div className="inset stack8">{lbl('Choose a new time')}
+        <div className="times" role="radiogroup" aria-label="Time">{times.map(x =>
+          <button key={x.t} className="pick time" role="radio" aria-checked={x.t === S.rsTime} disabled={!!x.off} data-act={`rs-time:${x.t}`} aria-label={`${x.t}${x.off ? ', taken' : ''}`}>{x.t}</button>)}</div></div></>,
       { cta: btn(can ? `Move to ${day.wd}, ${S.rsTime}` : S.rsErr ? 'Choose a new time' : 'Choose a time', 'rs-move', { disabled: !can }) });
   },
 
   cmoved: () => {
     const m = S.moved, added = S.cal[m.key];
-    return frame('Appointment', `
-      <div class="inset" role="status">${notice('success', 'Visit moved', `Your ${m.from} has been released. We've sent the new time by SMS.`)}</div>
-      ${m.stale ? `<div class="inset">${notice('warn', `Calendar still shows ${m.stale}`, "We can't change events in your calendar. Add the new time, then delete the old one.")}</div>` : ''}
-      <div class="inset">${m.key === 'fu' ? fuCard() : todayCard(false)}</div>${added ? inCal : ''}`,
-      { cta: added ? '' : calBtn(m.key, m.stale ? 'Add the new time' : 'Add to calendar') });
+    return frame('Appointment', <>
+      <div className="inset" role="status">{notice('success', 'Visit moved', `Your ${m.from} has been released. We've sent the new time by SMS.`)}</div>
+      {m.stale ? <div className="inset">{notice('warn', `Calendar still shows ${m.stale}`, "We can't change events in your calendar. Add the new time, then delete the old one.")}</div> : null}
+      <div className="inset">{m.key === 'fu' ? fuCard() : todayCard(false)}</div>{added ? inCal : null}</>,
+      { cta: added ? null : calBtn(m.key, m.stale ? 'Add the new time' : 'Add to calendar') });
   },
 
   // Visit day: a state, never an estimate — booked, running late, checked in, done.
   cday: () => {
     const v = S.visitDay, a = S.appt, d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor';
     const top = {
-      late: notice('info', `${dr} is running late`, `Your ${a.time} slot is kept. We'll message you as soon as ${she}'s ready.`),
-      checkedin: notice('', "You're checked in", `Reception will call you when ${dr} is ready.`, tag(`Waiting for ${d.name}`, 'info')),
-      done: notice('success', 'Visit complete', `${dr}'s notes and your prescription will appear in Health once ${she} has added them.`),
-      turn: notice('success', `${dr} is ready for you`, `Please go to ${d.opd} now. It's on the ground floor, past the pharmacy.`, tag('Your turn', 'info')),
-      with: notice('info', `You're with ${dr}`, `${a.doc === 'ps' ? 'Her' : "The doctor's"} notes and any prescriptions will be in Health after your visit.`, tag('In progress', 'info')),
-      ontime: notice('success', `${dr} is back on time`, `Your ${a.time} slot is on time. Check in at reception when you arrive.`),
-    }[v];
+      late: () => notice('info', `${dr} is running late`, `Your ${a.time} slot is kept. We'll message you as soon as ${she}'s ready.`),
+      checkedin: () => notice('', "You're checked in", `Reception will call you when ${dr} is ready.`, tag(`Waiting for ${d.name}`, 'info')),
+      done: () => notice('success', 'Visit complete', `${dr}'s notes and your prescription will appear in Health once ${she} has added them.`),
+      turn: () => notice('success', `${dr} is ready for you`, `Please go to ${d.opd} now. It's on the ground floor, past the pharmacy.`, tag('Your turn', 'info')),
+      with: () => notice('info', `You're with ${dr}`, `${a.doc === 'ps' ? 'Her' : "The doctor's"} notes and any prescriptions will be in Health after your visit.`, tag('In progress', 'info')),
+      ontime: () => notice('success', `${dr} is back on time`, `Your ${a.time} slot is on time. Check in at reception when you arrive.`),
+    }[v]?.();
     const arrive = sect('When you arrive', list([row('lt-location.svg', `${d.opd}, City Hospital`, 'Ground floor, past the pharmacy'),
       row('lt-schedule.svg', `Arrive by ${addMin(a.time, -15)}`, 'Then check in at reception'),
       v === 'late' || v === 'ontime' ? row('lt-bell.svg', `We'll tell you when ${she}'s ready`, 'No need to watch the app') : row('lt-bell.svg', `If ${dr} is running late`, "We'll message you here")]), 0);
     const rest = {
-      checkedin: `<div class="inset stack8">${lbl('While you wait')}<p class="body-m">Need to step out? Tell reception first, so your turn isn't missed.</p></div>`,
-      turn: `<div class="inset stack8">${lbl("If you can't go now")}<p class="body-m">Can't go right now? Tell reception, so you don't lose your turn.</p></div>`,
-      with: `<div class="inset stack8">${lbl('On your way out')}<p class="body-m">Pay the fee at reception. Your SMS confirmation has the amount.</p></div>`,
-      done: `<div class="inset stack8">${lbl('Next step')}${S.followup ? fuCard('appt:fu')
+      checkedin: () => <div className="inset stack8">{lbl('While you wait')}<p className="body-m">Need to step out? Tell reception first, so your turn isn't missed.</p></div>,
+      turn: () => <div className="inset stack8">{lbl("If you can't go now")}<p className="body-m">Can't go right now? Tell reception, so you don't lose your turn.</p></div>,
+      with: () => <div className="inset stack8">{lbl('On your way out')}<p className="body-m">Pay the fee at reception. Your SMS confirmation has the amount.</p></div>,
+      done: () => <div className="inset stack8">{lbl('Next step')}{S.followup ? fuCard('appt:fu')
         : S.fuAdvice === 'none' ? notice('', 'No follow-up needed', 'Come back only if it gets worse.') // as the doctor advised
-        : notice('', 'Follow-up in 2 weeks', 'Around Sep 11. Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' }))}</div>`,
-    }[v] || arrive;
-    const cta = { booked: dirBtn(d.opd), ontime: dirBtn(d.opd), late: dirBtn(d.opd) + btn('Reschedule instead', 'resched:appt', { kind: 'secondary' }), done: btn('Go to Health', 'health-tab', { kind: 'secondary' }) }[v] || '';
-    return frame('Appointment', `${top ? `<div class="inset">${top}</div>` : ''}<div class="inset">${todayCard(false)}</div>${rest}`, { cta });
+        : notice('', 'Follow-up in 2 weeks', 'Around Sep 11. Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' }))}</div>,
+    }[v]?.() || arrive;
+    const cta = { booked: () => dirBtn(d.opd), ontime: () => dirBtn(d.opd), late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}</>,
+      done: () => btn('Go to Health', 'health-tab', { kind: 'secondary' }) }[v]?.() || null;
+    return frame('Appointment', <>{top ? <div className="inset">{top}</div> : null}<div className="inset">{todayCard(false)}</div>{rest}</>, { cta });
   },
 
   notifs: () => {
     const ns = S.healthEmpty ? [] : S.notifs;
     if (!ns.length) return frame('Notifications', centred(empty('icon-bell-secondary-28.svg', 'No notifications yet',
-      'Reminders, delays and updates about your reports will appear here.', '<div style="height:104px"></div>')));
-    const group = g => sect(g, list(ns.map((n, i) => n.g === g ? notifRow(n, i) : '').filter(Boolean)), 0);
-    return frame('Notifications', `
-      ${S.notifOff ? `<div class="inset">${notice('warn', 'Notifications are off on this phone', 'This list still updates, but nothing will pop up. SMS updates still arrive.',
-        btn('Turn them on', 'os:Phone settings', { size: 'l' }))}</div>` : ''}
-      ${group('Today')}${group('Earlier')}`,
-      { gap: 16, actions: (ns.some(n => !n.read) ? iconBtn('icon-task-alt-24.svg', 'Mark all as read', 'notif-read') : '') + iconBtn('icon-settings-24.svg', 'Notification settings', 'go:pfnotif') });
+      'Reminders, delays and updates about your reports will appear here.', <div style={{ height: 104 }}></div>)));
+    const group = g => sect(g, list(ns.map((n, i) => n.g === g ? notifRow(n, i) : null).filter(Boolean)), 0);
+    return frame('Notifications', <>
+      {S.notifOff ? <div className="inset">{notice('warn', 'Notifications are off on this phone', 'This list still updates, but nothing will pop up. SMS updates still arrive.',
+        btn('Turn them on', 'os:Phone settings', { size: 'l' }))}</div> : null}
+      {group('Today')}{group('Earlier')}</>,
+      { gap: 16, actions: <>{ns.some(n => !n.read) ? iconBtn('icon-task-alt-24.svg', 'Mark all as read', 'notif-read') : null}{iconBtn('icon-settings-24.svg', 'Notification settings', 'go:pfnotif')}</> });
   },
 
   // ---------- Profile ----------
-  pf: () => frame('Profile', `
-    <div class="inset"><div class="who"><span class="avatar l">${initials(S.fullName)}</span>
-      <div><p class="who-n">${esc(S.fullName)}</p><p class="body-s">Patient at City Hospital</p><p class="body-s tertiary">${masked()}</p></div></div></div>
-    ${sect('You', list([listItem('icon-person.svg', 'Your details', 'Name, birth date and mobile number', 'go:pfdetails')]))}
-    ${sect('Settings', list([listItem('lt-translate.svg', 'Language', S.lang === 'ne' ? 'नेपाली' : 'English', 'go:pflang'),
+  pf: () => frame('Profile', <>
+    <div className="inset"><div className="who"><span className="avatar l">{initials(S.fullName)}</span>
+      <div><p className="who-n">{S.fullName}</p><p className="body-s">Patient at City Hospital</p><p className="body-s tertiary">{masked()}</p></div></div></div>
+    {sect('You', list([listItem('icon-person.svg', 'Your details', 'Name, birth date and mobile number', 'go:pfdetails')]))}
+    {sect('Settings', list([listItem('lt-translate.svg', 'Language', S.lang === 'ne' ? 'नेपाली' : 'English', 'go:pflang'),
       listItem('lt-bell.svg', 'Notifications', S.notifOff ? 'Off in phone settings' : 'On', 'go:pfnotif'),
       listItem('lt-lock.svg', 'Health lock', S.finger === 'on' && !S.noSensor ? 'PIN and fingerprint' : S.pin ? 'PIN' : 'Set up when you first open Health', 'pf-lock')]))}
-    ${sect('Your clinic', list([listItem('lt-hospital.svg', 'City Hospital', 'Phone, address and opening hours', 'go:pfclinic')]))}
-    ${sect('Help and about', list([listItem('lt-help-circle.svg', 'Help', 'Emergencies, contacting the clinic, privacy', 'go:pfhelp'), listItem('lt-info.svg', 'About Clinica', 'Version, privacy', 'go:pfabout')]))}
-    ${sect('This phone', list([listItem('icon-person.svg', 'Switch person', 'For a phone the family shares', 'go:pfswitch'),
-      listItem('lt-lock-open.svg', 'Sign out', masked(), 'sheet:signout'), listItem('lt-close.svg', 'Close account', 'Your records stay with the clinic', 'sheet:close')]))}`,
+    {sect('Your clinic', list([listItem('lt-hospital.svg', 'City Hospital', 'Phone, address and opening hours', 'go:pfclinic')]))}
+    {sect('Help and about', list([listItem('lt-help-circle.svg', 'Help', 'Emergencies, contacting the clinic, privacy', 'go:pfhelp'), listItem('lt-info.svg', 'About Clinica', 'Version, privacy', 'go:pfabout')]))}
+    {sect('This phone', list([listItem('icon-person.svg', 'Switch person', 'For a phone the family shares', 'go:pfswitch'),
+      listItem('lt-lock-open.svg', 'Sign out', masked(), 'sheet:signout'), listItem('lt-close.svg', 'Close account', 'Your records stay with the clinic', 'sheet:close')]))}</>,
     { back: false, tab: 'Profile' }),
 
   pfdetails: () => {
     const me = DETAILS[S.fullName] || { dob: S.dob, sex: S.sex, no: 'At reception' }, p = parseDob(me.dob || ''), b = p && toBS(p.y, p.m, p.d);
-    return frame('Your details', `
-      ${S.phoneChanged ? `<div class="inset" role="status">${notice('success', 'Mobile number changed', "We've let your old number know too.")}</div>` : ''}
-      <div class="inset">${notice('', 'Kept by City Hospital', "To change your name, date of birth or sex, ask at reception — the clinic's record is the one that counts.")}</div>
-      ${sect('Details', list([row('icon-person.svg', 'Full name', esc(S.fullName)),
+    return frame('Your details', <>
+      {S.phoneChanged ? <div className="inset" role="status">{notice('success', 'Mobile number changed', "We've let your old number know too.")}</div> : null}
+      <div className="inset">{notice('', 'Kept by City Hospital', "To change your name, date of birth or sex, ask at reception — the clinic's record is the one that counts.")}</div>
+      {sect('Details', list([row('icon-person.svg', 'Full name', S.fullName),
         row('lt-calendar-month.svg', 'Date of birth', p ? `${p.d} ${AD_SHORT[p.m]} ${p.y}${b ? `, or ${bsText(b)}` : ''}` : 'On file at reception'),
         row('icon-person.svg', 'Sex', me.sex || 'On file at reception'), row('lt-clipboard.svg', 'Patient number', me.no),
-        listItem('lt-call.svg', 'Mobile number', masked(), 'pf-phone')]))}`);
+        listItem('lt-call.svg', 'Mobile number', masked(), 'pf-phone')]))}</>);
   },
 
-  pflang: () => frame('Language', `
-    <div class="inset"><div class="tiles" role="radiogroup" aria-label="Language">
-      ${[['en', 'English', ''], ['ne', 'नेपाली', 'deva']].map(([v, l, c]) => `
-        <button class="tile" role="radio" aria-checked="${S.lang === v}" data-act="lang" data-v="${v}">
-          <img class="off" src="${A}translate-secondary.svg" width="28" height="28" alt=""><img class="on" src="${A}translate-action.svg" width="28" height="28" alt="">
-          <span class="${c}">${l}</span></button>`).join('')}
+  pflang: () => frame('Language', <>
+    <div className="inset"><div className="tiles" role="radiogroup" aria-label="Language">
+      {[['en', 'English', ''], ['ne', 'नेपाली', 'deva']].map(([v, l, c]) =>
+        <button key={v} className="tile" role="radio" aria-checked={S.lang === v} data-act="lang" data-v={v}>
+          <img className="off" src={`${A}translate-secondary.svg`} width="28" height="28" alt="" /><img className="on" src={`${A}translate-action.svg`} width="28" height="28" alt="" />
+          <span className={c}>{l}</span></button>)}
     </div></div>
-    <div class="inset"><p class="body-s">Changes straight away. Your doctor's notes stay in the language they were written in.</p></div>`),
+    <div className="inset"><p className="body-s">Changes straight away. Your doctor's notes stay in the language they were written in.</p></div></>),
 
   // Switches take effect at once. When the phone blocks Clinica, each keeps its value but can't change.
   pfnotif: () => {
     const n = S.nset, off = S.notifOff;
-    return frame('Notifications', `
-      ${off ? `<div class="inset">${notice('warn', 'Notifications are off for Clinica', "They're turned off in your phone's settings, so nothing below reaches you here. SMS updates still arrive.",
-        btn('Open phone settings', 'os:Phone settings', { size: 'l' }))}</div>` : ''}
-      ${sect('Your appointments', listP([setting('Appointment reminders', 'The day before, and 2 hours before', n.remind, 'nset:remind', off),
+    return frame('Notifications', <>
+      {off ? <div className="inset">{notice('warn', 'Notifications are off for Clinica', "They're turned off in your phone's settings, so nothing below reaches you here. SMS updates still arrive.",
+        btn('Open phone settings', 'os:Phone settings', { size: 'l' }))}</div> : null}
+      {sect('Your appointments', listP([setting('Appointment reminders', 'The day before, and 2 hours before', n.remind, 'nset:remind', off),
         setting('Delays and cancellations', 'Always on, so the clinic can reach you', true, '', true),
         setting('Follow-up reminders', 'When a follow-up is due', n.fu, 'nset:fu', off)]))}
-      ${sect('Your records', listP([setting('Lab reports ready', 'When your doctor releases a report', n.labs, 'nset:labs', off)]))}
-      <div class="inset"><p class="body-s">Appointment updates also come by SMS, whatever you choose here. We never send marketing.</p></div>`);
+      {sect('Your records', listP([setting('Lab reports ready', 'When your doctor releases a report', n.labs, 'nset:labs', off)]))}
+      <div className="inset"><p className="body-s">Appointment updates also come by SMS, whatever you choose here. We never send marketing.</p></div></>);
   },
 
-  pflock: () => frame('Health lock', `
-    ${S.pinChanged ? `<div class="inset" role="status">${notice('success', 'PIN changed', 'Use your new PIN from now on.')}</div>` : ''}
-    ${sect('Lock and unlock', `<div class="list">${row('lt-lock.svg', 'Locks automatically', 'When you leave Clinica, or after 5 idle minutes')}
-      ${listItem('lt-lock.svg', 'Change PIN', 'Choose a new 4-digit PIN', 'pf-pin')}<div class="sep" aria-hidden="true"></div>
-      ${S.noSensor ? setting('Use fingerprint', 'This phone has no fingerprint sensor.', false, '', true, lead('lt-fingerprint.svg')) // disabled, with the reason
-        : setting('Use fingerprint', S.finger === 'on' ? 'Fingerprint data saved on this phone could open your records' : 'Off. Your PIN opens your records.', S.finger === 'on', 'pf-finger', false, lead('lt-fingerprint.svg'))}</div>`)}
-    ${sect('If you forget', list([listItem('lt-sms.svg', 'Reset your PIN', 'With a code sent by SMS', 'pf-reset')]))}
-    <div class="inset"><p class="body-s">Your Clinica PIN isn't your phone's PIN. On a shared phone, it's the one thing only you know.</p></div>`),
+  pflock: () => frame('Health lock', <>
+    {S.pinChanged ? <div className="inset" role="status">{notice('success', 'PIN changed', 'Use your new PIN from now on.')}</div> : null}
+    {sect('Lock and unlock', <div className="list">{row('lt-lock.svg', 'Locks automatically', 'When you leave Clinica, or after 5 idle minutes')}
+      {listItem('lt-lock.svg', 'Change PIN', 'Choose a new 4-digit PIN', 'pf-pin')}<div className="sep" aria-hidden="true"></div>
+      {S.noSensor ? setting('Use fingerprint', 'This phone has no fingerprint sensor.', false, '', true, lead('lt-fingerprint.svg')) // disabled, with the reason
+        : setting('Use fingerprint', S.finger === 'on' ? 'Fingerprint data saved on this phone could open your records' : 'Off. Your PIN opens your records.', S.finger === 'on', 'pf-finger', false, lead('lt-fingerprint.svg'))}</div>)}
+    {sect('If you forget', list([listItem('lt-sms.svg', 'Reset your PIN', 'With a code sent by SMS', 'pf-reset')]))}
+    <div className="inset"><p className="body-s">Your Clinica PIN isn't your phone's PIN. On a shared phone, it's the one thing only you know.</p></div></>),
 
-  pfclinic: () => frame('City Hospital', `
-    <div class="inset">${notice('', 'In an emergency', "Call 102 for an ambulance, or go straight to an emergency department. Don't wait for the app.",
-      `<a class="btn secondary l" href="tel:102"><img src="${A}icon-call.svg" width="24" height="24" alt="">Call 102</a>`)}</div>
-    ${sect('Contact', list([linkRow('lt-call.svg', 'Reception', '+977 1-4412345', 'tel:+97714412345'), linkRow('lt-location.svg', 'Address', 'Maharajgunj, Kathmandu', MAPS),
-      row('lt-schedule.svg', 'Opening hours', 'Sun to Fri, 9 AM to 5 PM. Closed Saturdays.')]))}`,
-    { cta: `<a class="btn primary" href="tel:+97714412345"><img src="${A}icon-call-on-action-24.svg" width="24" height="24" alt="">Call reception</a>` }),
+  pfclinic: () => frame('City Hospital', <>
+    <div className="inset">{emergency()}</div>
+    {sect('Contact', list([linkRow('lt-call.svg', 'Reception', '+977 1-4412345', 'tel:+97714412345'), linkRow('lt-location.svg', 'Address', 'Maharajgunj, Kathmandu', MAPS),
+      row('lt-schedule.svg', 'Opening hours', 'Sun to Fri, 9 AM to 5 PM. Closed Saturdays.')]))}</>,
+    { cta: <a className="btn primary" href="tel:+97714412345"><img src={`${A}icon-call-on-action-24.svg`} width="24" height="24" alt="" />Call reception</a> }),
 
   pfswitch: () => {
     const others = RECORDS.map((r, i) => [r, i]).filter(([r]) => r.name !== S.fullName);
-    return frame('Switch person', `
-      ${heading("Who's using the app?", `${others.length + 1} people at City Hospital share this phone, and each has their own PIN.`)}
-      ${sect('People', list([`<div class="list-item static">${lead('icon-person.svg')}<span class="text"><span class="item-title">${esc(S.fullName)}</span><span class="body-s">You, right now</span></span>
-          <img src="${A}icon-check-circle-20.svg" width="20" height="20" alt="Current person"></div>`,
+    return frame('Switch person', <>
+      {heading("Who's using the app?", `${others.length + 1} people at City Hospital share this phone, and each has their own PIN.`)}
+      {sect('People', list([<div className="list-item static">{lead('icon-person.svg')}<span className="text"><span className="item-title">{S.fullName}</span><span className="body-s">You, right now</span></span>
+          <img src={`${A}icon-check-circle-20.svg`} width="20" height="20" alt="Current person" /></div>,
         ...others.map(([r, i]) => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pf-switch:${i}`)),
         listItem('icon-add.svg', 'Someone else', 'Sign in with their own record', 'pf-other')]))}
-      <div class="inset"><p class="body-s">Switching asks for that person's Clinica PIN, so nobody opens someone else's records by accident.</p></div>`);
+      <div className="inset"><p className="body-s">Switching asks for that person's Clinica PIN, so nobody opens someone else's records by accident.</p></div></>);
   },
 
   // Emergency guidance stays first: it's what someone looking for help most needs to find.
-  pfhelp: () => frame('Help', `
-    <div class="inset">${notice('', 'In an emergency', "Call 102 for an ambulance, or go straight to an emergency department. Don't wait for the app.",
-      `<a class="btn secondary l" href="tel:102"><img src="${A}icon-call.svg" width="24" height="24" alt="">Call 102</a>`)}</div>
-    ${sect('Get help', list([linkRow('lt-call.svg', 'Reception', '+977 1-4412345', 'tel:+97714412345'),
+  pfhelp: () => frame('Help', <>
+    <div className="inset">{emergency()}</div>
+    {sect('Get help', list([linkRow('lt-call.svg', 'Reception', '+977 1-4412345', 'tel:+97714412345'),
       listItem('lt-lock.svg', 'How your records are kept private', 'Who sees them, and your choices', 'go:privacy'),
-      listItem('lt-document.svg', 'Terms of use', 'What using Clinica means', 'go:terms')]))}`),
+      listItem('lt-document.svg', 'Terms of use', 'What using Clinica means', 'go:terms')]))}</>),
 
   pfabout: () => frame('About Clinica', sect('Clinica', list([row('lt-info.svg', 'Version', '1.0.0'), row('lt-hospital.svg', 'Made for City Hospital', 'Maharajgunj, Kathmandu'),
     listItem('lt-lock.svg', 'Privacy policy', 'How your records are kept private', 'go:privacy')]))),
 
   pfadd: () => frame('', centred(empty('icon-person-secondary-28.svg', 'Add someone on this phone',
     `We'll text a code to ${masked()} to find the other City Hospital records on this number.`,
-    btn('Send code', 'add-code', { size: 'l' }) + btn('They have their own number', 'own-number', { kind: 'secondary', size: 'l' })))),
+    <>{btn('Send code', 'add-code', { size: 'l' })}{btn('They have their own number', 'own-number', { kind: 'secondary', size: 'l' })}</>))),
 
-  closed: () => `
-    <div class="screen">
-      ${statusBar()}
-      ${centred(empty('icon-check-circle-secondary-28.svg', 'Your account is closed',
+  closed: () => (
+    <div className="screen">
+      {statusBar()}
+      {centred(empty('icon-check-circle-secondary-28.svg', 'Your account is closed',
         'Your login and PIN are deleted. City Hospital keeps your medical records, as the law requires — ask at reception for a copy.', btn('Done', 'restart', { size: 'l' })))}
-      ${homeInd()}
-    </div>`,
+      {homeInd()}
+    </div>),
 
   pfpin: () => {
     const r = RECORDS[S.switchTo], first = r.name.split(' ')[0];
     return pinScreen(`Enter ${first}'s PIN`, `To switch to ${r.name}'s records.`,
-      (S.pinErr ? errLine("That PIN didn't match. Try again.") : '') + `<button class="btn secondary l hug" data-act="pf-forgot">Forgot your PIN?</button>`);
+      <>{S.pinErr ? errLine("That PIN didn't match. Try again.") : null}<button className="btn secondary l hug" data-act="pf-forgot">Forgot your PIN?</button></>);
   },
 });
 
 // ---------- behaviour ----------
-function openCal(key) { S.calFor = key; S.sheet = S.calOff ? 'calno' : 'cal'; rerender(); }
-function switchTo(i) { S.fullName = RECORDS[i].name; S.first = S.fullName.split(' ')[0]; S.pinEntry = ''; S.pinErr = false; toHome(); } // opens their Home, not Health
-const tabRoot = screen => { Object.assign(S, { stack: [], sheet: null, screen }); render(); };
+export function openCal(key) { S.calFor = key; S.sheet = S.calOff ? 'calno' : 'cal'; render(); }
+export function switchTo(i) { S.fullName = RECORDS[i].name; S.first = S.fullName.split(' ')[0]; S.pinEntry = ''; S.pinErr = false; toHome(); } // opens their Home, not Health
+export const tabRoot = screen => { Object.assign(S, { stack: [], sheet: null, screen }); render(); };
 
 Object.assign(mount, {
-  cresched: () => phone.querySelector('.days [aria-checked="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
+  cresched: () => $phone().querySelector('.days [aria-checked="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
 });
 
 Object.assign(ACTIONS, {
@@ -335,11 +349,10 @@ Object.assign(ACTIONS, {
   },
   'pf-tab': () => tabRoot('pf'),
   appt: arg => arg === 'fu' ? go('cappt') : S.visitDay === 'missed' ? ACTIONS['care-tab']() : go('cday'),
-  sheet: arg => { S.sheet = arg; rerender(); },
-  'sheet-close': () => { S.sheet = null; rerender(); }, // the safe choice; keeps the scroll under the sheet
+  sheet: arg => { S.sheet = arg; render(); },
   os: arg => SYS_OS[arg] ? openSys(SYS_OS[arg]()) : endScreen(arg, 'On a phone this hands off to the system or to a screen outside these Figma sections.'),
   'add-cal': openCal,
-  'cal-add': () => { S.cal[S.calFor] = true; downloadIcs(calEvent(S.calFor)); S.sheet = null; rerender(); }, // iOS reports the save
+  'cal-add': () => { S.cal[S.calFor] = true; downloadIcs(calEvent(S.calFor)); S.sheet = null; render(); }, // iOS reports the save
   'cancel-fu': () => {
     S.cancelled = { date: S.followup.day.split(', ')[1], day: S.followup.day, cal: S.cal.fu }; // a calendar copy would now be stale
     Object.assign(S, { followup: null, sheet: null, stack: [], screen: 'care' });
@@ -352,15 +365,15 @@ Object.assign(ACTIONS, {
     S.rsDay = o.days.some(x => x.i === o.cur && !x.off) ? o.cur : o.days.find(x => !x.off)?.i ?? null;
     go('cresched');
   },
-  'rs-day': arg => { S.rsDay = +arg; S.rsTime = null; rerender(); },
-  'rs-time': arg => { S.rsTime = arg; rerender(); },
+  'rs-day': arg => { S.rsDay = +arg; S.rsTime = null; render(); },
+  'rs-time': arg => { S.rsTime = arg; render(); },
   'rs-move': () => {
     const key = S.rsKey, x = reschedOpts().days.find(d => d.i === S.rsDay), a = S.appt;
     if (S.failNext === 'taken') { // someone else took it while choosing: the current visit stays booked
       S.failNext = '';
       if (key === 'fu') S.rsTaken.push(`fu|${x.i}|${S.rsTime}`); else takeSlot(a.doc, x.i, S.rsTime);
       S.rsErr = { t: S.rsTime, wd: x.wd }; S.rsTime = null;
-      return rerender();
+      return render();
     }
     const from = key === 'fu' ? `${S.followup.day} slot` : a.day === 0 ? `slot today at ${a.time}` : `${dayName(a.day)} slot`;
     const stale = S.cal[key] ? (key === 'fu' ? S.followup.day : when(a.day, a.time).replace(/^T(oday|omorrow)/, 't$1')) : null;
@@ -382,15 +395,15 @@ Object.assign(ACTIONS, {
     }
     if (n.go === 'late' || n.go === 'today' || n.go === 'ontime') return go('cday');
     if (n.go === 'fu') return S.followup ? go('cappt') : go('finddoctor');
-    if (n.go.startsWith('med:')) S.medI = +n.go.slice(4); // a medicine (meds.js)
+    if (n.go.startsWith('med:')) S.medI = +n.go.slice(4); // a medicine (meds.jsx)
     if (n.go === 'hreport') S.report = 'hba1c'; // the new report
-    if (n.go === 'hreport-cbc') { S.report = 'cbc'; return openHealth('hreport'); } // released by the doctor (doctor.js)
+    if (n.go === 'hreport-cbc') { S.report = 'cbc'; return openHealth('hreport'); } // released by the doctor (doctor.jsx)
     openHealth(n.go.startsWith('med:') ? 'mtmed' : n.go); // medicines, reports and notes, through the Health lock
   },
-  'notif-read': () => { S.notifs.forEach(n => { n.read = true; }); rerender(); },
-  nset: key => { S.nset[key] = !S.nset[key]; rerender(); },
+  'notif-read': () => { S.notifs.forEach(n => { n.read = true; }); render(); },
+  nset: key => { S.nset[key] = !S.nset[key]; render(); },
   // Off at once — safer and reversible. On goes through the opt-in, which restates the trade-off.
-  'pf-finger': () => { if (S.finger === 'on') { S.finger = 'off'; return rerender(); } S.afterUnlock = 'pflock'; go('finger'); },
+  'pf-finger': () => { if (S.finger === 'on') { S.finger = 'off'; return render(); } S.afterUnlock = 'pflock'; go('finger'); },
   'pf-lock': () => { S.pinChanged = false; go('pflock'); },
   'pf-phone': () => { // the number is how someone signs in, so changing it needs the PIN
     Object.assign(S, { codeFor: 'newphone', newPhone: '', phoneErr: false, afterUnlock: 'pfphone', pinEntry: '', pinErr: false });
@@ -401,14 +414,15 @@ Object.assign(ACTIONS, {
     Object.assign(S, { pinEntry: '', pinErr: false, pinMismatch: false, afterUnlock: S.pin ? 'pinnew' : 'pflock' });
     go(S.pin ? 'pin' : 'pinnew');
   },
-  'pf-reset': () => { S.afterUnlock = 'pflock'; S.sheet = 'reset'; rerender(); },
+  'pf-reset': () => { S.afterUnlock = 'pflock'; S.sheet = 'reset'; render(); },
   'pf-switch': i => { Object.assign(S, { switchTo: +i, pinEntry: '', pinErr: false }); go('pfpin'); },
   'pf-forgot': () => endScreen('Forgot the PIN?', 'Each person resets their own PIN from their own Profile, or at reception with ID.'),
   'pf-other': () => go('pfadd'),
-  'own-number': () => { S = Object.assign(fresh(), { stack: ['splash'], screen: 'phone' }); render(); }, // they sign in on their own phone
-  'sign-out': () => { S = fresh(); S.stack = ['splash']; S.screen = 'phone'; render(); },
-  'close-account': () => { S = Object.assign(fresh(), { screen: 'closed' }); render(); },
+  'own-number': () => { reset({ stack: ['splash'], screen: 'phone' }); render(); }, // they sign in on their own phone
+  'sign-out': () => { reset({ stack: ['splash'], screen: 'phone' }); render(); },
+  'close-account': () => { reset({ screen: 'closed' }); render(); },
 });
+later(() => { ACTIONS['sheet-close'] = () => { S.sheet = null; render(); }; }, ORDER.care); // the safe choice; keeps the scroll under the sheet (over health.jsx's)
 
 Object.assign(NUM, {
   care: s => s.careErr ? 'GX07' : s.refreshing ? 'GX05' : s.offline ? 'GX02' : s.visitDay === 'missed' ? 'C11' : s.cancelled ? (s.cancelled.byClinic ? 'SC06' : s.cancelled.cal ? 'K06' : 'C06') : s.careEmpty && !s.followup ? 'C12' : 'C01',
@@ -420,10 +434,10 @@ Object.assign(NUM, {
   pfdetails: s => s.phoneChanged ? 'PM08' : 'P02', pflang: () => 'P03', pfnotif: s => s.notifOff ? 'P09' : 'P04',
   pflock: s => s.pinChanged ? 'PM04' : s.noSensor ? 'HM13' : s.finger !== 'on' ? 'PM10' : 'P05',
   pfclinic: () => 'P06', pfswitch: () => 'P07', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
-  confirmed: s => s.cal.appt ? 'K03' : 'B05',
 });
+later(() => { NUM.confirmed = s => s.cal.appt ? 'K03' : 'B05'; }, ORDER.care); // over booking.jsx's
 
-const PF = ['pf'], BOOKED = { screen: 'confirmed', taken: { 'ps|0': ['4:30 PM'] } };
+export const PF = ['pf'], BOOKED = { screen: 'confirmed', taken: { 'ps|0': ['4:30 PM'] } };
 FLOW.push(
   ['Care — your appointments', [
     ['C01', 'Care', 'Care tab', "The Care tab holds appointments. Today first, then what's coming up. Past visits point to Health rather than being listed twice.", () => ({ screen: 'care' })],
