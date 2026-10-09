@@ -5,7 +5,7 @@
 import { Fragment } from 'react';
 import { Phone, RECORDS, btn, empty, homeInd, statusBar, toHome } from './app.jsx';
 import { T, acts, answer, ask, feedback, say, src, words } from './ask.jsx';
-import { BOOKING_STACK, DOCTORS, bookFor, filtMatch, label, plural, rel, row, rows, tag, when } from './booking.jsx';
+import { BOOKING_STACK, DOCTORS, bookFor, filtMatch, freeTimes, label, plural, rel, row, rows, tag, when } from './booking.jsx';
 import { MAPS, NOTIFS, emergency, setting } from './care.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, fresh, go, later, render, reset } from './core.jsx';
 import { errLine, keypad, list, openHealth, pinDots, unlock } from './health.jsx';
@@ -125,8 +125,8 @@ FLOW.push(
     ['SB05', "Couldn't confirm your booking", 'Branch from Review booking — no reply', "The request went out but no answer came back. Retrying straight away risks a double booking, so checking comes first. (Here it did go through: Care shows it.)", () => ({ screen: 'failed', failKind: 'noreply', stack: [...BOOKING_STACK, 'review'], reason: 'Fever for three days, with a headache' })],
     ['SB06', 'Search — a condition', 'From Find doctor — searching', 'A condition search explains itself: which specialty treats it, then those doctors. The rows still open their profiles. Try “fever”, “rash” or “chest pain”.', () => ({ screen: 'finddoctor', stack: ['home'], query: 'fever' })],
     ['SB07', 'Search — no results', 'Branch — nothing matches', 'City Hospital has no eye doctor. The empty state says so and gives the real next step: ask reception about a referral.', () => ({ screen: 'finddoctor', stack: ['home'], query: 'eye' })],
-    ['SB08', 'Specialty — Cardiology', 'From a specialty tile', "Filtered to Cardiology. This specialist's profile isn't designed yet, so the row doesn't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Cardiology' })],
-    ['SB09', 'Specialty — Dermatology', 'From a specialty tile', "Filtered to Dermatology. This specialist's profile isn't designed yet, so the row doesn't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Dermatology' })],
+    ['SB08', 'Specialty — Cardiology', 'From a specialty tile', "Filtered to Cardiology: Dr. Suman KC, next slot Mon, Sep 1. His row opens his profile.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Cardiology' })],
+    ['SB09', 'Specialty — Dermatology', 'From a specialty tile', "Filtered to Dermatology. These specialists' profiles aren't designed yet, so the rows don't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Dermatology' })],
     ['SB10', 'Specialty — Paediatrics', 'From a specialty tile', "Filtered to Paediatrics. This specialist's profile isn't designed yet, so the row doesn't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Paediatrics' })],
     ['SB11', 'Specialty — Gynaecology', 'From a specialty tile', "Filtered to Gynaecology. This specialist's profile isn't designed yet, so the row doesn't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Gynaecology' })],
     ['SB12', 'Filter doctors', 'From the filter icon on Find doctor', "Two filters that matter here: available today, and the doctor's sex — which matters to many patients, especially for gynaecology. The button states the count before it's applied.", () => ({ screen: 'finddoctor', stack: ['home'], sheet: 'filter', fdraft: { today: true, sex: 'Female' } })],
@@ -237,9 +237,9 @@ OVERLAY.sys = () => {
 export const SYSP = (title, sub, confirm) => () => ({ screen: 'home', sheet: 'sys', sys: { title, sub, confirm, href: '#' } });
 FLOW.push(
   ['Book a visit — other doctors', [
-    ['OD11', 'Doctor profile — Ramesh Shrestha', 'From Find doctor', "From Find doctor. Available today; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'rs', day: 0, time: '11:30 AM' })],
-    ['OD12', 'Review booking — Ramesh Shrestha', 'Book 11:30 AM today', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'rs', day: 0, time: '11:30 AM' })],
-    ['OD13', 'Confirmed — Ramesh Shrestha', 'Confirm booking', "Done goes to Home: the notifications prompt and the calendar sheet are written about Dr. Priya Sharma's visit, and are tested on her path.", () => ({ screen: 'confirmed', doc: 'rs', booked: { doc: 'rs', day: 0, time: '11:30 AM', for: 'Anisha Sharma' }, appt: { doc: 'rs', day: 0, time: '11:30 AM' } })],
+    ['OD11', 'Doctor profile — Ramesh Shrestha', 'From Find doctor', "From Find doctor. Fully booked until Wed, Sep 3; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'rs', day: 6, time: '11:30 AM' })],
+    ['OD12', 'Review booking — Ramesh Shrestha', 'Book Wed, Sep 3, 11:30 AM', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'rs', day: 6, time: '11:30 AM' })],
+    ['OD13', 'Confirmed — Ramesh Shrestha', 'Confirm booking', "Done goes to Home: the notifications prompt and the calendar sheet are written about Dr. Priya Sharma's visit, and are tested on her path.", () => ({ screen: 'confirmed', doc: 'rs', booked: { doc: 'rs', day: 6, time: '11:30 AM', for: 'Anisha Sharma' }, appt: { doc: 'rs', day: 6, time: '11:30 AM' } })],
     ['OD14', 'Doctor profile — Anita Joshi', 'From Find doctor', "From Find doctor. Next slot tomorrow; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'aj', day: 1, time: '9:00 AM' })],
     ['OD15', 'Review booking — Anita Joshi', 'Book tomorrow, 9:00 AM', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'aj', day: 1, time: '9:00 AM' })],
     ['OD16', 'Confirmed — Anita Joshi', 'Confirm booking', "Done goes to Home: the notifications prompt and the calendar sheet are written about Dr. Priya Sharma's visit, and are tested on her path.", () => ({ screen: 'confirmed', doc: 'aj', booked: { doc: 'aj', day: 1, time: '9:00 AM', for: 'Anisha Sharma' }, appt: { doc: 'aj', day: 1, time: '9:00 AM' } })],
@@ -251,13 +251,14 @@ FLOW.push(
     ['SY4', 'Phone settings', 'Open phone settings / Turn them on', 'Notifications and calendar access are the phone\'s to change, so it opens its settings.', () => ({ screen: 'pfnotif', stack: ['pf'], notifOff: true, sheet: 'sys', sys: SYS_OS['Phone settings']() })],
     ['SY5', 'Download', 'Download report', "Saved to the phone's Files, with a way to open it. (Here the PDF is real.)", () => ({ screen: 'hreport', stack: ['health', 'hlabs'], unlocked: true, sheet: 'sys', sys: { title: 'Thyroid panel report.pdf', sub: "Saved to your phone's Files.", confirm: 'Open file', href: '#' } })],
     ['SY6', 'Open calendar', 'Open calendar, after a cancellation', 'Opens the calendar at the old visit, so it can be deleted.', () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', day: 'Thu, Sep 11', cal: true }, sheet: 'sys', sys: SYS_OS.Calendar() })],
+    ['SY7', 'Pay with a wallet', 'Confirm booking, with eSewa, Khalti or Fonepay chosen', "Once the visit is booked, the phone's own prompt hands off to the wallet to pay the NPR 800 fee.", () => ({ screen: 'confirmed', booked: { doc: 'ps', day: 0, time: '4:30 PM', for: 'Anisha Sharma' }, sheet: 'sys', sys: { title: 'Pay NPR 800 with eSewa?', sub: 'Consultation fee for your visit with Dr. Priya Sharma.', confirm: 'Pay with eSewa', href: '#' } })],
   ]],
 );
 export const SYS_NUM = p => ({ 'City Hospital reception': 'SY1', Ambulance: 'SY2', 'Open Maps for directions to': 'SY3' })[p.title]
-  || ({ 'Open Settings': 'SY4', 'Open file': 'SY5', 'Open Calendar': 'SY6' })[p.confirm];
+  || ({ 'Open Settings': 'SY4', 'Open file': 'SY5', 'Open Calendar': 'SY6', 'Pay with eSewa': 'SY7', 'Pay with Khalti': 'SY7', 'Pay with Fonepay': 'SY7' })[p.confirm];
 later(() => { const n = { ...NUM }; // system prompts light their own row
   for (const k of Object.keys(n)) NUM[k] = s => (s.sheet === 'sys' && SYS_NUM(s.sys)) || n[k](s);
-  NUM.doctor = (f => s => s.doc === 'rs' ? 'OD11' : s.doc === 'aj' ? 'OD14' : f(s))(NUM.doctor);
+  NUM.doctor = (f => s => s.doc === 'rs' && freeTimes('rs', s.day).length ? 'OD11' : s.doc === 'aj' ? 'OD14' : f(s))(NUM.doctor); // Ramesh's booked-up days are B07
   NUM.review = (f => s => s.sheet ? f(s) : s.doc === 'rs' ? 'OD12' : s.doc === 'aj' ? 'OD15' : f(s))(NUM.review);
   NUM.confirmed = (f => s => s.sheet ? f(s) : (s.booked || s.appt).doc === 'rs' ? 'OD13' : (s.booked || s.appt).doc === 'aj' ? 'OD16' : f(s))(NUM.confirmed); }, ORDER.more);
 
