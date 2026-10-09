@@ -5,6 +5,7 @@ import { T, acts, answer, ask, src } from './ask.jsx';
 import { CAL_NOTE, calBtn, inCal, notice, unread } from './care.jsx';
 import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, paint, render, sepJoin } from './core.jsx';
 import { chev, field, lbl, lead, list } from './health.jsx';
+import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
 
 export const DAYS = [
@@ -21,11 +22,11 @@ export const GM = 'General medicine';
 // busy: day index → taken times, or 'all' when the day is fully booked
 export const DOCTORS = {
   ps: { name: 'Dr. Priya Sharma', ini: 'PS', spec: GM, sex: 'Female', opd: 'OPD 2', times: DAY_TIMES, busy: { 0: ['10:30 AM', '11:30 AM'], 1: ['11:00 AM'], 3: ['5:30 PM'] } },
-  rs: { name: 'Dr. Ramesh Shrestha', ini: 'RS', spec: GM, sex: 'Male', opd: 'OPD 2', times: DAY_TIMES, busy: { 0: ['10:30 AM'] } },
+  rs: { name: 'Dr. Ramesh Shrestha', ini: 'RS', spec: GM, sex: 'Male', opd: 'OPD 2', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all', 4: 'all', 5: 'all' } }, // fully booked until Wed (B07)
   aj: { name: 'Dr. Anita Joshi', ini: 'AJ', spec: GM, sex: 'Female', opd: 'OPD 2', times: ['9:00 AM', '11:00 AM', '11:30 AM', '4:30 PM', '5:00 PM', '5:30 PM'], busy: { 0: 'all', 1: ['11:30 AM'] } },
-  sk: { name: 'Dr. Suman KC', ini: 'SK', spec: GM, sex: 'Male', opd: 'OPD 4', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all', 4: 'all', 5: 'all' } },
+  sk: { name: 'Dr. Suman KC', ini: 'SK', spec: 'Cardiology', sex: 'Male', opd: 'OPD 4', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all' } }, // Figma 260:10739: next slot Mon, Sep 1
   // Other specialists: their profiles aren't designed yet, so their rows don't open.
-  bt: { name: 'Dr. Bikash Thapa', ini: 'BT', spec: 'Cardiology', sex: 'Male', opd: 'OPD 6', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all' }, noProfile: true },
+  bt: { name: 'Dr. Bikash Thapa', ini: 'BT', spec: 'Dermatology', sex: 'Male', opd: 'OPD 5', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all' }, noProfile: true }, // as the staff app has him
   sr: { name: 'Dr. Sunita Rai', ini: 'SR', spec: 'Dermatology', sex: 'Female', opd: 'OPD 7', times: DAY_TIMES, busy: {}, noProfile: true },
   kg: { name: 'Dr. Kiran Gurung', ini: 'KG', spec: 'Paediatrics', sex: 'Male', opd: 'OPD 8', times: DAY_TIMES, busy: {}, noProfile: true },
   ms: { name: 'Dr. Maya Shrestha', ini: 'MS', spec: 'Gynaecology', sex: 'Female', opd: 'OPD 9', times: ['10:00 AM', '10:30 AM', '2:00 PM'], busy: { 0: 'all' }, noProfile: true },
@@ -67,6 +68,13 @@ export const row = (icon, title, sub) => (
     <span className="text"><span className="item-title">{title}</span><span className="body-s">{sub}</span></span>
   </div>);
 export const rows = items => <div className="list">{sepJoin(items)}</div>;
+
+// Pay now (Figma 641:31182): an option beside pay-at-reception, which stays the default. Tapping the chosen wallet again deselects it.
+export const WALLETS = { esewa: ['eSewa', 'e'], khalti: ['Khalti', 'K'], fonepay: ['Fonepay', 'F'] };
+export const feeRow = () => row('lt-fee.svg', 'Fee', `NPR 800, paid ${S.payWith ? `with ${WALLETS[S.payWith][0]}` : 'at reception'}`);
+export const payBlock = () => <div className="pay-block">{label('Or pay now')}
+  <div className="pay-tiles" role="radiogroup" aria-label="Or pay now">{Object.entries(WALLETS).map(([id, [name, mark]]) =>
+    <button key={id} className="pay-tile" role="radio" aria-checked={S.payWith === id} data-act={`pay:${id}`}><span className={`pay-mark ${id}`} aria-hidden="true">{mark}</span>{name}</button>)}</div></div>;
 export const callBtn = size => <a className={`btn secondary ${size}`} href="tel:+97710000000"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />Call the clinic</a>;
 
 // Item, Content/Appointment. A chevron means the whole card is interactive.
@@ -275,7 +283,7 @@ Object.assign(SCREENS, {
       <div className="body g20">
         <div className="inset">{apptCard({ doc: S.doc, day: S.day, time: S.time })}</div>
         {rows([<button className="list-item" data-act="sheet:bookfor">{lead('icon-person.svg')}<span className="text"><span className="item-title">Booking for</span><span className="body-s">{bookFor()}</span></span></button>,
-          row('lt-fee.svg', 'Fee', 'NPR 800, paid at reception'), row('lt-sms.svg', 'Confirmation', `By SMS to ${masked()}`)])}
+          feeRow(), payBlock(), row('lt-sms.svg', 'Confirmation', `By SMS to ${masked()}`)])}
         {textArea(false)}
       </div>
       <div className="cta bordered">{btn('Confirm booking', 'confirm')}</div>
@@ -293,7 +301,7 @@ Object.assign(SCREENS, {
           offline: <><p className="h-s">Couldn't send your booking</p><p className="body-s">Nothing has been booked: you're not connected. Your details are saved, so just try again when you're online.</p></>,
           noreply: <><p className="h-s">We couldn't confirm your booking</p><p className="body-s">It may have gone through. Check your appointments before trying again, so you don't book twice.</p></>,
         }[k]}</div></div></div>
-        {rows([row('lt-doctor.svg', 'Doctor', `${d.name}, ${d.spec}`), row('icon-person.svg', 'Booking for', bookFor()), row('lt-fee.svg', 'Fee', 'NPR 800, paid at reception')])}
+        {rows([row('lt-doctor.svg', 'Doctor', `${d.name}, ${d.spec}`), row('icon-person.svg', 'Booking for', bookFor()), feeRow()])}
         {textArea(true)}
       </div>
       <div className="cta bordered">{{ taken: btn('Choose another time', 'another-time'), offline: btn('Try again', 'confirm'),
@@ -345,7 +353,7 @@ Object.assign(SCREENS, {
 export function docRow(id) {
   const d = DOCTORS[id], n = nextOpen(id);
   const t = n === 0 ? tag('Available today', 'success') : n === 1 ? tag(`Next slot tomorrow, ${freeTimes(id, 1)[0]}`, 'neutral')
-    : tag(n > 0 ? `Next slot ${d.noProfile ? dayName(n) : DAYS[n].date}` : 'No openings this week', 'neutral');
+    : tag(n > 0 ? `Next slot ${d.spec !== GM ? dayName(n) : DAYS[n].date}` : 'No openings this week', 'neutral'); // specialists name the weekday (Figma 260:10739)
   const inner = <><span className="avatar">{d.ini}</span><span className="text doctor"><span className="h-s">{d.name}</span><span className="spec">{d.spec}</span>{t}</span></>;
   return d.noProfile ? <div className="list-item static">{inner}</div> : <button className="list-item" data-act={`doctor:${id}`}>{inner}{chev}</button>;
 }
@@ -439,7 +447,12 @@ Object.assign(ACTIONS, {
     if (!mine && fail === 'noreply') { S.failNext = ''; bookedDone(); return toFailed('noreply'); } // it went through, but no answer came back
     bookedDone();
     S.stack = []; S.screen = 'confirmed'; render(); // no back arrow
+    if (S.payWith) { // booked: now hand off to the wallet, through the phone's own prompt (more.jsx)
+      const w = WALLETS[S.payWith][0]; S.payWith = null;
+      openSys({ title: `Pay NPR 800 with ${w}?`, sub: `Consultation fee for your visit with ${DOCTORS[S.doc].name}.`, confirm: `Pay with ${w}`, href: '#' });
+    }
   },
+  pay: arg => { S.payWith = S.payWith === arg ? null : arg; paint(); },
   'book-for': arg => { S.bookFor = arg; S.sheet = null; render(); }, // choosing closes the sheet: a single choice needs no Done
   'another-time': () => { S.time = null; backTo('doctor'); },
   // Asked only after a booking; skipped if already on; after a second 'Not now', only from Profile.
@@ -461,7 +474,7 @@ Object.assign(NUM, {
     : ({ Cardiology: 'SB08', Dermatology: 'SB09', Paediatrics: 'SB10', Gynaecology: 'SB11' })[s.specialty] || (Object.values(s.fav).some(Boolean) ? 'SB15' : 'B02'),
   doctor: s => !freeTimes(s.doc, s.day).length ? 'B07' : s.fav[s.doc] ? 'SB14' : 'B03',
   history: () => 'B03b', confirmed: () => 'B05', notif: () => 'B06', failed: s => ({ taken: 'B08', offline: 'SB04', noreply: 'SB05' })[s.failKind],
-  review: s => s.sheet === 'bookfor' ? 'SB01' : s.bookFor && s.bookFor !== s.fullName ? 'SB02' : 'B04',
+  review: s => s.sheet === 'bookfor' ? 'SB01' : s.bookFor && s.bookFor !== s.fullName ? 'SB02' : s.payWith ? 'B04b' : 'B04',
 });
 
 export const BOOKING_STACK = ['home', 'finddoctor', 'doctor'];
@@ -472,11 +485,12 @@ FLOW.push(
     ['B03', 'Doctor profile', 'Picks 4:30 PM, taps Book', 'Contained header, fee up front, Saturday closed, taken slots shown as taken, no wait estimate.', () => ({ screen: 'doctor', stack: ['home', 'finddoctor'] })],
     ['B03b', 'Visit history', 'Linked from the avatar on Home', 'Sits beside 03 in Figma with no caption or arrow; this prototype opens it from the profile avatar on Home.', () => ({ screen: 'history', stack: ['home'] })],
     ['B04', 'Review booking', 'Taps Confirm booking', 'Summary rows carry no chevrons because nothing on them is tappable. Pay at reception.', () => ({ screen: 'review', stack: [...BOOKING_STACK] })],
+    ['B04b', 'Review booking — pay now', 'Taps eSewa', 'Pay at reception stays the default; eSewa, Khalti or Fonepay is an option, and tapping the chosen one again goes back to reception. The Fee row says how it will be paid.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'esewa' })],
     ['B05', 'Confirmed', 'Taps Done', 'Success tone earned. No back arrow. Check in at reception, not by QR. Done leads to 06.', () => ({ screen: 'confirmed', taken: { 'ps|0': ['4:30 PM'] } })],
     ['B06', 'Notifications', 'After Done', "Asked only after an accomplishment — here, a confirmed booking — so the value is concrete: this visit, this doctor. Skipped if notifications are already on. After 'Not now', ask again only after the next booking; after a second 'Not now', only from Profile. SMS updates continue either way.", () => ({ screen: 'notif' })],
   ]],
   ['Booking — unhappy paths', [
-    ['B07', 'No slots available', 'Branches from 03 Doctor profile', 'Every visible day shown as taken, not hidden. The Empty state offers the next opening and the phone, and there is no Book button because there is nothing to book.', () => ({ screen: 'doctor', doc: 'sk', time: null, stack: ['home', 'finddoctor'] })],
+    ['B07', 'No slots available', 'Branches from 03 Doctor profile', 'Every visible day shown as taken, not hidden. The Empty state offers the next opening and the phone, and there is no Book button because there is nothing to book.', () => ({ screen: 'doctor', doc: 'rs', time: null, stack: ['home', 'finddoctor'] })],
     ['B08', 'Booking failed', 'Branches from 04 Review booking', 'The realistic failure: the slot was taken while confirming. Everything typed is kept, and the only action is at the thumb.', () => ({ screen: 'failed', stack: [...BOOKING_STACK, 'review'], reason: 'Fever for three days, with a headache', taken: { 'ps|0': ['4:30 PM'] } })],
     ['B09', 'Doctor cancelled', 'Replaces the card on 01 Home', "Error tone, two explicit actions, no chevron. The doctor's reason stays private. 'Book another time' returns to her availability.", () => ({ screen: 'home', homeState: 'cancelled' })],
     ['B10', 'Walk-in, checked in', 'Registered at reception, not in the app', "A walk-in who needs the app isn't a walk-in. This is what a patient who has it sees: a state, an honest line that the wait can change, no position, no minutes.", () => ({ screen: 'home', homeState: 'walkin' })],

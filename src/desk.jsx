@@ -2,11 +2,11 @@
 // Figma: zw3saW6ot26E6gWH20K3ux, section 552:19194. Same world as the doctor's phone (doctor.jsx) and Anisha's app:
 // starting, completing and releasing here change the same queue, notes and reports.
 import { btn, empty, listItem, start, support } from './app.jsx';
-import { T, src } from './ask.jsx';
+import { T, ask, src } from './ask.jsx';
 import { label, rel, row, rows, sk, tag, when } from './booking.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, go, later, mount, paint, render, sepJoin } from './core.jsx';
-import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_PATIENTS, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drField, drMeds, drPwClear, drRadio, drSettings, drStatus, drTime, drToday, drValues } from './doctor.jsx';
-import { centred, field, list } from './health.jsx';
+import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_PATIENTS, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drChip, drDate, drField, drMed, drMeds, drOffline, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
+import { centred, docCard, field, list } from './health.jsx';
 import { img, now, patients, person } from './staff.jsx';
 
 later(() => { DR_HISTORY.nt = [['May 14, 2026', 'Dr. Priya Sharma · General checkup'], ['Feb 2, 2026', 'Dr. Priya Sharma · Follow-up']]; }, ORDER.desk);
@@ -30,9 +30,11 @@ export const kEmpty = (icon, t, b, w = 360) => <div className="empty" style={{ w
 export const kPatientRow = (id, sel) => {
   const p = DR_PATIENTS[id], st = drStatus(id), [t, tone] = DR_TAG[st], past = st === 'done';
   return <button className={`list-item k-row ${sel ? 'sel' : ''}`} data-act={`k-sel:${id}`} aria-current={sel ? 'true' : undefined}><span className="avatar">{p.ini}</span>
-    <span className="dq-t"><span className={`h-s ${past ? 'past' : ''}`}>{p.name}</span><span className="dq-r">{p.short}</span>
+    <span className="dq-t"><span className={`h-s ${past ? 'past' : ''}`}>{p.name}</span><span className="dq-id">{drPid(id)}</span><span className="dq-r">{p.short}</span>
       <span className="dq-m"><span className={past ? 'past' : 'now'}>{drTime(id)}</span>{tag(t, `${tone} s12`)}</span></span></button>;
 };
+// Clears the selection back to 'Select a patient'. A note being written is kept as a draft, not lost.
+export const kClose = <button className="icon-btn k-x" data-act="k-close" aria-label="Close"><img src={`${A}icon-close.svg`} width="16" height="16" alt="" /></button>;
 export const kId = (p, sub) => <div className="k-id"><span className="avatar l">{p.ini}</span><div><p className="k-name">{p.name}</p><p className="dr-sub">{sub}</p></div></div>;
 
 // The detail pane for the selected patient: their visit, their history, or completing the visit inline.
@@ -40,20 +42,25 @@ export function kDetail() {
   const id = S.kSel;
   if (!id) return <section className="k-detail center">{kEmpty('icon-person-secondary-28.svg', 'Select a patient', "Choose someone from today's list to see their visit.")}</section>;
   const p = DR_PATIENTS[id], st = drStatus(id);
-  if (S.kView === 'history') {
-    const rows = DR_HISTORY[id] || p.hist.split(', ').map(d => [`${d}, 2026`, 'Dr. Priya Sharma · General medicine']);
-    return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start', gap: 16 }}><a href="#" className="k-link" data-act="k-view:visit"><img src={`${A}icon-chevron-left-action-16.svg`} width="16" height="16" alt="" />Back to visit</a>{kId(p, p.info)}</div>
-      <div className="stack8"><p className="dr-label">History</p><div className="mt-list">{sepJoin(rows.map(([d, s]) => row('lt-history.svg', d, s)))}</div></div></section>;
+  const back = (to, l) => <a href="#" className="k-link" data-act={`k-view:${to}`}><img src={`${A}icon-chevron-left-action-16.svg`} width="16" height="16" alt="" />{l}</a>;
+  if (S.kView === 'history') return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start', gap: 16 }}>{kClose}{back('visit', 'Back to visit')}{kId(p, p.info)}</div>
+      <div className="stack8"><p className="dr-label">History</p>{drVisitList(id)}</div></section>;
+  if (S.kView === 'hvisit') { // one visit from her history: in full if it was the doctor's own, otherwise date, department and reason
+    const v = drVisits(id)[S.drHv];
+    return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start', gap: 16 }}>{kClose}{back('history', 'Back to history')}{kId(p, p.info)}</div>
+      <div className="stack16" style={{ maxWidth: 560 }}><p className="k-h2">Visit on {v.date.split(',')[0]}</p>
+        {v.own ? <>{docCard('PS', 'Dr. Priya Sharma', `Aug 28, ${drTime(id)}`, 'General medicine, OPD 2')}{drOwnVisit(id)}</> : drOtherVisit(id, v)}</div></section>;
   }
   if (S.kView === 'complete') {
     const d = S.drDraft;
-    return <section className="k-detail"><div className="k-hd">{kId(p, `Today's visit · ${drTime(id)}`)}{btn('Complete visit', 'k-complete', { size: 'l', kind: 'primary hug' })}</div>
+    return <section className="k-detail"><div className="k-hd"><div className="k-hl">{kClose}{kId(p, `${drPid(id)} · Today's visit · ${drTime(id)}`)}</div>{btn('Complete visit', 'k-complete', { size: 'l', kind: 'primary hug' })}</div>
       <div className="field-wrap"><label className="dr-label" htmlFor="k-note">Doctor's note</label><div className="field textarea"><textarea id="k-note" value={d.note} onChange={e => { d.note = e.target.value; paint(); }} /></div></div>
-      <div className="stack12"><p className="dr-label">Medicines</p>{drMeds(d.meds)}<button className="btn secondary l" data-act="stub:Add another medicine">Add another medicine</button></div>
-      {drRadio('Follow-up', [['none', 'No follow-up'], ['2w', 'In 2 weeks'], ['other', 'Other date']], d.follow, 'd-follow')}</section>;
+      <div className="stack12"><p className="dr-label">Medicines</p>{drMeds(d.meds)}<button className="btn secondary l" data-act="d-addmed">Add another medicine</button></div>
+      <div className="stack16">{drRadio('Follow-up', [['none', 'No follow-up'], ['2w', 'In 2 weeks'], ['other', 'Other date']], d.follow, 'd-follow')}
+        {d.follow === 'other' ? <div style={{ maxWidth: 343 }}>{drDate('d-fudate', 'Follow-up date', d, 'followDate', 'follow', 'Optional — pick a date or type one')}</div> : null}</div></section>;
   }
-  const action = st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? tag('Not arrived', 'warn s12') : btn('Start visit', 'k-start', { size: 'l', kind: 'primary hug' });
-  return <section className="k-detail"><div className="k-hd">{kId(p, p.info)}{action}</div>
+  const action = st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? tag('Not arrived', 'error s12') : btn('Start visit', 'k-start', { size: 'l', kind: 'primary hug' });
+  return <section className="k-detail"><div className="k-hd"><div className="k-hl">{kClose}{kId(p, p.info)}</div>{action}</div>
     <div className="stack8"><p className="dr-label">{st === 'done' ? "Today's visit — complete" : st === 'notarrived' ? 'Scheduled visit' : "Today's visit"}</p>
       <div className="dr-reason"><p className="dr-label tertiary">Reason for visit</p><p className="dr-l">{p.reason}</p><p className="dr-body">{drTime(id)} · General medicine · OPD 2</p></div>
       <a href="#" className="k-link" data-act="k-view:history">View history{kChevR}</a></div></section>;
@@ -63,12 +70,12 @@ export function kReportDetail() {
   const k = S.kRep;
   if (!k) return <section className="k-detail center">{kEmpty('qa-lab.svg', 'Select a report', 'Choose one from the list to review and release it.')}</section>;
   const r = DR_REPORTS[k], p = DR_PATIENTS[r.pid], rel = S.drRel, follow = rel.choice === 'follow';
-  return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start' }}>{kId(p, `${r.test} · ${r.date} · City Hospital lab`)}</div>
-    <div className="k-cols">
+  return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start' }}>{kId(p, `${drPid(r.pid)} · ${r.test} · ${r.date} · City Hospital lab`)}</div>
+    <div className="k-stack">
       <div className="stack8"><p className="dr-label">Result</p>
         {drValues(r.rows)}
         <p className="dr-body tertiary">Reference ranges only — patients never see raw values, only what you tell them.</p></div>
-      <div className="stack12">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}
+      <div className="stack16">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}
         <div className="field-wrap"><label className="dr-label" htmlFor="d-comment">Comment for {r.first}</label><div className="field textarea"><textarea id="d-comment" value={rel.comment} onChange={e => { rel.comment = e.target.value; rel.edited = true; paint(); }} /></div></div>
         <div>{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'k-release', { size: 'l', kind: 'primary hug' })}</div></div>
     </div></section>;
@@ -88,8 +95,10 @@ Object.assign(SCREENS, {
   kqueue: () => {
     const ids = S.drNoPatients ? [] : drToday(), seen = ids.filter(id => drStatus(id) === 'done').length;
     if (!ids.length) return kPage('Queue', <section className="k-list wide">{kHead('Today', 'Aug 28')}<div className="k-fill">{kEmpty('qa-book.svg', 'No patients scheduled today', 'A booked visit will show up here.', 300)}</div></section>);
+    if (S.drOffline) return kPage('Queue', <section className="k-list wide">{kHead('Today', `Aug 28 · ${seen} of ${ids.length} seen`)}<div className="k-fill"><div style={{ width: 360 }}>{drOffline()}</div></div></section>);
     return kPage('Queue', <><section className="k-list">{kHead('Today', `Aug 28 · ${seen} of ${ids.length} seen`)}
-      <div className="k-scroll">{sepJoin(ids.map(id => kPatientRow(id, id === S.kSel)))}</div></section>{kDetail()}</>);
+      <div className="k-filt">{drChip('status', 'Status', drStatusOpts(ids), S.drFilt, 'd-filt')}</div>
+      <div className="k-scroll">{sepJoin(drShown(ids).map(id => kPatientRow(id, id === S.kSel)))}</div></section>{kDetail()}</>);
   },
 
   kreports: () => {
@@ -98,7 +107,7 @@ Object.assign(SCREENS, {
     return kPage('Reports', <><section className="k-list">{kHead('Reports', `${ids.length} ${ids.length === 1 ? 'is' : 'are'} waiting on you`)}
       <div className="k-scroll">{sepJoin(ids.map(k => { const r = DR_REPORTS[k], p = DR_PATIENTS[r.pid];
         return <button className={`list-item k-row ${k === S.kRep ? 'sel' : ''}`} data-act={`k-rep:${k}`}><span className="avatar">{p.ini}</span>
-          <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-r">{r.test}</span><span className="dq-m"><span className="now">{r.date}</span>{tag('Needs review', 'warn s12')}</span></span></button>; }))}
+          <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span><span className="dq-m"><span className="now">{r.date}</span>{tag('Needs review', 'warn s12')}</span></span></button>; }))}
       </div></section>{kReportDetail()}</>);
   },
 
@@ -107,7 +116,7 @@ Object.assign(SCREENS, {
       <div className="k-id"><span className="avatar l">PS</span><div><p className="k-name">Dr. Priya Sharma</p><p className="dr-sub">General medicine · City Hospital</p></div></div>
       <div className="stack8"><p className="dr-label">Your details</p><div className="mt-list">{sepJoin([row('lt-document.svg', 'NMC registration', '12345'), row('lt-hospital.svg', 'Department', 'General medicine, OPD 2')])}</div></div>
       <div className="stack8"><p className="dr-label">Account</p><div className="mt-list">{sepJoin([listItem('lt-lock.svg', 'Change password', 'Last changed 3 months ago', 'k-settings:pw'), listItem('lt-bell.svg', 'Notifications', 'New reports and check-ins', 'k-settings:notif')])}</div></div>
-      <div><button className="btn secondary l hug" data-act="d-signout">Sign out</button></div>
+      <div><button className="btn secondary l hug" data-act="d-signout-ask">Sign out</button></div>
     </div></main>),
 
   kset: () => kPage('Profile', <main className="k-main"><div className="k-col" style={{ gap: 48 }}>
@@ -131,23 +140,28 @@ Object.assign(ACTIONS, {
     Object.assign(S, { drSigned: true, drErr: false, drPw: '', stack: [], screen: 'kqueue', kSel: null }); render(); // nothing pre-selected: the doctor chooses
   },
   'k-tab': sc => { Object.assign(S, { stack: [], screen: sc }); render(); },
-  'k-sel': id => { Object.assign(S, { kSel: id, kView: 'visit' }); render(); },
+  'k-sel': id => { Object.assign(S, { kSel: id, kView: 'visit', drHistDoc: 'all' }); render(); },
+  'k-close': () => {
+    if (S.kView === 'complete' && S.drDraft) S.drKept = { ...S.drKept, [S.kSel]: S.drDraft };
+    Object.assign(S, { kSel: null, kView: 'visit' }); render();
+  },
   'k-view': v => { S.kView = v; render(); },
   'k-start': () => { S.dp = S.kSel; ACTIONS['d-start'](); Object.assign(S, { screen: 'kqueue', stack: [], kView: 'complete' }); render(); }, // the note is written inline
   'k-complete': () => { S.dp = S.kSel; ACTIONS['d-complete'](); Object.assign(S, { screen: 'kqueue', stack: [], kView: 'visit' }); render(); },
   'k-rep': k => { S.kRep = k; S.drRel = { choice: 'normal', comment: DR_REPORTS[k].normal, edited: false }; render(); },
-  'k-release': () => { S.drRep = S.kRep; ACTIONS['d-release'](); Object.assign(S, { screen: 'kreports', stack: [], kRep: null }); render(); },
+  'k-release': () => { S.drRep = S.kRep; ACTIONS['d-release'](); }, // asks first; confirming releases (doctor.jsx)
   'k-settings': sec => { S.drSec = sec; S.drPwErr = ''; drPwClear(); go('kset'); },
 });
 later(() => { const signout = ACTIONS['d-signout']; ACTIONS['d-signout'] = () => { signout(); if (S.app === 'desk') { S.screen = 'ksignin'; render(); } }; }, ORDER.desk); // wraps doctor.jsx's
 
 Object.assign(NUM, {
   ksignin: () => 'K00',
-  kqueue: s => s.drNoPatients || !drToday().length ? 'K10b' : !s.kSel ? 'K10'
-    : ({ history: s.kSel === 'nt' ? 'K12g' : 'K11f', complete: s.kSel === 'nt' ? 'K12h' : 'K11b' })[s.kView]
+  kqueue: s => s.drNoPatients || !drToday().length ? 'K10b' : s.drOffline ? 'K10c' : s.sheet === 'draddmed' ? 'K11j' : s.drMenu === 'status' ? 'K10d' : !s.kSel ? 'K10'
+    : ({ history: s.kSel === 'nt' ? 'K12g' : 'K11f', hvisit: drVisits(s.kSel)[s.drHv]?.own ? 'K11g' : 'K11h',
+      complete: s.kSel === 'nt' ? 'K12h' : s.drDraft?.follow === 'other' ? 'K11i' : 'K11b' })[s.kView]
       || (drStatus(s.kSel) === 'done' ? 'K11d' : drStatus(s.kSel) === 'notarrived' ? 'K11e' : s.kSel === 'nt' ? 'K12' : 'K11'),
-  kreports: s => !s.drPending.length ? 'K20n' : !s.kRep ? 'K20a' : s.kRep === 'lipid' ? 'K20c' : s.drRel.choice === 'follow' ? 'K20b' : 'K20',
-  kprofile: () => 'K30', kset: () => 'K30b',
+  kreports: s => s.sheet === 'drrelease' ? (s.drRel.choice === 'follow' ? 'K20e' : 'K20d') : !s.drPending.length ? 'K20n' : !s.kRep ? 'K20a' : s.kRep === 'lipid' ? 'K20c' : s.drRel.choice === 'follow' ? 'K20b' : 'K20',
+  kprofile: s => s.sheet === 'drsignout' ? 'K30c' : 'K30', kset: () => 'K30b',
 });
 
 export const KW = (x = {}) => () => ({ ...DESK_START(), drSigned: true, screen: 'kqueue', ...x });
@@ -170,4 +184,13 @@ later(() => FLOW.push(['Doctor desktop', [ // the presets read doctor.jsx's DR_D
   ['K20c', 'Reports — Kabita', "Selects Kabita's lipid panel", "A second patient's own report — her real Lipid panel, not Anisha's CBC reused.", KW({ screen: 'kreports', kRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal } })],
   ['K30', 'Profile', 'Profile', "The doctor's own account, centred rather than in a sidebar layout since there's nothing else to show alongside it.", KW({ screen: 'kprofile' })],
   ['K30b', 'Account settings', 'Change password / Notifications', "Both settings on one scrollable page — Profile's two rows land here with the right section already in view.", KW({ screen: 'kset', stack: ['kprofile'] })],
+  ['K10c', 'Queue — offline', 'No connection', "The day's progress is what was last loaded; the list can't update, so it isn't shown as if it were current.", KW({ drOffline: true })],
+  ['K10d', 'Queue — status filter', 'Status', 'One status at a time, from the statuses someone has today.', KW({ drMenu: 'status' })],
+  ['K11g', 'Queue — Anisha, your visit', 'History · Your visit', 'Her own visit in full, in the detail pane.', KW({ kSel: 'as', kView: 'hvisit', drHv: 0, visitDay: 'done', drVisits: { as: { ...DR_DRAFTS.as, meds: [...DR_DRAFTS.as.meds], followDate: '' } } })],
+  ['K11h', 'Queue — Anisha, other doctor', 'History · Other doctor', "Another doctor's visit: date, department and reason only.", KW({ kSel: 'as', kView: 'hvisit', drHv: 0 })],
+  ['K11i', 'Queue — completing, other date', 'Other date', 'The optional follow-up date, typed or picked on the AD/BS wheels.', KW({ kSel: 'as', kView: 'complete', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as, meds: [...DR_DRAFTS.as.meds], follow: 'other', followDate: '' } })],
+  ['K11j', 'Queue — add another medicine', 'Add another medicine', "The phone's Add another medicine form, as a sheet over the visit.", KW({ kSel: 'as', kView: 'complete', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as, meds: [...DR_DRAFTS.as.meds] }, dp: 'as', drMed: {}, sheet: 'draddmed' })],
+  ['K20d', 'Reports — release confirmation', 'Release to Kabita', 'The exact comment, before it reaches the patient.', KW({ screen: 'kreports', kRep: 'lipid', drRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal }, sheet: 'drrelease' })],
+  ['K20e', 'Reports — follow-up confirmation', 'Release with follow-up request', "Flagging asks first: she'll be told to expect a call.", KW({ screen: 'kreports', kRep: 'cbc', drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW }, sheet: 'drrelease' })],
+  ['K30c', 'Sign out', 'Sign out', 'Asks first, centred on the desktop. Reversible, so Brand, not red.', KW({ screen: 'kprofile', sheet: 'drsignout' })],
 ]]), ORDER.desk);

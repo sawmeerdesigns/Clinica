@@ -51,15 +51,15 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   // ---- Booking flow ----
   await p.evaluate(() => jumpTo('09')); await p.click('text=Anisha Sharma');
   assert(await p.isVisible('text=Your next appointment'), 'choosing yourself → Home (B01)');
-  await p.click('.qa >> text=Book a visit'); assert(await p.isVisible('text=4 doctors at City Hospital'), 'Find doctor (B02)');
-  await p.fill('#q', 'suman'); assert(await p.isVisible('text=1 doctor at City Hospital'), 'search filters doctors');
-  await p.click('[data-act="clear-q"]'); assert(await p.isVisible('text=4 doctors at City Hospital'), 'clear search');
-  await p.click('.specs >> text=Cardiology'); assert(await p.isVisible('#phone >> text=1 doctor in Cardiology') && !(await p.isVisible('[data-act="doctor:bt"]')), "Cardiology: its profile isn't designed, so the row doesn't open (SB08)");
+  await p.click('.qa >> text=Book a visit'); assert(await p.isVisible('text=3 doctors at City Hospital'), 'Find doctor (B02)');
+  await p.fill('#q', 'ramesh'); assert(await p.isVisible('text=1 doctor at City Hospital'), 'search filters doctors');
+  await p.click('[data-act="clear-q"]'); assert(await p.isVisible('text=3 doctors at City Hospital'), 'clear search');
+  await p.click('.specs >> text=Cardiology'); assert(await p.isVisible('#phone >> text=1 doctor in Cardiology') && await p.isVisible('[data-act="doctor:sk"]'), "Cardiology: Dr. Suman KC, and his row opens (SB08)");
   await p.fill('#q', 'fever'); assert(await p.isVisible('#phone >> text=Fever is usually seen in General medicine.') && !(await p.isVisible('.specs')), 'condition search explains itself (SB06)');
   await p.fill('#q', 'eye'); assert(await p.isVisible('#phone >> text=No eye doctors at City Hospital'), 'no eye doctor (SB07)');
   await p.click('[data-act="clear-q"]');
   await p.click('.specs >> text=General medicine');
-  await p.click('text=Dr. Suman KC'); assert(await p.isVisible('text=No times left today'), 'no slots (B07)');
+  await p.click('text=Dr. Ramesh Shrestha'); assert(await p.isVisible('text=No times left today'), 'no slots (B07)');
   assert(!(await p.isVisible('.cta >> text=Book')), 'no Book button when nothing to book');
   await p.click('text=See Wed, Sep 3'); assert(await p.isVisible('text=Choose a time'), 'next opening shows times');
   await p.click('[aria-label=Back]'); await p.click('text=Dr. Priya Sharma');
@@ -267,7 +267,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('B02'); await p.click('[aria-label="Filter doctors"]'); await p.click('[data-act="fd-today"]'); await p.click('.radio-row:has-text("Female")');
   assert(await P('text=Show 1 doctor'), 'the count before applying (SB12)'); await p.click('#phone >> text=Show 1 doctor');
   assert(await P('text=Available today · Female doctor') && await P('text=Dr. Priya Sharma') && !(await P('text=Dr. Ramesh Shrestha')), 'filtered, and says so (SB13)');
-  await p.click('.filt-row >> text=Clear'); assert(await P('text=4 doctors at City Hospital'), 'clear filters');
+  await p.click('.filt-row >> text=Clear'); assert(await P('text=3 doctors at City Hospital'), 'clear filters');
   await p.click('[data-act="doctor:ps"]'); await p.click('[aria-label="Save doctor"]'); assert(await p.getAttribute('[data-act="fav:ps"] img', 'src') === 'assets/icon-heart-filled.svg', 'saved: a filled heart (SB14)');
   await p.click('[aria-label=Back]'); assert(await P('.sec-label:text-is("Saved")'), 'saved doctors on top (SB15)');
   // reschedule: the time was taken meanwhile
@@ -365,7 +365,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('[data-act="d-patient:as"]'); await p.click('#phone >> text=View history'); assert(await P('text=Dr. Ramesh Shrestha · Ear infection'), 'visit history (D03b)'); await p.click('[aria-label=Back]');
   await p.click('#phone >> text=Start visit'); assert(await P("text=Doctor's note") && await P('text=For fever and headache'), 'complete visit (D04)');
   await p.fill('#d-note', 'A viral infection. Rest and fluids. Come back if the fever lasts more than 3 days.'); await p.click('.radio-row:has-text("No follow-up")');
-  await p.click('.btn:text-is("Complete visit")'); assert(await P('text=7 of 8 seen today') && await P('.dq-t:has-text("Anisha Sharma") >> text=Done') && await P('.dq-t:has-text("Nabin Tamang") >> text=Done'), 'Anisha done; Nabin done too');
+  await p.click('.btn:text-is("Complete visit")'); assert(await P('text=7 of 8 seen today') && await P('.dq-t:has-text("Anisha Sharma") >> text=Completed') && await P('.dq-t:has-text("Nabin Tamang") >> text=Completed'), 'Anisha done; Nabin done too');
   await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'cday'; S.stack = ['care']; render(); });
   assert(await P('text=Visit complete') && await P('text=No follow-up needed'), "Anisha's Care follows the doctor: visit complete, no follow-up");
   await p.evaluate(() => { S.unlocked = true; S.visit = 'aug28'; S.screen = 'hvisit'; render(); });
@@ -373,8 +373,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.evaluate(() => switchPhone()); await p.click('.bnav >> text=Reports'); assert(await P('text=2 results are waiting on you'), 'reports (D05)');
   await p.click('[data-act="d-report:cbc"]'); assert(await P('text=13.2 g/dL') && await P('text=Release to Anisha'), 'report detail (D06)');
   await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request') && await p.inputValue('#d-comment') === 'Please book a follow-up so we can discuss this.', 'flag follow-up (D06b)');
-  await p.click('#phone >> text=Release with follow-up request'); assert(await P('text=1 result is waiting on you') && !(await P('text=CBC blood test')), 'released, off the list');
-  await p.click('[data-act="d-report:lipid"]'); await p.click('#phone >> text=Release to Kabita'); assert(await P('text=Nothing waiting on you'), 'no reports pending (D05b)');
+  await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet >> text=Flag for follow-up'); assert(await P('text=1 result is waiting on you') && !(await P('text=CBC blood test')), 'released, off the list');
+  await p.click('[data-act="d-report:lipid"]'); await p.click('#phone >> text=Release to Kabita'); await p.click('#phone .csheet >> text=Release to Kabita'); assert(await P('text=Nothing waiting on you'), 'no reports pending (D05b)');
   await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'home'; S.stack = []; render(); }); await p.click('[aria-label^="Notifications"]');
   await p.click('#phone >> text=A lab report is ready'); await p.evaluate(() => { S.unlocked = true; S.screen = 'hreport'; S.stack = ['health', 'hlabs']; render(); });
   assert(await P('text=CBC blood test') && await P('text=Dr. Sharma asked to see you') && await P('text=Please book a follow-up so we can discuss this.'), "Anisha sees the released CBC, with the doctor's comment and the asked-to-see-you card");
@@ -382,7 +382,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone >> text=Notifications'); assert(await P('[role=switch]:has-text("Schedule changes")[aria-checked="false"]'), 'account settings (D07b)');
   await p.click('[role=switch]:has-text("Schedule changes")'); assert(await P('[role=switch]:has-text("Schedule changes")[aria-checked="true"]'), 'switch toggles');
   await p.fill('#d-pw1', 'short'); await p.click('#phone >> text=Save password'); assert(await P('text=Use at least 8 characters.'), 'password rules');
-  await p.click('[aria-label=Back]'); await p.click('#phone >> text=Sign out'); assert(await P("text=For City Hospital's care team"), 'sign out');
+  await p.click('[aria-label=Back]'); await p.click('#phone >> text=Sign out'); await p.click('#phone .csheet .btn.primary'); assert(await P("text=For City Hospital's care team"), 'sign out');
   // ---- Doctor desktop: same day, third device ----
   await p.evaluate(() => start('desk')); assert(await p.evaluate(() => document.getElementById('phone').classList.contains('desk')), 'desktop stage (1440 × 900)');
   await p.fill('#d-id', 'CH-0231'); await p.fill('#d-pw', 'x'); await p.click('#phone >> text=Sign in'); assert(await P('text=Staff ID or password is incorrect'), 'desktop wrong password');
@@ -391,18 +391,18 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('[data-act="k-sel:bt"]'); assert(await P("text=Today's visit — complete"), 'visit complete (K11d)');
   await p.click('[data-act="k-sel:nt"]'); await p.click('#phone >> text=View history'); assert(await P('text=Dr. Priya Sharma · Follow-up'), "Nabin's own history (K12g)");
   await p.click('#phone >> text=Back to visit'); await p.click('[data-act="k-sel:as"]'); assert(await P('text=Start visit'), 'Anisha (K11)');
-  await p.click('#phone >> text=Start visit'); assert(await P("text=Doctor's note") && await P('.k-row.sel >> text=With you now'), 'completing inline (K11b)');
+  await p.click('#phone >> text=Start visit'); assert(await P("text=Doctor's note") && await P('.k-row.sel >> text=With doctor'), 'completing inline (K11b)');
   await p.click('.radio-row:has-text("In 2 weeks")'); await p.click('.k-hd >> text=Complete visit');
   assert(await P("text=Today's visit — complete") && await P('text=Aug 28 · 7 of 8 seen'), 'completed: read-only, the count moves');
   await p.click('.k-ni >> text=Reports'); assert(await P('text=Select a report') && await P('text=2 are waiting on you'), 'reports, nothing selected (K20a)');
   await p.click('[data-act="k-rep:cbc"]'); await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request'), 'flag follow-up (K20b)');
-  await p.click('#phone >> text=Release with follow-up request'); assert(await P('text=1 is waiting on you'), 'released');
+  await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet >> text=Flag for follow-up'); assert(await P('text=1 is waiting on you'), 'released');
   await p.evaluate(() => showApp('doctor')); assert(await P('text=1 result is waiting on you') || await P('text=7 of 8 seen today'), "the doctor's phone shows the same day");
   await p.evaluate(() => showApp('patient')); await p.evaluate(() => { S.screen = 'cday'; S.stack = ['care']; render(); });
   assert(await P('text=Visit complete') && await P('text=Follow-up in 2 weeks'), "Anisha's phone: visit complete, follow-up in 2 weeks advised");
   await p.evaluate(() => showApp('desk')); await p.click('.k-ni >> text=Profile'); assert(await P('text=NMC registration'), 'desktop profile (K30)');
   await p.click('#phone >> text=Change password'); assert(await P('text=Save password') && await P('text=Schedule changes'), 'account settings (K30b)');
-  await p.click('.k-ni >> text=Profile'); await p.click('#phone >> text=Sign out'); assert(await P('.k-card'), 'desktop sign out → the card');
+  await p.click('.k-ni >> text=Profile'); await p.click('#phone >> text=Sign out'); await p.click('#phone .csheet .btn.primary'); assert(await P('.k-card'), 'desktop sign out → the card');
   // ---- Hospital staff web app: admin, front desk and HR, same day ----
   const signStaff = async (id, pw = 'clinica') => { await p.fill('#st-id', id); await p.fill('#st-pw', pw); await p.click('#phone >> text=Sign in'); };
   await p.evaluate(() => start('staff')); assert(await P('text=Hospital management — City Hospital'), 'staff sign-in (T00)');
@@ -413,9 +413,9 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.st-ttl'); assert(!(await P('.st-dd')), 'a click outside closes the panel');
   await p.click('[data-act="st-f:dept|Dermatology"]').catch(() => {}); await p.click('.k-ni >> text=Departments'); await p.click('[data-act="st-dept:derm"]');
   assert(await P('text=Staff on leave') && await P('text=Dr. Maya Shrestha · OPD 5'), 'department detail (T03b)');
-  await p.click('.k-ni >> text=Patients'); await p.click('[data-act="st-pat:as"]'); assert(await P('text=Dr. Ramesh Shrestha · Ear infection') && await P('text=Female · 32 · CH-2381'), "Anisha's record matches her apps (T05a)");
+  await p.click('.k-ni >> text=Patients'); await p.click('[data-act="st-pat:as|0"]'); assert(await P('text=Dr. Ramesh Shrestha · Ear infection') && await P('text=Female · 32 · CH-2381'), "Anisha's record matches her apps (T05a)");
   await p.click('#phone >> a.k-link'); await p.click('[data-act="st-menu:date"]'); await p.click('[data-act="st-day:20"]'); await p.click('[data-act="st-day:28"]');
-  assert(await P('text=12 of 15 · filtered by last visit'), 'date range filters by last visit (T05c)');
+  assert(await P('text=13 of 26 · filtered by visited date'), 'date range filters by visit date (T05c)');
   await p.click('.k-ni >> text=Settings'); await p.click('#phone >> text=Add a doctor'); await p.click('#phone >> text=Add doctor'); assert(await P("text=Enter the doctor's full name."), 'add doctor needs a name');
   await p.fill('#sa-name', 'Kabita Shrestha'); await p.fill('#sa-spec', 'Cardiology'); await p.click('#phone >> text=Add doctor');
   assert(await P('text=Dr. Kabita Shrestha has been added'), 'doctor added (T04a2)'); await p.click('#phone >> text=View in roster');
@@ -425,7 +425,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone >> text=Assign role to selected'); assert(await P('text=What Front desk can access'), 'role picker (T04c)');
   await p.click('[data-act="st-pick:hr"]'); assert(await P('text=Leave requests and approvals'), 'access follows the chosen role');
   await p.click('[data-act="st-pick:desk"]'); await p.click('#phone >> text=Save role'); assert(await P('text=Sabina Rai is now Front desk.'), 'role saved');
-  await p.click('.k-me'); await p.click('.st-dd >> text=Sign out'); assert(await P('.k-card'), 'staff sign out');
+  await p.click('.k-me'); await p.click('.st-dd >> text=Sign out'); await p.click('.csheet button:has-text("Sign out")'); assert(await P('.k-card'), 'staff sign out');
   // Front desk
   await signStaff('CH-FD-12'); assert(await P('text=13 patients across the hospital') && await P('.k-row:has-text("Nabin Tamang") >> text=With doctor'), "front desk: today's arrivals follow the doctor's queue (R01)");
   await p.fill('#st-q', 'sunita'); assert(await P('text=1 result for “sunita”'), 'search (R01c)');
@@ -439,9 +439,9 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await p.evaluate(() => drToday().some(k => DR_PATIENTS[k].name === 'Sunita' && drStatus(k) === 'waiting')), "and to Dr. Sharma's own queue");
   await p.click('#phone >> text=Register a walk-in'); await p.click('.radio-row:has-text("Follow-up visit")'); await p.fill('#wk-name', 'Kiran Basnet');
   assert(await P('text=Dr. Ramesh Shrestha · Chest infection'), 'follow-up shows recent visits (R05)');
-  await p.click('.k-me'); await p.click('.st-dd >> text=Sign out');
+  await p.click('.k-me'); await p.click('.st-dd >> text=Sign out'); await p.click('.csheet button:has-text("Sign out")');
   // HR
-  await signStaff('CH-HR-03'); assert(await P('text=15 people · 1 on leave'), 'HR staff directory, with the new doctor (HR01)');
+  await signStaff('CH-HR-03'); await p.click('.k-ni >> text=Staff'); assert(await P('text=15 people · 1 on leave'), 'HR staff directory, with the new doctor (HR01)');
   await p.click('[data-act="st-menu:role"]'); await p.click('[data-act="st-f:role|Nurse"]'); assert(await P('text=2 of 15 · filtered by role'), 'role filter (HR01b)');
   await p.click('[data-act="st-person:mt"]'); assert(await P('text=CH-STF-0231'), 'staff record (HR02)');
   await p.click('.k-ni >> text=Leave requests'); assert(await P('text=1 pending · 1 already approved'), 'leave requests (HR03)');
@@ -450,6 +450,56 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.k-ni >> text=Attendance'); await p.click('[data-act="st-menu:absent"]'); await p.click('[data-act="st-sort:absent-desc"]');
   assert(await p.textContent('.st-rows .st-tr .nm') === 'SKDr. Suman KC', 'sorted by absences (HR08b)');
   await p.click('[data-act="st-att:ms"]'); assert(await P("text=Leave continues through Sep 2 — shown on next month's attendance."), "Maya's attendance (HR09)");
+  // ---- The Sep design round: IDs, tags, sign-out sheets, offline, history, follow-up date, payment ----
+  const T = () => p.textContent('#phone'), has = async t => (await T()).includes(t);
+  const tagCls = l => p.evaluate(l => [...document.querySelectorAll('#phone .tag')].filter(x => x.textContent.trim() === l).map(x => x.className).join('|'), l);
+  await J('R01'); assert(await has('CH-2411') && await has('CH-2412') && await has('CH-1140'), 'arrivals show patient IDs: Rita CH-2411, Kabita CH-2412');
+  await J('D02'); const q = await T();
+  assert(['Completed', 'With doctor', 'Waiting', 'Not arrived'].every(x => q.includes(x)) && !/\bDone\b/.test(q), 'queue tags: Completed / With doctor / Waiting / Not arrived');
+  assert(/error/.test(await tagCls('Not arrived')) && /warn/.test(await tagCls('Waiting')), 'Not arrived is red, Waiting is amber');
+  assert(await p.evaluate(() => [...document.querySelectorAll('#phone button')].find(b => /^Status/.test(b.textContent.trim()))?.getBoundingClientRect().height) < 60, 'status filter chip, normal height');
+  await J('K10'); assert(await has('With doctor') && !(await has('With you now')), 'desktop queue tags');
+  await p.evaluate(() => { S.kSel = 'sk'; render(); }); assert(/error/.test(await tagCls('Not arrived')), 'Not arrived red in the desktop detail');
+  await J('HR03c'); const lv = await T(); assert(['Pending', 'Approved', 'Denied'].every(x => lv.includes(x)), 'HR leave filter: Pending / Approved / Denied');
+  for (const [id, body] of [['R10', "today's check-ins"], ['HR12', 'staff and leave requests'], ['T06', 'manage the hospital'], ['D07c', "today's queue"], ['K30c', "today's queue"]]) {
+    await J(id); const txt = await p.textContent('.csheet');
+    const b = await p.evaluate(() => { const b = document.querySelector('.csheet .btn.primary'); return b && { t: b.textContent.trim(), img: !!b.querySelector('img'), bg: getComputedStyle(b).backgroundColor }; });
+    assert(txt.includes('Sign out of Clinica?') && txt.includes(body) && b?.t === 'Sign out' && b.img && b.bg === 'rgb(11, 98, 214)', `sign-out sheet ${id}: Brand button with a check, not red`);
+  }
+  assert(await p.evaluate(() => getComputedStyle(document.querySelector('.scrim')).backgroundColor) === 'rgba(0, 0, 0, 0.4)', 'sheet scrim is 40%, not black');
+  await J('R09'); assert(await has('Kiran Basnet') && await has('Sunita Thapa'), 'reception Patients, one row per visit');
+  await J('T05'); assert(await p.evaluate(() => [...document.querySelectorAll('#phone .st-tr')].some(r => r.textContent.includes('Prakash') && r.textContent.includes('Ramesh Shrestha'))), 'admin Patients: Prakash saw Dr. Ramesh Shrestha');
+  await J('T04a3'); assert(await p.evaluate(() => [...document.querySelectorAll('#phone a.k-link')].some(e => e.textContent.trim() === 'Doctors')), 'Add doctor goes back to Doctors');
+  await J('T03h'); assert(await has('Orthopaedics has been added'), 'department added');
+  await J('K20e'); const fs = await p.textContent('.csheet'); assert(fs.includes('Flag this for follow-up?') && fs.includes('will be told to expect a call') && fs.includes('Flag for follow-up'), 'follow-up release asks first');
+  await J('D06d'); assert((await p.textContent('.csheet')).includes('Kabita Gurung (CH-2412)'), 'release sheet names the patient and ID');
+  await J('D02e'); assert(await has("You're offline") && await has('5 of 8'), 'offline queue keeps the progress (D02e)');
+  await J('K10c'); assert(await has("You're offline"), 'offline desktop queue (K10c)');
+  assert(await p.evaluate(() => { showCases(); return [...document.querySelectorAll('#cases .pn-check')].some(l => l.textContent.includes('Offline')); }), "doctor's panel has the Offline toggle"); await p.click('[aria-label="Close edge cases"]');
+  await J('D04e'); assert((await T()).split('This field is required.').length - 1 >= 5, 'add medicine: required fields');
+  await J('K11j'); assert(!!(await p.$('.csheet.dr-medsheet')), 'desktop add medicine is a sheet');
+  await J('K11'); assert(await has('CH-2381'), 'patient ID in the desktop visit header');
+  await J('D03g'); assert(await has('RS') && !(await has('stay with the doctor who saw her')), "other doctor's visit: their avatar, no designer note");
+  await J('D03f'); assert(await has("Doctor's note") && !(await has('Lipid panel')) && !(await has('Book follow-up')), 'own visit in full, nothing extra');
+  await J('HR10'); assert(await has('12') && await has('On leave today'), 'HR dashboard');
+  await J('HR09'); assert(await has('Nov 2022'), "Maya joined Nov 2022");
+  await J('HR09b'); assert((await T()).toLowerCase().includes('leave'), 'attendance day popover');
+  await J('A02'); assert(!(await has('Good afternoon')) && !(await p.evaluate(() => [...document.querySelectorAll('#phone .back-l')].some(a => a.textContent.includes('Home')))), 'Ask home: no greeting, no Home link');
+  await J('A04'); assert(await p.evaluate(() => [...document.querySelectorAll('#phone .back-l')].some(a => a.textContent.includes('Home'))), 'a conversation keeps Home');
+  await J('B04'); assert(await has('NPR 800, paid at reception') && !(await p.$('#phone [aria-checked="true"].pay-tile')), 'no payment preselected: pay at reception');
+  await J('B04b'); assert(await has('paid with eSewa'), 'eSewa chosen');
+  // the desktop close keeps a draft
+  await J('K11b'); await p.fill('#k-note', 'Draft note kept'); await p.click('#phone [aria-label^="Close"]'); assert(!(await p.$('#k-note')), 'X closes the visit');
+  await p.click('#phone .k-row:has-text("Anisha Sharma")'); await p.click('#phone >> text=Start visit'); assert(await p.inputValue('#k-note') === 'Draft note kept', 'the draft note is still there');
+  // follow-up on another date reaches the patient
+  await J('D04c'); await p.click('#phone [aria-label^="Choose follow-up"]'); assert(!!(await p.$('.seg[data-act="cal:BS"]')), 'follow-up date opens the AD/BS wheels');
+  await p.evaluate(() => { S.picker = null; S.drDraft.followDate = '18 / 09 / 2026'; render(); }); await p.click('.btn:text-is("Complete visit")');
+  await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'care'; S.stack = []; render(); }); await p.click('#phone .card >> text=Dr. Priya Sharma');
+  assert(await has('Follow-up on Sep 18'), "the date shows on the patient's visit day");
+  // HR adds staff
+  await J('HR11'); const sel = await p.$$('#phone select'); await p.fill('#phone input >> nth=0', 'Test Person'); await p.fill('#phone input >> nth=1', '+977 9800000000');
+  await sel[0].selectOption({ label: 'Nurse' }); await sel[1].selectOption({ index: 1 }); await p.click('#phone .btn:has-text("Add staff")');
+  assert(await has('Test Person has been added'), 'staff added (HR11)'); await p.click('#phone >> text=Test Person >> nth=-1'); assert(await has('Added by'), 'the record says who added them');
   console.log('page errors:', errs);
   await b.close();
 })().catch(e => { console.error(e.message); process.exit(1); });

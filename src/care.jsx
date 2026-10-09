@@ -5,7 +5,8 @@ import { Fragment } from 'react';
 import { AD_SHORT, Phone, RECORDS, bsText, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
 import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
 import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, extraState, go, later, mount, render, reset } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, render, reset } from './core.jsx';
+import { drShort } from './doctor.jsx';
 import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
 import { med } from './meds.jsx';
 import { SYS_OS, openSys } from './more.jsx';
@@ -98,6 +99,10 @@ export const csheet = (title, body, primary, secondary) => <>
     <div className="cs-text"><h2 className="cs-t" id="cs-t">{title}</h2><p className="lede">{body}</p></div>
     <div className="cs-acts">{primary}{secondary}</div>
   </div><div className="sheet-home"></div></>;
+
+// Sign-out confirmation for every role. Reversible, so Brand, not red. Centred on the desktop apps (.phone.desk).
+export const signoutSheet = (body, act) => csheet('Sign out of Clinica?', body,
+  btn(<><img src={`${A}icon-check-white-14.svg`} width="14" height="14" alt="" />Sign out</>, act), btn('Cancel', 'sheet-close', { kind: 'secondary' }));
 
 Object.assign(OVERLAY, {
   cancel: () => csheet(`Cancel your visit on ${S.followup.day}?`, S.cancelSoon // within 2 hours: nothing is prepaid, so nothing to charge
@@ -210,6 +215,7 @@ Object.assign(SCREENS, {
       with: () => <div className="inset stack8">{lbl('On your way out')}<p className="body-m">Pay the fee at reception. Your SMS confirmation has the amount.</p></div>,
       done: () => <div className="inset stack8">{lbl('Next step')}{S.followup ? fuCard('appt:fu')
         : S.fuAdvice === 'none' ? notice('', 'No follow-up needed', 'Come back only if it gets worse.') // as the doctor advised
+        : S.fuAdvice === 'other' ? notice('', S.fuDate ? `Follow-up on ${drShort(S.fuDate)}` : 'Follow-up needed', 'Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' })) // the date the doctor chose
         : notice('', 'Follow-up in 2 weeks', 'Around Sep 11. Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' }))}</div>,
     }[v]?.() || arrive;
     const cta = { booked: () => dirBtn(d.opd), ontime: () => dirBtn(d.opd), late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}</>,

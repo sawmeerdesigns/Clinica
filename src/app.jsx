@@ -6,7 +6,7 @@ import { backTo, bar, label, row, rows, tag, when } from './booking.jsx';
 import { emergency, setting } from './care.jsx';
 import { A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount } from './core.jsx';
 import { DESK_START } from './desk.jsx';
-import { DOCTOR_START, showApp } from './doctor.jsx';
+import { DOCTOR_START, drOffline, showApp } from './doctor.jsx';
 import { centred, field, lead, list, unlock } from './health.jsx';
 import { interceptLink, notifSet, openAs } from './more.jsx';
 import { SA, STAFF_START, cell, checks, counts, img, now, patients, person, stHome, stMe } from './staff.jsx';
@@ -367,13 +367,14 @@ export function openPicker() {
   paint();
 }
 
+// A picker with `from` (an AD year) looks ahead — this year and next — for dates still to come, like a follow-up.
 export function pickerRanges(pk) {
   if (pk.cal === 'AD') {
-    const y0 = 1920, y1 = todayAD.getFullYear();
+    const [y0, y1] = pk.from ? [pk.from, pk.from + 1] : [1920, todayAD.getFullYear()];
     return { years: range(y0, y1), months: AD_SHORT, days: adDays(pk.y, pk.m) };
   }
-  const y1 = ND.fromAD(todayAD).getYear();
-  return { years: range(2000, y1), months: BS_MONTHS, days: bsDays(pk.y, pk.m) };
+  const [y0, y1] = pk.from ? (b => [b, b + 1])(toBS(pk.from, 6, 1).year) : [2000, ND.fromAD(todayAD).getYear()];
+  return { years: range(y0, y1), months: BS_MONTHS, days: bsDays(pk.y, pk.m) };
 }
 export const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 
@@ -390,7 +391,7 @@ export function DobSheet() {
       <div className="scrim" data-act="close-picker"></div>
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
         <div className="grabber"></div>
-        <p className="h-s" id="sheet-title">Date of birth</p>
+        <p className="h-s" id="sheet-title">{pk.title || 'Date of birth'}</p>
         <div className="segmented" role="group" aria-label="Calendar">
           <button className="seg" aria-pressed={pk.cal === 'AD'} data-act="cal:AD">AD</button>
           <button className="seg" aria-pressed={pk.cal === 'BS'} data-act="cal:BS">BS</button>
@@ -431,8 +432,8 @@ export function switchCal(cal) {
   if (pk.cal === cal) return;
   const r = cal === 'BS' ? toBS(pk.y, pk.m, pk.d) : toAD(pk.y, pk.m, pk.d);
   if (!r) return;
-  S.picker = { cal, y: r.year, m: r.month, d: r.date };
-  S.pickerCal = cal;
+  S.picker = { ...pk, cal, y: r.year, m: r.month, d: r.date };
+  if (!pk.onDone) S.pickerCal = cal; // remembered for Date of birth only
   paint();
 }
 
@@ -440,6 +441,7 @@ export function pickerDone() {
   const pk = S.picker;
   const ad = pk.cal === 'AD' ? { y: pk.y, m: pk.m, d: pk.d } : (a => a && { y: a.year, m: a.month, d: a.date })(toAD(pk.y, pk.m, pk.d));
   if (!ad) return;
+  if (pk.onDone) { S.picker = null; pk.onDone(ad); return render(); } // another date field (doctor.jsx's follow-up, a medicine's end date)
   S.dob = `${pad(ad.d)} / ${pad(ad.m + 1)} / ${ad.y}`;
   S.picker = null; S.bsHint = null;
   S.dobErr = dobError();
@@ -723,6 +725,7 @@ export function Shell() {
         <header className="pn-head"><div><h2>Edge cases</h2><p>States you can't tap your way into</p></div>
           <button className="icon-btn" aria-label="Close edge cases" onClick={() => pickCase('edge')}><img src={`${A}icon-close.svg`} width="20" height="20" alt="" /></button></header>
         <Note />
+        {S.app === 'patient' ? <>
         <section className="pn-sec"><h3>Open the app as</h3>
           <div className="pn-row"><select id="open-as" ref={openAsRef} defaultValue="signedin" aria-label="Open the app as"><option value="signedin">Signed in — Home loads</option><option value="slow">Slow connection</option><option value="session">Session expired</option><option value="update">Update required</option><option value="maint">Maintenance</option><option value="lock">Lock screen — visit updates</option><option value="push">Lock screen — low-stock alert</option></select>
             <button className="btn secondary s" onClick={() => openAs(openAsRef.current.value)}>Open</button></div>
@@ -743,15 +746,8 @@ export function Shell() {
             {pnCheck('careErr', 'Care fails to load')}
           </div>
         </section>
-        <section className="pn-sec"><h3>Doctor and staff apps</h3>
-          <div className="pn-checks">
-            {pnCheck('drNoPatients', 'Doctor: no patients today')}
-            {pnCheck('stHoliday', 'Staff: public holiday', 'T01b · R01b')}
-          </div>
-        </section>
         <details className="pn-sec pn-tips"><summary>Test data and tips</summary>
           <ul>
-            <li>Every tab shares the same day. Doctor <code>CH-0231</code>, admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>. Password <code>clinica</code>.</li>
             <li>Mobile number: 10 digits starting with 9, e.g. <code>9841234412</code>.</li>
             <li>Code <code>123456</code> is right. <code>000000</code> has expired. Any other code is wrong; three wrong codes lock sign-in.</li>
             <li>Any name containing “Sharma” counts as a possible match (22). Other names create a new profile.</li>
@@ -762,6 +758,20 @@ export function Shell() {
             <li>Care and Profile: Switch person → Ramesh Sharma takes PIN <code>1961</code>.</li>
           </ul>
         </details>
+        </> : <>
+        {/* Doctor (mobile and dashboard) or staff: only that app's situations and sign-ins */}
+        <section className="pn-sec"><h3>{S.app === 'staff' ? 'Staff app' : 'Doctor app'}</h3>
+          <div className="pn-checks">{S.app === 'staff' ? pnCheck('stHoliday', 'Public holiday', 'T01b · R01b') : <>{pnCheck('drNoPatients', 'No patients today')}{pnCheck('drOffline', 'Offline', 'D02e · K10c')}</>}</div>
+        </section>
+        <details className="pn-sec pn-tips"><summary>Test data and tips</summary>
+          <ul>
+            <li>Every tab shares the same day: what happens here shows on the patient's phone too.</li>
+            {S.app === 'staff'
+              ? <li>Admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>. Password <code>clinica</code>.</li>
+              : <li>Doctor staff ID <code>CH-0231</code>. Password <code>clinica</code>.</li>}
+          </ul>
+        </details>
+        </>}
       </aside>
     </div>);
 }

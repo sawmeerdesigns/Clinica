@@ -44,10 +44,10 @@ export const visitCard = (when, where, act) => { const T = act ? 'button' : 'div
 export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today'); };
 export const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 2', S.followup === f && 'appt:fu'); // an old snapshot links nowhere
 
-// App bar, Chat shape: back arrow and its label as one tap target, title centred.
+// App bar, Chat shape: back arrow and its label as one tap target, title centred. The Assistant home (no action) shows the arrow alone (Figma 633:30822).
 export const chatBar = (action = true) => (
   <div className="appbar chat">
-    <div className="side"><a href="#" className="back-l" data-act="home"><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>Home</a></div>
+    <div className="side"><a href="#" className="back-l" data-act="home" aria-label={action ? undefined : 'Back'}><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>{action ? 'Home' : null}</a></div>
     <div className="c-title">Ask</div>
     <div className="side end">{action ? iconBtn('icon-add-24.svg', 'New conversation', 'ask-new') : <div className="slot"></div>}</div>
   </div>);
@@ -216,7 +216,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{chatBar(false)}
       <div className={`body g20 ${S.listening ? 'inert' : ''}`}>
-        <div className="inset greet2"><p className="g1">Good afternoon, {S.first}</p><p className="lede">Here's what's coming up.</p></div>
+        <div className="inset"><p className="lede">Here's what's coming up.</p></div>
         {S.micPerm === 'denied' ? <div className="inset voice-off"><p className="body-s">Voice is off. You can still type.</p><button className="btn secondary s" data-act="os:Phone settings">Settings</button></div> : null}
         <div className="inset stack8">{lbl('Today')}{todayCard(true)}</div>
         <div className="inset stack8">{lbl('You could ask')}
@@ -355,7 +355,7 @@ export const FU = { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] };
 FLOW.push(
   ['Ask — starting', [
     ['A01', 'First open', 'First time the tab opens', "Says what it does and what it isn't. Existing users learn Messages is now Ask — and how to reach a person.", () => ({ screen: 'askfirst' })],
-    ['A02', 'Assistant home', 'Start', "Today's visit from real data, and suggestions chosen from the patient's own state. No persona, no sparkle.", () => ({ ...ASK })],
+    ['A02', 'Assistant home', 'Start', "Today's visit from real data, and suggestions chosen from the patient's own state. No persona, no sparkle — and no greeting; back is the arrow alone.", () => ({ ...ASK })],
     ['A03', 'Asking by voice', 'Speaks a question', 'Voice sits beside the field, not behind a menu. Many patients will speak rather than type — in Nepali, English or both.', () => ({ ...ASK, listening: true })],
     ['A04', "What's coming up", 'Answer arrives', 'A conversation is full screen: the bottom nav hides, and ← Home leaves it for the Home tab. One sentence answers; the facts are the same appointment cards as Care. Source named, one neutral action.', () => ({ ...ASK, followup: FU, chat: [T("What's coming up?", 'coming')] })],
   ]],
