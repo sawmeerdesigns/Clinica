@@ -5,7 +5,7 @@ import { RECORDS, appBar, btn, digits, empty, heading, homeInd, listItem, masked
 import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
 import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
 import { csheet, notice, pinOf, switchTo } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin, toast } from './core.jsx';
 import { labOf } from './doctor.jsx';
 import { med, ring } from './meds.jsx';
 import { openSys } from './more.jsx';
@@ -42,7 +42,7 @@ export const PRESCRIPTIONS = {
 
 extraState(() => ({
   unlocked: false, afterUnlock: null, healthEmpty: false, lockWhy: null, fingerChanged: false, pinChanged: false,
-  labs: ['cbc', 'hba1c', 'thyroid'], report: 'thyroid', // newest first: CBC Aug 28, HbA1c Aug 24 visit: 'aug28', rx: 'aug28', rxNone: false,
+  labs: ['cbc', 'hba1c', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false, // labs newest first: CBC Aug 28, HbA1c Aug 24
   pin: null, pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, pinTries: 5, pinWait: 30,
   finger: null, bio: null, bioFails: 0, sheet: null, codeFor: null,
   meds: [ // the Medicines tracker's data (meds.jsx)
@@ -69,7 +69,7 @@ export const medRow = (m, act) => act
   : <div className="list-item static">{lead('lt-rx.svg')}{medText(m)}</div>;
 
 export const docCard = (ini, name, l2, l3) => <div className="card appt">
-  <span className="avatar l">{ini}</span>
+  <span className="avatar l" aria-hidden="true">{ini}</span>
   <span className="appt-t"><span className="h-s">{name}</span><span className="when">{l2}</span><span className="where">{l3}</span></span></div>;
 
 export const reportRow = (title, sub, status, act) => <button className="list-item" data-act={act}>{lead('lt-lab.svg')}
@@ -78,8 +78,9 @@ export const reportRow = (title, sub, status, act) => <button className="list-it
 export const centred = inner => <div className="body" style={{ justifyContent: 'center' }}>{inner}</div>;
 
 // ---------- PIN ----------
-export const pinDots = (n, err) => <div className="pin-dots" role="img" aria-label={err ? 'PIN did not match' : `${n} of 4 digits entered`}>
-  {[0, 1, 2, 3].map(i => <span key={i} className={`dot ${err ? 'err' : i < n ? 'on' : ''}`}></span>)}</div>;
+export const pinDots = (n, err) => <><div className="pin-dots" role="img" aria-label={err ? 'PIN did not match' : `${n} of 4 digits entered`}>
+  {[0, 1, 2, 3].map(i => <span key={i} className={`dot ${err ? 'err' : i < n ? 'on' : ''}`}></span>)}</div>
+  <p className="vh" aria-live="polite">{n && !err ? `${n} of 4 digits entered` : ''}</p></>; // R26: each digit is announced
 export const keypad = () => <div className="inset"><div className="keypad" aria-label="PIN keypad">
   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <button key={d} className="key" data-act={`pin-digit:${d}`}>{d}</button>)}
   <span className="key blank"></span><button className="key" data-act="pin-digit:0">0</button>
@@ -359,7 +360,7 @@ Object.assign(SCREENS, {
       <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
         {empty('icon-fingerprint-28.svg', 'Use your fingerprint next time?',
           "It's quicker than your PIN. But anyone whose fingerprint is saved on this phone could open your records too.",
-          <>{btn('Use fingerprint', 'finger:on', { size: 'l' })}{btn('Just use my PIN', 'finger:off', { kind: 'secondary', size: 'l' })}</>)}
+          <>{btn('Use fingerprint', 'finger:on', { size: 'l' })}{btn('Just use my PIN', 'finger:off', { kind: 'secondary', size: 'l' })}</>, false, 'h1')}
       </div>
       {homeInd()}
     </div>),
@@ -369,7 +370,7 @@ Object.assign(SCREENS, {
       {statusBar()}{appBar()}
       <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
         {empty('icon-lock.svg', 'Too many tries', `For your safety, wait before trying again, or reset your PIN with a code sent to ${masked()}.`,
-          btn('Reset with an SMS code', 'forgot', { size: 'l' }))}
+          btn('Reset with an SMS code', 'forgot', { size: 'l' }), false, 'h1')}
         <p className="wait">You can try again in <span id="pinwait">{mmss(S.pinWait)}</span></p>
       </div>
       {homeInd()}
@@ -460,7 +461,7 @@ export function pinComplete() {
       S.stack = []; S.screen = 'finger'; return render();
     case 'pinnewconfirm':
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
-      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; return unlock(); // then straight back into Health, or to Health lock
+      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; if (S.pinChanged) toast('PIN changed.'); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
     case 'pfpin': // care.jsx — Switch person
       if (e === pinOf(S.switchTo) || (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234'))) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
       S.pinErr = true; return render();

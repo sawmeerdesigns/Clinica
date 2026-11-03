@@ -77,7 +77,7 @@ export function labOf(k) {
 
 // ---------- pieces ----------
 export const drChev = <img src={`${A}icon-chevron-right-dark.svg`} width="20" height="20" alt="" />;
-export const drBar = (title, back = false) => <div className="appbar dr">{back ? iconBtn('icon-back.svg', 'Back', 'back') : null}<div className="title">{title}</div><div className="slot"></div></div>;
+export const drBar = (title, back = false) => <div className="appbar dr">{back ? iconBtn('icon-back.svg', 'Back', 'back') : null}{title ? <h1 className="title">{title}</h1> : <div className="title"></div>}<div className="slot"></div></div>; // W13: a titled bar is the screen's heading
 export function drNav(active) {
   return <div className="bottom"><nav className="bnav" aria-label="Main">{[['Queue', 'nav-queue', 'd-tab:dqueue'], ['Reports', 'nav-reports', 'd-tab:dreports'], ['Profile', 'nav-profile', 'd-tab:dprofile']]
     .map(([l, i, a]) => <a key={l} href="#" data-act={a} aria-current={l === active ? 'page' : undefined}><span><img src={`${A}${i}${l === active ? '-active' : ''}.svg`} width="24" height="24" alt="" />{l === 'Reports' ? drBadge() : null}</span>{l}</a>)}
@@ -88,12 +88,12 @@ export const drBadge = () => S.drPending.length ? <span className="nbadge">{S.dr
 export const drScreen = (body, { nav = '', bar = null, cta = null } = {}) => <div className="screen dr">{statusBar()}{bar}{body}{cta}{nav ? drNav(nav) : homeInd()}</div>;
 export const drRow = id => {
   const p = DR_PATIENTS[id], st = drStatus(id), [t, tone] = DR_TAG[st], past = st === 'done';
-  return <button className="list-item" data-act={`d-patient:${id}`}><span className="avatar">{p.ini}</span>
+  return <button className="list-item" data-act={`d-patient:${id}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
     <span className="dq-t"><span className={`h-s ${past ? 'past' : ''}`}>{p.name}</span><span className="dq-id">{drPid(id)}</span><span className="dq-r">{p.short}</span>
       <span className="dq-m"><span className={past ? 'past' : 'now'}>{drTime(id)}</span>{tag(t, `${tone} s12`)}</span></span>{drChev}</button>;
 };
-export const drHead = (p, size = 'l') => <div className="dr-head"><span className={`avatar ${size === 'l' ? 'l' : ''}`}>{p.ini}</span><div>
-  <p className={size === 'l' ? 'dr-h1' : 'h-s'}>{p.name}</p><p className="dr-sub">{p.info}</p></div></div>;
+export const drHead = (p, size = 'l', H = 'p') => <div className="dr-head"><span className={`avatar ${size === 'l' ? 'l' : ''}`} aria-hidden="true">{p.ini}</span><div>
+  <H className={size === 'l' ? 'dr-h1' : 'h-s'}>{p.name}</H><p className="dr-sub">{p.info}</p></div></div>;
 export const drMed = m => <div className="card dr-med"><p className="dm1">{m.name}</p><p className="dm2">{m.for}</p><p className="dm3">{m.how}</p><p className="dm4">{m.dur}</p></div>;
 export const drMeds = meds => meds.map((m, i) => <Fragment key={i}>{drMed(m)}</Fragment>);
 // F04/R02/T01/V01: on the visit being written, every medicine can be edited or removed.
@@ -161,7 +161,7 @@ export const drOwnVisit = id => {
 };
 export const drOtherVisit = (id, v) => {
   const dept = Object.values(DOCTORS).find(d => d.name === v.doc)?.spec || 'General medicine';
-  return <div className="card neutral appt"><span className="avatar l">{initials(v.doc.replace('Dr. ', ''))}</span>
+  return <div className="card neutral appt"><span className="avatar l" aria-hidden="true">{initials(v.doc.replace('Dr. ', ''))}</span>
     <span className="appt-t"><span className="h-s">{v.doc}</span><span className="when">{v.date}</span><span className="where">{dept}</span><span className="body-s tertiary">{v.reason}</span></span></div>;
 };
 
@@ -211,7 +211,7 @@ export const drDupes = meds => { const k = m => m.name.replace(/\s*\d.*$/, '').t
 // F24/R20/T11/W07: today's released reports — who released each one and when.
 export const drOutList = (cls = '') => S.drOut.length ? <><div className="inset" style={{ paddingTop: 12 }}><p className="dr-label">Released today</p></div>
   <div className="list">{sepJoin(S.drOut.map(o => { const r = DR_REPORTS[o.k], p = DR_PATIENTS[r.pid];
-    return <div className={`list-item static ${cls}`}><span className="avatar">{p.ini}</span>
+    return <div className={`list-item static ${cls}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
       <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span>
         <span className="dq-m"><span className="past">Released by {o.by} at {o.at}</span>{tag(o.follow ? 'Follow-up asked' : 'Released', `${o.follow ? 'warn' : 'success'} s12`)}</span></span></div>; }))}</div></> : null;
 
@@ -221,7 +221,7 @@ Object.assign(SCREENS, {
   dsignin: () => drScreen(
     <div className="body" style={{ justifyContent: 'center', gap: 32, padding: '0 16px 24px' }}>
       <div style={{ height: 40, flex: 'none' }}></div>
-      <div className="dr-brand"><p className="wordmark-s">Clinica</p><p className="dr-sub">For City Hospital's care team</p></div>
+      <div className="dr-brand"><h1 className="wordmark-s">Clinica</h1>{/* W13 */}<p className="dr-sub">For City Hospital's care team</p></div>
       <form id="d-form" className="fields" noValidate onSubmit={e => { e.preventDefault(); ACTIONS['d-signin'](); }}>
         {drField('d-id', 'Staff ID', 'e.g. CH-0231')}
         {drField('d-pw', 'Password', 'Password', S.drErr ? 'Staff ID or password is incorrect. Try again.' : '')}
@@ -247,7 +247,7 @@ Object.assign(SCREENS, {
   dpatient: () => {
     const p = DR_PATIENTS[S.dp], st = drStatus(S.dp);
     return drScreen(<div className="body" style={{ gap: 24 }}>
-      <div className="inset">{drHead(p)}</div>
+      <div className="inset">{drHead(p, 'l', 'h1')}</div>{/* W13: the bar has no title here */}
       <div className="inset stack6"><p className="dr-label">Today's visit</p>
         <div className="dr-reason"><p className="dr-label tertiary">Reason for visit</p><p className="dr-l">{p.reason}</p><p className="dr-body">{drTime(S.dp)} · General medicine · OPD 2</p></div></div>
       <div className="inset"><button className="list-item" data-act="go:dhistory">{lead('lt-history.svg')}
@@ -283,7 +283,7 @@ Object.assign(SCREENS, {
   dvisit: () => {
     const p = DR_PATIENTS[S.dp], d = S.drDraft;
     return drScreen(<div className="body" style={{ gap: 24, paddingBottom: 36 }}>
-      <div className="inset"><div className="dr-head"><span className="avatar ">{p.ini}</span><div>
+      <div className="inset"><div className="dr-head"><span className="avatar " aria-hidden="true">{p.ini}</span><div>
         <p className="h-s">{p.name}</p><p className="dr-body">{drPid(S.dp)} · Today's visit · {drTime(S.dp)}</p></div></div></div>
       {d.restored ? <div className="inset">{draftCue('Draft kept — your note, medicines and follow-up are as you left them.')}</div> : null}
       <div className="inset">{drNoteField(d, S.dp, 'd-note')}</div>
@@ -303,7 +303,7 @@ Object.assign(SCREENS, {
         <p className="dr-body">Patients can't see a report until you release it, with your own comment.</p></div></div></div>
       {ids.length ? <div className="inset"><p className="dr-label">Pending</p></div> : null}
       <div className="list">{sepJoin(ids.map(k => { const r = DR_REPORTS[k], p = DR_PATIENTS[r.pid];
-        return <button className="list-item" data-act={`d-report:${k}`}><span className="avatar">{p.ini}</span>
+        return <button className="list-item" data-act={`d-report:${k}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
           <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span><span className="dq-m"><span className="now">{r.date}</span>{tag('Needs review', 'warn s12')}</span></span>
           {drChev}</button>; }))}</div>
       {drOutList()}
@@ -314,7 +314,7 @@ Object.assign(SCREENS, {
   dreport: () => {
     const r = DR_REPORTS[S.drRep], p = DR_PATIENTS[r.pid], rel = S.drRel, follow = rel.choice === 'follow';
     return drScreen(<div className="body" style={{ gap: 24, paddingBottom: 36 }}>
-      <div className="inset stack8"><div className="dr-head"><span className="avatar">{p.ini}</span><div><p className="h-s">{p.name}</p><p className="dr-body">{drPid(r.pid)} · {r.test} · {r.date} · City Hospital lab</p></div></div>
+      <div className="inset stack8"><div className="dr-head"><span className="avatar" aria-hidden="true">{p.ini}</span><div><p className="h-s">{p.name}</p><p className="dr-body">{drPid(r.pid)} · {r.test} · {r.date} · City Hospital lab</p></div></div>
         <a href="#" className="dr-link" data-act={`d-hist:${r.pid}`}>View {r.first}'s history</a></div>{/* F24/R20/T25: history from the report */}
       <div className="inset stack6"><p className="dr-label">Result</p>
         {drValues(r.rows)}
@@ -328,7 +328,7 @@ Object.assign(SCREENS, {
   },
 
   dprofile: () => drScreen(<div className="body" style={{ gap: 24 }}>
-      <div className="inset"><div className="dr-me"><span className="avatar l">PS</span><p className="dr-h1">Dr. Priya Sharma</p><p className="dr-sub">General medicine · City Hospital</p></div></div>
+      <div className="inset"><div className="dr-me"><span className="avatar l" aria-hidden="true">PS</span><p className="dr-h1">Dr. Priya Sharma</p><p className="dr-sub">General medicine · City Hospital</p></div></div>
       <div className="inset stack4"><p className="dr-label">Your details</p><div className="mt-list">{sepJoin([row('lt-document.svg', 'NMC registration', '12345'), row('lt-hospital.svg', 'Department', 'General medicine, OPD 2')])}</div></div>
       <div className="inset stack4"><p className="dr-label">Account</p><div className="mt-list">{sepJoin([listItem('lt-lock.svg', 'Change password', 'Last changed 3 months ago', 'd-settings:pw'), listItem('lt-bell.svg', 'Notifications', 'New reports and check-ins', 'd-settings:notif')])}</div></div>
       <div style={{ height: 20, flex: 'none' }}></div>
@@ -337,11 +337,11 @@ Object.assign(SCREENS, {
 
   // Both settings on one screen; Profile's two rows land with the right section in view.
   dsettings: () => drScreen(<div className="body" style={{ gap: 24, padding: '16px 0 36px' }}>
-      <div className="inset stack24" id="d-pw-sec"><p className="dr-h1">Change password</p>
+      <div className="inset stack24" id="d-pw-sec"><h2 className="dr-h1">Change password</h2>
         <form id="d-pwform" className="fields" noValidate>{drField('d-pw0', 'Current password', 'Password')}{drField('d-pw1', 'New password', 'At least 8 characters', S.drPwErr === 'short' ? 'Use at least 8 characters.' : '')}
           {drField('d-pw2', 'Confirm new password', 'Re-enter new password', S.drPwErr === 'match' ? "The new passwords don't match." : '')}</form>
         {S.drPwErr === 'saved' ? support('Password changed.', '', 'icon-check-circle-success-20.svg') : null}{btn('Save password', 'd-pwsave')}</div>
-      <div className="inset stack8" id="d-notif-sec"><p className="dr-h1">Notifications</p>
+      <div className="inset stack8" id="d-notif-sec"><h2 className="dr-h1">Notifications</h2>
         <div className="mt-list">{drSettings()}</div></div>
     </div>, { bar: drBar('Account settings', true) }),
 });
@@ -485,7 +485,7 @@ Object.assign(ACTIONS, {
     S.drNotes[S.dp] = S.drDraft.note;
     S.drVisits = { ...S.drVisits, [S.dp]: { ...S.drDraft } }; // now part of her history
     const { [S.dp]: _, ...kept } = S.drKept; S.drKept = kept;
-    S.sheet = null;
+    S.sheet = null; toast(`Visit with ${DR_PATIENTS[S.dp].name} completed.`); // W03
     if (S.app === 'desk') { Object.assign(S, { screen: 'kqueue', stack: [], kView: 'visit' }); return render(); }
     Object.assign(S, { stack: [], screen: 'dqueue' }); render();
   },
@@ -514,7 +514,7 @@ Object.assign(ACTIONS, {
   'd-set': k => { S.drSet[k] = !S.drSet[k]; drPwClear(); render(); },
   'd-pwsave': () => {
     S.drPwErr = S.drPw1.length < 8 ? 'short' : S.drPw1 !== S.drPw2 ? 'match' : 'saved';
-    drPwClear(); render();
+    drPwClear(); if (S.drPwErr === 'saved') toast('Password changed.'); /* W03 */ render();
   },
   'd-signout-ask': () => { S.sheet = 'drsignout'; render(); },
   'd-signout': () => { Object.assign(S, { drSigned: false, drId: '', drPw: '', drErr: false, sheet: null, stack: [], screen: 'dsignin' }); render(); },

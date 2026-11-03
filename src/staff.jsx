@@ -2,7 +2,7 @@
 // the administrator, the front desk and HR. Figma: zw3saW6ot26E6gWH20K3ux, section 553:19705.
 // Same world as the doctor's apps and Anisha's phone: checking a patient in puts them in Dr. Sharma's queue as Waiting,
 // a walk-in for her joins it, and the dashboard counts the reports she hasn't released yet.
-import { Fragment } from 'react';
+import { Children, Fragment, cloneElement } from 'react';
 import { Phone, btn, digits, empty, listItem, masked, range, start, support } from './app.jsx';
 import { T, acts, say, src } from './ask.jsx';
 import { bar, initials, label, row, rows, sk, tag, when } from './booking.jsx';
@@ -219,16 +219,17 @@ export function sSide() {
     ? <a key={sc} href="#" className="k-ni" data-act={`st-go:${sc}`}>{img(i)}{l}</a>
     : S.screen === sc ? <span key={sc} className="k-ni on" aria-current="page">{img(ia)}{l}</span> // below the section root, the active item leads back to it
       : <a key={sc} href="#" className="k-ni on" aria-current="page" data-act={`st-go:${sc}`}>{img(ia)}{l}</a>)}</nav></div>
-    <div className="st-dd-wrap">{S.stMenu === 'me' ? menu : null}<button className="k-me" data-act="st-menu:me" aria-haspopup="menu" aria-expanded={S.stMenu === 'me'}><span className="avatar">{initials(me.name)}</span>
+    <div className="st-dd-wrap">{S.stMenu === 'me' ? menu : null}<button className="k-me" data-act="st-menu:me" aria-haspopup="menu" aria-expanded={S.stMenu === 'me'}><span className="avatar" aria-hidden="true">{initials(me.name)}</span>
       <span className="st-me"><span className="item-title">{me.name}</span><span className="dr-body">{ROLES[me.access][0]}</span></span></button></div></aside>;
 }
 export const sPage = (inner, cls = '') => <div className="screen k">{sSide()}<main className={`st-main ${cls}`}>{inner}</main></div>;
-export const sHead = (t, sub, right = null) => <div className="st-hd"><div className="st-ttl"><h1 className="k-h2">{t}</h1><p className="dr-sub">{sub}</p></div>{right}</div>;
+export const sHead = (t, sub, right = null) => <div className="st-hd"><div className="st-ttl"><h1 className="k-h2">{t}</h1><p className="dr-sub" aria-live="polite">{sub}</p>{/* W18: result counts are announced */}</div>{right}</div>;
 // Typing re-renders in place; React keeps the input, so focus and caret stay put.
 export const sSearch = ph => <div className="field st-search"><input id="st-q" type="search" placeholder={ph} aria-label={ph} value={S.stQ}
   onChange={e => { S.stQ = e.target.value; S.stSel = []; sRe(); }} /></div>;
-export const sBack = (label, sc) => <a href="#" className="k-link" data-act={`st-go:${sc}`}>{img('icon-chevron-left-action-16', 16)}{label}</a>;
-export const sWho = (ini, name, sub, right = null, h = 'k-name') => <div className="st-hd"><div className="k-id"><span className="avatar l">{ini}</span><div><p className={h}>{name}</p><p className="dr-sub">{sub}</p></div></div>{right}</div>;
+export const sBack = (label, sc) => <a href="#" className="k-link" data-act={`st-go:${sc}`} aria-label={`Back to ${label}`}>{img('icon-chevron-left-action-16', 16)}{label}</a>; // W18: not a second "Leave requests" link
+// W13: a detail page's heading is the person's name. R27: initials are decoration.
+export const sWho = (ini, name, sub, right = null, h = 'k-name') => <div className="st-hd"><div className="k-id"><span className="avatar l" aria-hidden="true">{ini}</span><div><h1 className={h}>{name}</h1><p className="dr-sub">{sub}</p></div></div>{right}</div>;
 export const sSec = (t, inner) => <section className="stack16"><h2 className="st-sec">{t}</h2>{inner}</section>;
 export const sStats = stats => <div className="st-stats fix">{stats.map(([v, l, c]) => <div key={l} className="st-stat"><p className="k-h2">{v}</p><p className="st-sl">{l}</p><p className="dr-body">{c}</p></div>)}</div>;
 // A pick-list field: the native select, dressed as a text field.
@@ -238,7 +239,8 @@ export const sSelect = (id, label, ph, value, opts, err, onChange) => <div class
 export const sKV = rows => <div className="mt-list">{mtJoin(rows.map(([k, v]) => <div className="st-kv"><span>{k}</span><b>{v}</b></div>))}</div>;
 export const sHist = rows => <div className="mt-list">{sepJoin(rows.map(([d, s]) => row('lt-history.svg', d, s)))}</div>;
 export const sTag = ([t, tone]) => tag(t, `${tone} s12`);
-export const sOk = (t, deny) => <p className={`st-ok ${deny ? 'n' : ''}`} role="status">{img(deny ? 'icon-cancel-secondary-20' : 'icon-check-circle-success-20')}{t}</p>;
+// W03: success is announced once, by the shared toast; this is the lasting record on the page.
+export const sOk = (t, deny) => <p className={`st-ok ${deny ? 'n' : ''}`}>{img(deny ? 'icon-cancel-secondary-20' : 'icon-check-circle-success-20')}{t}</p>;
 export const sEmpty = (icon, t, b) => <div className="st-empty">{img(icon, 32)}<p className="st-et">{t}</p><p className="dr-body">{b}</p></div>;
 export const cb = on => <span className={`cb ${on ? 'on' : ''}`} aria-hidden="true">{on ? img('icon-check-white-14', 14) : null}</span>;
 export const cbBtn = (on, act, label) => <button className="cb-btn" role="checkbox" aria-checked={on} aria-label={label} data-act={act}>{cb(on)}</button>;
@@ -259,14 +261,19 @@ export const filtered = (list, fs) => list.filter(x => Object.entries(fs).every(
 export const results = (n, total, what) => S.stQ ? `${n} result${n === 1 ? '' : 's'} for “${S.stQ}”` : `${n} of ${total} · filtered by ${what}`;
 
 // A table: checkbox column, fixed-width cells, then whatever sits at the right edge.
+// A2/R28/V19: real table roles (table › rowgroup › row › columnheader/cell); each row's name is the link that opens it,
+// and the row stays clickable for the mouse. cols: [label, width, aria-sort ('ascending' | 'descending' | 'none') for a sortable column (W18)].
 export let stVisible = [];
-export function sTable(cols, items, cells, act) {
+const asCells = el => Children.toArray(el.props.children).map(c => c.props?.className === 'sp' ? cloneElement(c, { 'aria-hidden': true }) : cloneElement(c, { role: 'cell' }));
+export function sTable(cols, items, cells, act, label) {
   stVisible = items.map(x => x.id);
   const all = items.length > 0 && items.every(x => S.stSel.includes(x.id)); // A3: an empty list is not "all selected" (0 leaked into aria-checked)
-  return <div className="st-tbl"><div className="st-th" role="row">{cbBtn(all, 'st-cball', 'Select all')}{cols.map(([l, w], i) => w ? <span key={i} style={{ width: w }}>{l}</span> : <Fragment key={i}><span className="sp"></span><span>{l}</span></Fragment>)}</div>
-    <div className="st-rows">{sepJoin(items.map(x => <div className="st-tr" role="row" {...(act ? { 'data-act': `${act}:${x.id}`, tabIndex: 0 } : {})}>{cbBtn(S.stSel.includes(x.id), `st-cb:${x.id}`, `Select ${x.name}`)}{cells(x)}</div>))}</div></div>;
+  return <div className="st-tbl" role="table" aria-label={label}><div role="rowgroup"><div className="st-th" role="row"><span role="columnheader">{cbBtn(all, 'st-cball', 'Select all')}</span>
+    {cols.map(([l, w, sort], i) => w ? <span key={i} role="columnheader" aria-sort={sort} style={{ width: w }}>{l}</span> : <Fragment key={i}><span className="sp" aria-hidden="true"></span><span role="columnheader" aria-sort={sort}>{l}</span></Fragment>)}</div></div>
+    <div className="st-rows" role="rowgroup">{sepJoin(items.map(x => <div className="st-tr" role="row" {...(act ? { 'data-act': `${act}:${x.id}` } : {})}><span role="cell">{cbBtn(S.stSel.includes(x.id), `st-cb:${x.id}`, `Select ${x.name}`)}</span>{asCells(cells(x))}</div>))}</div></div>;
 }
-export const nmCell = (x, w) => <span className="nm" style={{ width: w }}><span className="avatar">{x.ini}</span>{x.name}</span>;
+// R28/V19: the name opens the row (a link, so it's announced as one). R27: initials are decoration.
+export const nmCell = (x, w, act) => <span className="nm" style={{ width: w }}><span className="avatar" aria-hidden="true">{x.ini}</span>{act ? <a href="#" className="st-nm" data-act={`${act}:${x.id}`}>{x.name}</a> : x.name}</span>;
 export const cell = (t, w, cls = '') => <span className={cls} style={{ width: w }}>{t}</span>;
 export const byQ = (list, ...fs) => { const q = S.stQ.trim().toLowerCase(); return q ? list.filter(x => fs.some(f => f(x).toLowerCase().includes(q))) : list; };
 
@@ -276,7 +283,7 @@ export const ageOf = a => (a.info.match(/· (\d+) ·/) || [])[1];
 export const end4 = a => (a.phone.match(/(\d{4})$/) || [])[1];
 export const arrRow = k => {
   const a = arr(k), st = arrSt(k), past = st === 'done', who = [ageOf(a) && `${ageOf(a)} yrs`, end4(a) && `phone ending ${end4(a)}`].filter(Boolean).join(' · ');
-  return <button className={`list-item k-row ${S.stHi === k ? 'sel' : ''}`} id={`arr-${k}`} data-act={`st-arr:${k}`}><span className="avatar">{a.ini}</span>
+  return <button className={`list-item k-row ${S.stHi === k ? 'sel' : ''}`} id={`arr-${k}`} data-act={`st-arr:${k}`}><span className="avatar" aria-hidden="true">{a.ini}</span>
     <span className="dq-t"><span className={`h-s ${past ? 'past' : ''}`}>{a.name}</span>{pid(k) || who ? <span className="st-pid">{[pid(k), who].filter(Boolean).join(' · ')}</span> : null}
       <span className="dq-r">{dname(a.doc)} · {deptName(deptKOf(a.doc)) || person(a.doc)?.dept} · {docOf(a.doc)[0]}</span>
       <span className="dq-m"><span className={past ? 'past' : 'now'}>{a.time}</span>{sTag(ARR_TAG[st])}</span></span></button>;
@@ -286,7 +293,7 @@ export const arrRow = k => {
 Object.assign(SCREENS, {
   // The Sign in button's click signs in, and Enter in a field clicks it, so the form itself only stops the page submitting.
   ssignin: () => <div className="screen k k-sign"><form className="k-card" id="st-form" noValidate onSubmit={e => e.preventDefault()}>
-      <div className="dr-brand"><p className="wordmark-s">Clinica</p><p className="dr-sub">Hospital management — City Hospital</p></div>
+      <div className="dr-brand"><h1 className="wordmark-s">Clinica</h1>{/* W13 */}<p className="dr-sub">Hospital management — City Hospital</p></div>
       <div className="fields st-f8"><div className="field-wrap"><label className="label" htmlFor="st-id">Admin ID</label><div className="field"><input id="st-id" placeholder="e.g. CH-ADM-04" autoComplete="username"
         value={S.stSignId} onChange={e => { S.stSignId = e.target.value; paint(); }} /></div></div>
         {drField('st-pw', 'Password', 'Password', S.stErr ? 'Admin ID or password is incorrect. Try again.' : '')}
@@ -303,14 +310,14 @@ Object.assign(SCREENS, {
       <div className="st-stats">{stats.map(([v, l, c]) => <div key={l} className="st-stat"><p className="k-h2">{v}</p><p className="st-sl">{l}</p><p className="dr-body">{c}</p></div>)}</div>
       <section className={`stack8 ${h ? 'st-grow' : ''}`}><div className="st-hd"><h2 className="dr-h1" style={{ fontSize: 20, lineHeight: '24px' }}>Doctors on duty</h2><a href="#" className="st-a" data-act="st-go:sdocs">View all doctors</a></div>
         {h ? sEmpty('icon-event-available-tertiary-32', 'No doctors on duty', 'Public holiday — check back tomorrow.')
-          : <div className="st-rows">{sepJoin(on.map(d => <button className="list-item st-dr" data-act={`st-doc:${d.id}`}><span className="avatar">{d.ini}</span>
+          : <div className="st-rows">{sepJoin(on.map(d => <button className="list-item st-dr" data-act={`st-doc:${d.id}`}><span className="avatar" aria-hidden="true">{d.ini}</span>
             <span className="dq-t"><span className="st-nm">{d.name}</span><span className="dr-body">{d.dept} · {docOf(d.id)[0]}</span></span>
             <span className="dr-body">{ptToday(d.id)} patients today</span>{sTag(DUTY.on)}</button>))}</div>}</section>
       {/* F13/R21/T07: who is waiting in each department, and closed departments flagged with why, cover and reopening */}
       {h ? null : sSec('Waiting by department', <div className="st-rows">{sepJoin(depts().map(([k, [, opd]]) => { const c = closure(k);
         return <button className="list-item st-dr" data-act={`st-dept:${k}`}><span className="dq-t"><span className="st-nm">{deptLabel(k)}</span>
           <span className="dr-body">{c ? `Closed today: ${c.why}. Cover: ${c.cover}. Reopens ${c.reopen}.` : opd}</span></span>
-          <span className="dr-body">{waitingIn(k)} waiting</span>{sTag(c ? ['Closed today', 'warn'] : ['Running', 'success'])}</button>; }))}</div>)}
+          <span className="dr-body">{waitingIn(k)} waiting</span>{sTag(c ? ['Closed today', 'warn edge'] : ['Running', 'success'])}</button>; }))}</div>)}
       {/* HR's numbers only: who is on leave, and why, stays in HR (Figma 685:31360). */}
       <section className="stack16"><h2 className="st-sec">Staff (HR)</h2>
         {sStats([[people().length, 'Total staff', 'Across all roles'], [people().filter(p => staffStatus(p) === 'On leave').length, 'On leave today', 'Operational count only']])}
@@ -327,8 +334,8 @@ Object.assign(SCREENS, {
       <div className="st-chips">{chip('dept', fLabel('dept', 'Department'), (S.stF.dept || []).length, () => checks('dept', counts(all, d => d.dept)))}
         {chip('status', fLabel('status', 'Status'), (S.stF.status || []).length, () => checks('status', ['On duty', 'Off duty', 'On leave'].map(s => [s, all.filter(d => DUTY[duty(d.id)][0] === s).length])))}
         {chip('sort', S.stSort ? `Sort: ${S.stSort === 'pt-asc' ? 'Lowest' : 'Highest'} patients` : 'Sort: Patients today', S.stSort, () => radios([['pt-desc', 'Highest to lowest patients'], ['pt-asc', 'Lowest to highest patients']]))}</div>
-      {sTable([['Doctor', 320], ['Department', 260], ['Patients today', 180], ['Status']], list,
-        d => <>{nmCell(d, 320)}{cell(`${d.dept} · ${docOf(d.id)[0]}`, 260)}{cell(ptToday(d.id), 180)}<span className="sp"></span>{sTag(DUTY[duty(d.id)])}</>, 'st-doc')}
+      {sTable([['Doctor', 320], ['Department', 260], ['Patients today', 180, S.stSort ? (S.stSort === 'pt-asc' ? 'ascending' : 'descending') : 'none'], ['Status']], list,
+        d => <>{nmCell(d, 320, 'st-doc')}{cell(`${d.dept} · ${docOf(d.id)[0]}`, 260)}{cell(ptToday(d.id), 180)}<span className="sp"></span>{sTag(DUTY[duty(d.id)])}</>, 'st-doc', 'Doctors')}
       {sPager}</>, 'st-acts');
   },
 
@@ -345,7 +352,7 @@ Object.assign(SCREENS, {
       <button className="btn primary l hug" data-act="st-newdept">{img('icon-add-white-24', 24)}Add department</button>)}<div className="st-grid">{depts().map(([k, [name, opd, ids]]) => {
     const on = ids.filter(i => duty(i) === 'on'), sur = dname /* R29: full names — there are two Dr. Shresthas */, run = on.length || isNewDept(k), c = closure(k);
     const who = on.length ? [on.map(sur).join(', '), ...ids.filter(i => duty(i) === 'leave').map(i => `${sur(i)} on leave`)].join(' · ') : ids.length ? `${ids.map(sur).join(', ')} — not in today` : null;
-    return <a key={k} href="#" className="st-dept" data-act={`st-dept:${k}`}><span className="st-hd"><span className="st-nm">{PLAIN[k] ? deptLabel(k) : name}</span>{tag(run ? 'Running' : 'Closed today', `${run ? 'success' : 'neutral'} s12 sm`)}</span>
+    return <a key={k} href="#" className="st-dept" data-act={`st-dept:${k}`}><span className="st-hd"><span className="st-nm">{PLAIN[k] ? deptLabel(k) : name}</span>{tag(run ? 'Running' : 'Closed today', `${run ? 'success' : 'neutral edge'} s12 sm`)}{/* 1.4.11: a 3:1 edge on the grey card */}</span>
       <span className="dr-body">{opd}</span>{who ? <span className="dr-body tertiary">{who}</span> : null}{c ? <span className="dr-body">Reopens {c.reopen} · Cover: {c.cover}</span> : null}
       <span className="st-nm">{deptPts(k)} patients today</span></a>; })}</div></>),
 
@@ -355,7 +362,7 @@ Object.assign(SCREENS, {
     const c = closure(S.stId);
     return sPage(<>{sBack('Departments', 'sdepts')}{sHead(PLAIN[S.stId] ? deptLabel(S.stId) : name, `${opd} · ${ids.length} doctor${ids.length === 1 ? '' : 's'}`, sTag(on.length || isNewDept(S.stId) ? ['Running', 'success'] : ['Closed today', 'neutral']))}
       {c ? notice('warn', 'Closed today', `${c.why}. Cover: ${c.cover}. Reopens ${c.reopen}.`) : null /* R21/T27 */}
-      {sSec('Doctors', <div className="mt-list">{sepJoin(ids.map(i => { const st = duty(i); return <div className="st-kv"><span className="st-who"><span className="avatar">{person(i).ini}</span><b>{dname(i)} · {docOf(i)[0]}</b></span>
+      {sSec('Doctors', <div className="mt-list">{sepJoin(ids.map(i => { const st = duty(i); return <div className="st-kv"><span className="st-who"><span className="avatar" aria-hidden="true">{person(i).ini}</span><b>{dname(i)} · {docOf(i)[0]}</b></span>
         <span className="dr-body">{st === 'on' ? `${ptToday(i)} patients today` : st === 'leave' ? 'On leave' : 'Not in today'}</span></div>; }))}</div>)}
       {sSec('Today', sKV([['Patients seen', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'done').length], // F07: completed rows, as Reception shows them ['OPDs running', `${onOpds.size} of ${opds.size}`],
         leave ? ['Staff on leave', leave] : ['Not yet arrived', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'notarrived').length]]))}</>);
@@ -374,8 +381,8 @@ Object.assign(SCREENS, {
       <div className="st-chips">{chip('dept', fLabel('dept', 'Department'), (S.stF.dept || []).length, () => checks('dept', counts(all, v => v.dept)))}
         {chip('doc', fLabel('doc', 'Doctor'), (S.stF.doc || []).length, () => checks('doc', counts(all, v => v.doc), 260))}
         {chip('date', range, a, sCal)}</div>
-      {sTable([['Patient ID', 110], [sortBtn, 260], ['Doctor', 240], ['Department', 220], ['Visited date']], list,
-        v => <>{cell(v.pid || '—', 110)}{nmCell(v, 260)}{cell(v.doc, 240)}{cell(v.dept, 220)}<span className="sp"></span>{sTag([v.when, 'neutral'])}</>, 'st-pat')}
+      {sTable([['Patient ID', 110], [sortBtn, 260, { 'name-asc': 'ascending', 'name-desc': 'descending' }[S.stSort] || 'none'], ['Doctor', 240], ['Department', 220], ['Visited date']], list,
+        v => <>{cell(v.pid || '—', 110)}{nmCell(v, 260, 'st-pat')}{cell(v.doc, 240)}{cell(v.dept, 220)}<span className="sp"></span>{sTag([v.when, 'neutral'])}</>, 'st-pat', 'Patient visits')}
       {sPager}</>);
   },
 
@@ -402,7 +409,7 @@ Object.assign(SCREENS, {
     const ed = S.stEdit && person(S.stEdit);
     const head = <>{ed ? sBack(ed.name, 'sdoc') : S.stFrom === 'sdocs' ? sBack('Doctors', 'sdocs') : sBack('Settings', 'sset')}<div className="st-ttl"><h1 className="k-h2">{ed ? `${ed.name}'s details` : 'Add a doctor'}</h1>
       <p className="dr-sub">{ed ? 'Fill in what was left blank, or correct it' : 'Adds them to the roster and gives them their own sign-in'}. Fields marked * are required.</p></div></>;
-    if (S.stAdded) return sPage(<>{head}<div className="st-done" role="status"><p className="st-ok">{img('icon-check-circle-success-20')}{S.stAdded} has been added</p>
+    if (S.stAdded) return sPage(<>{head}<div className="st-done"><p className="st-ok">{img('icon-check-circle-success-20')}{S.stAdded} has been added</p>
       <p className="dr-body">They can sign in with the staff ID and password sent to their phone.</p></div>
       <div className="st-sp"></div><div className="st-cta"><button className="btn secondary l" data-act="st-go:sdocs">View in roster</button></div></>);
     const f = (k, l, ph, type = 'text') => <div className="field-wrap"><label className="label" htmlFor={`sa-${k}`}>{l}</label><div className={`field ${S.stAddErr[k] ? 'err' : ''}`}>
@@ -421,7 +428,7 @@ Object.assign(SCREENS, {
     const list = byQ(people(), p => p.name, p => accessText(p), p => p.dept);
     return sPage(<>{sBack('Settings', 'sset')}{sHead('Assign roles', 'What each person can access in Clinica', sSearch('Search staff'))}
       {S.stSel.length ? <div className="st-bulk"><span aria-live="polite">{S.stSel.length} selected</span><button className="btn primary st-m" data-act="st-bulk">Assign role to selected</button></div> : null}
-      {sTable([['Name', 300], ['Access', 300], ['Job title · department', 300]], list, p => <>{nmCell(p, 300)}{cell(accessText(p), 300)}{cell(`${p.title} · ${p.dept}`, 300)}<span className="sp"></span></>, 'st-role')}
+      {sTable([['Name', 300], ['Access', 300], ['Job title · department', 300]], list, p => <>{nmCell(p, 300, 'st-role')}{cell(accessText(p), 300)}{cell(`${p.title} · ${p.dept}`, 300)}<span className="sp"></span></>, 'st-role', 'Staff access')}
       {sPager}</>);
   },
 
@@ -511,7 +518,7 @@ Object.assign(SCREENS, {
     return sPage(<div className="st-col"><div className="st-ttl"><h1 className="k-h2">Is this {first[0].toUpperCase() + first.slice(1)}?</h1>
       <p className="dr-sub">{c.length === 1 ? 'One patient matches' : `${['', '', 'Two', 'Three', 'Four'][c.length] || c.length} patients match`} that name — pick the right one, or continue as new.</p></div>
       <div className="st-rows">{sepJoin(c.map(k => { const a = arr(k), p = PATS.find(x => x[0] === k);
-        return <div className="st-match"><span className="avatar l">{a.ini}</span><span className="dq-t"><span className="st-nm">{a.name}</span><span className="dr-body">{a.info}</span>
+        return <div className="st-match"><span className="avatar l" aria-hidden="true">{a.ini}</span><span className="dq-t"><span className="st-nm">{a.name}</span><span className="dr-body">{a.info}</span>
           <span className="dr-body tertiary">Last visit {p ? p[3] : 'Aug 28, 2026'} · phone ending {end4(a) || 'not on record'}</span></span>
           <button className="btn secondary st-m" data-act={`st-them:${k}`}>This is them</button></div>; }))}</div>
       {btn('None of these — register as new patient', 'st-asnew', { size: 'l' })}</div>, 'narrow');
@@ -532,7 +539,7 @@ Object.assign(SCREENS, {
         {chip('status', fLabel('status', 'Status'), (S.stF.status || []).length, () => checks('status', ['Active', 'On leave', 'Pending'].map(x => [x, all.filter(p => status(p) === x).length]).filter(([x, n]) => n || x !== 'Pending')))}</div>
       {/* W09: this column is the job title; the access role is on the record and in Assign roles */}
       {sTable([[<>Name{img('icon-chevron-down-tertiary-14', 14)}</>, 300], ['Job title', 220], ['Department', 220], ['Status']], list,
-        p => <>{nmCell(p, 300)}{cell(p.title, 220)}{cell(p.dept, 220)}<span className="sp"></span>{sTag(STATUS_TAG[status(p)])}</>, 'st-person')}
+        p => <>{nmCell(p, 300, 'st-person')}{cell(p.title, 220)}{cell(p.dept, 220)}<span className="sp"></span>{sTag(STATUS_TAG[status(p)])}</>, 'st-person', 'Staff')}
       {sPager}</>, 'st-acts');
   },
 
@@ -570,7 +577,7 @@ Object.assign(SCREENS, {
   // Add a department — name, OPDs and its doctors (Figma 631:1305). Assigning a doctor moves them here.
   sadddept: () => {
     const head = <>{sBack('Departments', 'sdepts')}<div className="st-ttl"><h1 className="k-h2">Add a department</h1><p className="dr-sub">Creates a new department and assigns the doctors who work in it.</p></div></>;
-    if (S.stDeptAdded) return sPage(<>{head}<div className="st-done" role="status"><p className="st-ok">{img('icon-check-circle-success-20')}{S.stDeptAdded} has been added</p></div>
+    if (S.stDeptAdded) return sPage(<>{head}<div className="st-done"><p className="st-ok">{img('icon-check-circle-success-20')}{S.stDeptAdded} has been added</p></div>
       <div className="st-sp"></div><div className="st-cta"><button className="btn secondary l" data-act="st-go:sdepts">View in departments</button></div></>);
     const d = S.stDept, e = S.stDeptErr, q = (d.q || '').trim().toLowerCase();
     const f = (k, l, ph) => <div className="field-wrap"><label className="label" htmlFor={`ad-${k}`}>{l}</label><div className={`field ${e[k] ? 'err' : ''}`}>
@@ -582,7 +589,7 @@ Object.assign(SCREENS, {
         <div className="st-dd-wrap"><div className="field"><input id="ad-q" placeholder="Search by name — e.g. Dr. Bikash Thapa" autoComplete="off" value={d.q || ''}
           onChange={ev => { S.stDept.q = ev.target.value; paint(); }} /></div>
           {hits.length ? <div className="st-dd" style={{ width: '100%' }} role="listbox" aria-label="Doctors">{hits.map(r =>
-            <button key={r.id} type="button" className="st-opt" role="option" aria-selected="false" data-act={`st-dpick:${r.id}`}><span className="l"><span className="avatar">{r.ini}</span>{r.name}</span><span className="n">{r.dept}</span></button>)}</div> : null}</div>
+            <button key={r.id} type="button" className="st-opt" role="option" aria-selected="false" data-act={`st-dpick:${r.id}`}><span className="l"><span className="avatar" aria-hidden="true">{r.ini}</span>{r.name}</span><span className="n">{r.dept}</span></button>)}</div> : null}</div>
         {d.docs.length ? <div className="st-picks">{d.docs.map(id => <button key={id} type="button" className="st-pick" data-act={`st-dunpick:${id}`} aria-label={`Remove ${dname(id)}`}>{dname(id)}{img('icon-close', 16)}</button>)}</div> : null}</div>)}
       </form><div className="st-sp"></div><div className="st-cta"><button className="btn primary l" data-act="st-adddept">Add department</button></div></>);
   },
@@ -601,7 +608,7 @@ Object.assign(SCREENS, {
   sleave: () => {
     const ids = Object.keys(LEAVES), pending = ids.filter(k => S.leave[k] === 'pending'), done = ids.filter(k => S.leave[k] === 'approved').length;
     const rowsOf = list => <div className="st-rows">{sepJoin(list.map(k => { const l = LEAVES[k], p = person(l.who);
-      return <button className="list-item k-row" data-act={`st-req:${k}`}><span className="avatar">{p.ini}</span><span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-r">{p.title} · {p.dept} · {l.type}</span>
+      return <button className="list-item k-row" data-act={`st-req:${k}`}><span className="avatar" aria-hidden="true">{p.ini}</span><span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-r">{p.title} · {p.dept} · {l.type}</span>
         <span className="dq-m"><span className="now">{leaveSpan(l)}</span>{sTag(LEAVE_TAG[S.leave[k]])}</span></span></button>; }))}</div>; // W19: role · department on each row
     const st = k => LEAVE_TAG[S.leave[k]][0], shown = filtered(ids.map(k => ({ k })), { status: x => st(x.k) }).map(x => x.k);
     const chips = <div className="st-chips">{chip('status', fLabel('status', 'Status'), (S.stF.status || []).length,
@@ -635,8 +642,8 @@ Object.assign(SCREENS, {
     const period = 'August 2026 · 20 working days so far (Mon–Fri)';
     return sPage(<>{sHead('Attendance', S.stQ ? `${period} · ${results(list.length, all.length, '')}` : period, sSearch('Search staff'))}
       <div className="st-chips">{chip('sort', S.stSort ? `Sort: ${SORTS.find(x => x[0] === S.stSort)[1]}` : 'Sort', !!S.stSort, () => radios(SORTS, 260))}</div>
-      {sTable([['Name', 280], ['Working days', 140], ['Present', 140], ['On leave', 140], ['Absent', 140]], list, p => { const a = monthAtt(p.id);
-        return <>{nmCell(p, 280)}{cell(a.total, 140)}{cell(a.present, 140, 'st-b')}{cell(a.leave, 140)}{cell(a.absent, 140, a.absent ? 'st-err' : '')}</>; }, 'st-att')}
+      {sTable([['Name', 280], ['Working days', 140], ['Present', 140, k === 'present' ? `${dir}ending` : 'none'], ['On leave', 140], ['Absent', 140, k === 'absent' ? `${dir}ending` : 'none']], list, p => { const a = monthAtt(p.id);
+        return <>{nmCell(p, 280, 'st-att')}{cell(a.total, 140)}{cell(a.present, 140, 'st-b')}{cell(a.leave, 140)}{cell(a.absent, 140, a.absent ? 'st-err' : '')}</>; }, 'st-att', 'Attendance')}
       <p className="dr-body tertiary">Working days only. On leave = days covered by an approved request; Absent = days missed with no request.</p>
       {sPager}</>);
   },
@@ -771,7 +778,6 @@ export const wkRecord = (base = {}) => {
 };
 
 // Rows are keyboard-reachable; Enter opens them like a click.
-onPhone('keydown', e => { if (e.key === 'Enter' && e.target.matches?.('.st-tr[data-act]')) e.target.click(); });
 // A click outside an open panel closes it.
 onPhone('click', e => { if (S.app === 'staff' && S.stMenu && !e.target.closest('.st-dd-wrap')) { S.stMenu = null; sRe(); } });
 
@@ -834,7 +840,7 @@ Object.assign(ACTIONS, {
     toast(`${S.stWho.map(dname).join(' and ')} ${S.stWho.length > 1 ? 'are' : 'is'} now ${accessText(person(S.stWho[0]))}.`); render();
   },
   'st-set': k => { S.stSet[k] = !S.stSet[k]; sRe(); },
-  'st-hosp': () => { S.stHospSaved = true; sRe(); },
+  'st-hosp': () => { S.stHospSaved = true; toast('Hospital details saved.'); sRe(); }, // W03
   // F06/R06/T24: blanks stay blank ("Not set" on the record); saving without an OPD or working days asks first (stnoopd).
   'st-add': force => {
     const f = S.stAdd, t = k => (f[k] || '').trim(); S.stAddErr = {};
@@ -849,13 +855,14 @@ Object.assign(ACTIONS, {
       if (d) Object.assign(d, rec); else S.stEdits[id] = { ...S.stEdits[id], ...rec, dept: rec.spec };
       Object.assign(S, { stId: id, stEdit: null, stAdd: {} }); sGo('sdoc'); toast(`${name}'s details saved.`); return render(); }
     S.stDocs.push({ id: `n${S.stDocs.length + 1}`, ...rec, emp: `CH-0${270 + S.stDocs.length}`, start: TODAY });
-    Object.assign(S, { stAdded: name, stAdd: {} }); sRe();
+    Object.assign(S, { stAdded: name, stAdd: {} }); toast(`${name} has been added.`); sRe(); // W03
   },
   // Front desk
   'st-checkin': () => { S.sheet = 'stcheck'; render(); }, // F11/T19: confirm first
   'st-checkin-ok': () => {
     const k = S.stId;
     S.sheet = null; S.ckAt[k] = now();
+    toast(`${arr(k).name} checked in.`); // W03
     if (k === 'as') S.visitDay = 'checkedin'; // Anisha's phone shows her checked in
     else if (inDrQueue(k)) S.drq[k] = 'waiting'; // and Dr. Sharma's queue shows them waiting
     else S.rq[k] = 'waiting';
@@ -917,7 +924,7 @@ Object.assign(ACTIONS, {
     } else S.stStaff.push({ id: `s${S.stStaff.length + 1}`, ini: initials(v('name')), name: v('name'), title: f.role, dept: f.dept, access: ACCESS_OF[f.role], emp: `CH-STF-0${270 + n}`, ...base });
     const who = f.role === 'Doctor' ? S.stDocs.at(-1).name : v('name'), pend = start > TODAY;
     Object.assign(S, { stNew: {}, stQ: '', stF: {} });
-    sGo('sstaff'); S.stDone = `${who} has been added${pend ? ` — Pending until ${dayLabel(start)}` : ''}`; sRe(); // back to the directory, with the new row in it
+    sGo('sstaff'); S.stDone = `${who} has been added${pend ? ` — Pending until ${dayLabel(start)}` : ''}`; toast(`${S.stDone}.`); sRe(); // W03 // back to the directory, with the new row in it
   },
   // Add a department
   'st-newdept': () => { Object.assign(S, { stDept: { docs: [] }, stDeptErr: {}, stDeptAdded: null }); sGo('sadddept'); },
@@ -931,7 +938,7 @@ Object.assign(ACTIONS, {
     const k = `d${S.stDepts.length + 1}`;
     S.stDepts.push({ k, name: d.name.trim(), opd: d.opd.trim() });
     d.docs.forEach(id => { S.stMoved[id] = k; }); // one department each: they leave their old one
-    Object.assign(S, { stDeptAdded: d.name.trim(), stDept: { docs: [] } }); sRe();
+    Object.assign(S, { stDeptAdded: d.name.trim(), stDept: { docs: [] } }); toast(`${S.stDeptAdded} has been added.`); sRe(); // W03
   },
 });
 // A tap anywhere else closes the attendance day's popover.

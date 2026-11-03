@@ -658,6 +658,23 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('T01'); assert(await has('Waiting by department') && await has('Cardiology · heart') && await has('Reopens Sun, Aug 30, 9 AM'), 'F13/R21/T27/T23: waiting per department, closure flagged');
   await J('T03'); assert(await has('Dr. Maya Shrestha on leave'), 'R29: full doctor names');
   await J('HR01'); assert(await has('Job title'), 'W09: the Staff column is Job title');
+  // ---- Phase 5: accessibility and the shell ----
+  const foc = () => p.evaluate(() => { const a = document.activeElement; return a.tagName + ':' + a.textContent.trim().slice(0, 40); });
+  assert(await p.evaluate(() => document.querySelector('.shell > a.skip')?.getAttribute('href') === '#phone'), 'W18: a skip link to the app');
+  assert(await p.evaluate(() => !document.querySelector('main.stage') && document.querySelectorAll('main, [role=main]').length === 1), 'A6: the stage is a div; one main landmark');
+  await J('B01'); await p.click('.qa >> text=Book a visit'); assert(/^H1:Find doctor/.test(await foc()), 'W03/W13: phone — focus moves to the new screen\'s h1');
+  assert(await p.evaluate(() => document.querySelectorAll('#phone h1').length) === 1, 'W13: one h1 per screen');
+  await p.fill('#q', 'ramesh'); assert(/^H1:/.test(await foc()) === false && (await p.textContent('#phone .vh[aria-live]')).includes('1 doctor'), 'W18: typing keeps focus; the count is in a live region');
+  await J('C01'); assert(await p.getAttribute('.bnav a:has-text("Care")', 'aria-current') === 'page', 'W18: aria-current on the bottom tabs');
+  await J('H17'); const pin0 = await p.evaluate(() => document.querySelectorAll('#phone .pin-dots .dot.on').length); await p.click('.key:text-is("1")');
+  assert((await p.textContent('#phone .vh[aria-live]')) === `${pin0 + 1} of 4 digits entered`, 'R26: PIN progress announced per digit');
+  await J('HR01'); assert(await p.evaluate(() => { const t = document.querySelector('#phone [role=table]'); return !!t && t.querySelectorAll(':scope > [role=rowgroup]').length === 2 && t.querySelectorAll('[role=columnheader]').length === 5 && !!t.querySelector('[role=row] > [role=cell] a.st-nm'); }), 'A2/R28/V19: table, rowgroup, columnheader and cell roles; the name is a link');
+  await p.focus('a.st-nm:has-text("Maya Tuladhar")'); await p.keyboard.press('Enter'); assert(/^H1:Maya Tuladhar/.test(await foc()), 'W03/R28: desktop — Enter on a row name opens it; focus on its h1');
+  await J('T05'); await p.click('[data-act="st-nsort"]'); assert(await p.getAttribute('[role=columnheader]:has([data-act="st-nsort"])', 'aria-sort') === 'ascending', 'W18: aria-sort on the sorted column');
+  await J('HR04'); await p.click('#phone .btn:has-text("Approve")');
+  assert(await p.evaluate(() => document.querySelector('[aria-modal=true]').contains(document.activeElement) && !!document.querySelector('#phone .st-main').closest('[inert]')), 'V05: the page behind a sheet is inert; focus is in the sheet');
+  await p.click('.csheet >> text=Go back'); assert(await p.evaluate(() => !document.querySelector('#phone [inert]')) && /Approve/.test(await foc()), 'V05: closing the sheet clears inert; focus returns to Approve');
+  await J('R02'); await p.click('[data-act="st-checkin"]'); await p.click('[data-act="st-checkin-ok"]'); assert((await p.textContent('.toast-region')).includes('checked in'), 'W03: check-in announced by the shared toast');
   console.log('page errors:', errs);
   await b.close();
 })().catch(e => { console.error(e.message); process.exit(1); });

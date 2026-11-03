@@ -24,20 +24,20 @@ export function kSide(active) {
     const T = S.screen === sc ? 'span' : 'a'; // below the section root, the active item leads back to it
     return <T key={l} {...(T === 'a' ? { href: '#', 'data-act': `k-tab:${sc}` } : {})} className="k-ni on" aria-current="page"><img src={`${A}${i.replace('-secondary', '')}-active.svg`} width="20" height="20" alt="" />{l}{n}</T>;
   })}</nav></div>
-    <div className="k-me"><span className="avatar">PS</span><div><p className="item-title">Dr. Priya Sharma</p><p className="dr-body">General medicine</p></div></div></aside>;
+    <div className="k-me"><span className="avatar" aria-hidden="true">PS</span><div><p className="item-title">Dr. Priya Sharma</p><p className="dr-body">General medicine</p></div></div></aside>;
 }
 export const kPage = (active, inner) => <div className="screen k">{kSide(active)}{inner}</div>;
-export const kHead = (t, sub) => <div className="k-head"><p className="dr-h1">{t}</p><p className="dr-sub">{sub}</p></div>;
+export const kHead = (t, sub) => <div className="k-head"><h1 className="dr-h1">{t}</h1>{/* W13 */}<p className="dr-sub">{sub}</p></div>;
 export const kEmpty = (icon, t, b, w = 360) => <div className="empty" style={{ width: w }}><div className="tile-ic"><img src={`${A}${icon}`} width="28" height="28" alt="" /></div><p className="h-s">{t}</p><p className="dr-body">{b}</p><div style={{ height: 104 }}></div></div>;
 export const kPatientRow = (id, sel) => {
   const p = DR_PATIENTS[id], st = drStatus(id), [t, tone] = DR_TAG[st], past = st === 'done';
-  return <button className={`list-item k-row ${sel ? 'sel' : ''}`} data-act={`k-sel:${id}`} aria-current={sel ? 'true' : undefined}><span className="avatar">{p.ini}</span>
+  return <button className={`list-item k-row ${sel ? 'sel' : ''}`} data-act={`k-sel:${id}`} aria-current={sel ? 'true' : undefined}><span className="avatar" aria-hidden="true">{p.ini}</span>
     <span className="dq-t"><span className={`h-s ${past ? 'past' : ''}`}>{p.name}</span><span className="dq-id">{drPid(id)}</span><span className="dq-r">{p.short}</span>
       <span className="dq-m"><span className={past ? 'past' : 'now'}>{drTime(id)}</span>{tag(t, `${tone} s12`)}</span></span></button>;
 };
 // Clears the selection back to 'Select a patient'. A note being written is kept as a draft, not lost.
 export const kClose = <button className="icon-btn k-x" data-act="k-close" aria-label="Close"><img src={`${A}icon-close.svg`} width="16" height="16" alt="" /></button>;
-export const kId = (p, sub) => <div className="k-id"><span className="avatar l">{p.ini}</span><div><p className="k-name">{p.name}</p><p className="dr-sub">{sub}</p></div></div>;
+export const kId = (p, sub) => <div className="k-id"><span className="avatar l" aria-hidden="true">{p.ini}</span><div><p className="k-name">{p.name}</p><p className="dr-sub">{sub}</p></div></div>;
 
 // The detail pane for the selected patient: their visit, their history, or completing the visit inline.
 export function kDetail() {
@@ -89,7 +89,7 @@ export function kReportDetail() {
 Object.assign(SCREENS, {
   // A centred card — there's no session yet to put a sidebar around.
   ksignin: () => <div className="screen k k-sign"><form className="k-card" id="k-form" noValidate onSubmit={e => { e.preventDefault(); ACTIONS['k-signin'](); }}>
-      <div className="dr-brand"><p className="wordmark-s">Clinica</p><p className="dr-sub">For City Hospital's care team</p></div>
+      <div className="dr-brand"><h1 className="wordmark-s">Clinica</h1>{/* W13 */}<p className="dr-sub">For City Hospital's care team</p></div>
       <div className="fields">{drField('d-id', 'Staff ID', 'e.g. CH-0231')}{drField('d-pw', 'Password', 'Password', S.drErr ? 'Staff ID or password is incorrect. Try again.' : '')}
         <a href="#" className="dr-link" data-act="stub:Forgot your password?">Forgot your password?</a></div>
       <div className="stack12">{btn('Sign in', 'k-signin')}<p className="dr-body tertiary" style={{ textAlign: 'center' }}>Trouble signing in? Call IT support.</p></div>
@@ -110,23 +110,23 @@ Object.assign(SCREENS, {
     if (!ids.length && !S.drOut.length) return kPage('Reports', <section className="k-list wide">{kHead('Reports', 'Nothing waiting on you')}<div className="k-fill">{kEmpty('icon-check-circle-secondary-28.svg', 'Nothing waiting on you', 'Reports you need to release will show up here.', 300)}</div></section>);
     return kPage('Reports', <><section className="k-list">{kHead('Reports', ids.length ? `${ids.length} ${ids.length === 1 ? 'is' : 'are'} waiting on you` : 'Nothing waiting on you')}
       <div className="k-scroll">{sepJoin(ids.map(k => { const r = DR_REPORTS[k], p = DR_PATIENTS[r.pid];
-        return <button className={`list-item k-row ${k === S.kRep ? 'sel' : ''}`} data-act={`k-rep:${k}`}><span className="avatar">{p.ini}</span>
+        return <button className={`list-item k-row ${k === S.kRep ? 'sel' : ''}`} data-act={`k-rep:${k}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
           <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span><span className="dq-m"><span className="now">{r.date}</span>{tag('Needs review', 'warn s12')}</span></span></button>; }))}
         {drOutList('k-row')}</div></section>{kReportDetail()}</>);
   },
 
   // The doctor's own account, centred — there's nothing to show alongside it.
   kprofile: () => kPage('Profile', <main className="k-main"><div className="k-col">
-      <div className="k-id"><span className="avatar l">PS</span><div><p className="k-name">Dr. Priya Sharma</p><p className="dr-sub">General medicine · City Hospital</p></div></div>
+      <div className="k-id"><span className="avatar l" aria-hidden="true">PS</span><div><h1 className="k-name">Dr. Priya Sharma</h1>{/* W13 */}<p className="dr-sub">General medicine · City Hospital</p></div></div>
       <div className="stack8"><p className="dr-label">Your details</p><div className="mt-list">{sepJoin([row('lt-document.svg', 'NMC registration', '12345'), row('lt-hospital.svg', 'Department', 'General medicine, OPD 2')])}</div></div>
       <div className="stack8"><p className="dr-label">Account</p><div className="mt-list">{sepJoin([listItem('lt-lock.svg', 'Change password', 'Last changed 3 months ago', 'k-settings:pw'), listItem('lt-bell.svg', 'Notifications', 'New reports and check-ins', 'k-settings:notif')])}</div></div>
       <div><button className="btn secondary l hug" data-act="d-signout-ask">Sign out</button></div>
     </div></main>),
 
-  kset: () => kPage('Profile', <main className="k-main"><div className="k-col" style={{ gap: 48 }}>
-      <div className="stack8" id="d-notif-sec"><p className="k-h2">Notifications</p>
+  kset: () => kPage('Profile', <main className="k-main"><div className="k-col" style={{ gap: 48 }}><h1 className="vh">Account settings</h1>{/* W13 */}
+      <div className="stack8" id="d-notif-sec"><h2 className="k-h2">Notifications</h2>
         <div className="mt-list">{drSettings()}</div></div>
-      <div className="stack24" id="d-pw-sec"><p className="k-h2">Change password</p>
+      <div className="stack24" id="d-pw-sec"><h2 className="k-h2">Change password</h2>
         <form id="d-pwform" className="fields" noValidate>{drField('d-pw0', 'Current password', 'Password')}{drField('d-pw1', 'New password', 'At least 8 characters', S.drPwErr === 'short' ? 'Use at least 8 characters.' : '')}
           {drField('d-pw2', 'Confirm new password', 'Re-enter new password', S.drPwErr === 'match' ? "The new passwords don't match." : '')}</form>
         {S.drPwErr === 'saved' ? support('Password changed.', '', 'icon-check-circle-success-20.svg') : null}<div>{btn('Save password', 'd-pwsave', { size: 'l', kind: 'primary hug' })}</div></div>

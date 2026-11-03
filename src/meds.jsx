@@ -6,7 +6,7 @@ import { btn, homeInd, statusBar } from './app.jsx';
 import { ask, say, src, words } from './ask.jsx';
 import { bar, label, row, rows, tag, when } from './booking.jsx';
 import { frame, notifRow } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, fresh, go, later, mount, render, sepJoin } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, fresh, go, later, mount, render, sepJoin, toast } from './core.jsx';
 import { field, firstNum, lbl, list, lowStock, openHealth, saveMed } from './health.jsx';
 import { checks, chip, clock, img, now } from './staff.jsx';
 
@@ -63,7 +63,7 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="appbar chat hug">
         <div className="side"><a href="#" className="back-l" data-act="back"><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>Medicines</a></div>
-        <div className="c-title">Add a medicine</div><div className="side end"><div className="slot"></div></div>
+        <h1 className="c-title">Add a medicine</h1>{/* W13 */}<div className="side end"><div className="slot"></div></div>
       </div>
       <div className="body g20">
         <div className="inset"><div className="greet2"><p className="g1">Tell me about your medicine</p><p className="lede">Say the name, strength, how much you have, and how often you take it.</p></div>
@@ -107,7 +107,7 @@ Object.assign(SCREENS, {
       <div className="mt-stock"><p className={`mt-n ${low ? 'low' : ''}`}>{m.left}</p><p className="lede">{m.unit} left</p>{low ? <p className="mt-low">Running low — buy more soon</p> : null}</div>
       <div className="mt-rows">{[['How much you take', m.each], ['How often', m.often], ['Last taken', 'Just now'], ['Added', m.since === 'Today' ? 'Today' : `${m.since} ago`]]
         .map(([k, v], i) => <Fragment key={k}>{i > 0 && <div className="mt-sep" aria-hidden="true"></div>}<div className="mt-kv"><span>{k}</span><b>{v || '—'}</b></div></Fragment>)}</div>
-    </div>, { cta: <p className="mt-done" role="status"><img src={`${A}icon-check-circle-success-20.svg`} width="20" height="20" alt="" />Dose logged</p> });
+    </div>, { cta: <p className="mt-done"><img src={`${A}icon-check-circle-success-20.svg`} width="20" height="20" alt="" />Dose logged</p> });
   },
 
   mtrestock: () => frame(`Restock ${med().name || med().title}`, <div className="inset">
@@ -142,7 +142,7 @@ Object.assign(ACTIONS, {
     go('mtreview', { replace: true });
   },
   'mt-restock': () => { const m = med(); S.mform = { name: m.name, form: m.form, strength: m.strength, qty: '', each: m.each, often: m.often }; S.mErr = {}; go('mtrestock'); },
-  'mt-dose': () => { const m = med(); m.left = Math.max(0, m.left - perDose(m)); go('mtdose', { replace: true }); },
+  'mt-dose': () => { const m = med(); m.left = Math.max(0, m.left - perDose(m)); toast('Dose logged.'); go('mtdose', { replace: true }); }, // W03
   'push-open': () => { S.medI = 0; openHealth('mtmed'); }, // through the Health lock
 });
 

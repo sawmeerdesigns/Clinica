@@ -41,7 +41,7 @@ export const noteCard = (icon, title, body, cls = '', extra = null) => <div clas
   <div className="nr-t"><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div></div>;
 // F02/R04/T04/V03: the card names the booked doctor (the follow-up is always Dr. Sharma's).
 export const visitCard = (when, where, act, doc = 'ps') => { const T = act ? 'button' : 'div', d = DOCTORS[doc]; return <T className="card appt" data-act={act || undefined}>
-  <span className="avatar l">{d.ini}</span>
+  <span className="avatar l" aria-hidden="true">{d.ini}</span>
   <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when}</span><span className="where">{where}</span></span>
   {act ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}</T>; };
 export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today', a.doc); };
@@ -51,7 +51,7 @@ export const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 
 export const chatBar = (action = true) => (
   <div className="appbar chat">
     <div className="side"><a href="#" className="back-l" data-act="home" aria-label={action ? undefined : 'Back'}><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>{action ? 'Home' : null}</a></div>
-    <div className="c-title">Ask</div>
+    <h1 className="c-title">Ask</h1>{/* W13 */}
     <div className="side end">{action ? iconBtn('icon-add-24.svg', 'New conversation', 'ask-new') : <div className="slot"></div>}</div>
   </div>);
 
@@ -205,7 +205,7 @@ Object.assign(SCREENS, {
       {statusBar()}{bar({ back: false, title: 'Ask' })}
       <div className="body g20">
         <div className="inset">{noteCard('', 'Messages is now Ask', 'To reach a person at the clinic, call reception.', 'info')}</div>
-        {heading('Ask about your care', 'Find, summarise and prepare, from your own records at City Hospital.')}
+        {heading('Ask about your care', 'Find, summarise and prepare, from your own records at City Hospital.', undefined, 'h2')}
         {rows([row('lt-calendar.svg', "What's coming up", 'And where to go when you arrive'), row('lt-document.svg', 'What your doctor told you', 'In their own words'),
           row('lt-clipboard.svg', 'What to do next', 'And how to prepare for a visit')])}
         <div className="inset"><p className="ask-limit">It isn't a doctor. It can't check symptoms or give medical advice — for that, call the clinic, or 102 in an emergency.</p></div>
@@ -254,7 +254,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Book follow-up' })}
       <div className="body g20">
-        <div className="inset"><div className="card"><span className="avatar">PS</span>
+        <div className="inset"><div className="card"><span className="avatar" aria-hidden="true">PS</span>
           <span className="text doctor"><span className="h-s">Dr. Priya Sharma</span><span className="spec">General medicine</span>{tag('Follow-up from your Aug 28 visit', 'neutral')}</span></div></div>
         <div className="inset stack8">{lbl('Choose a day')}
           <div className="hscroll days" role="radiogroup" aria-label="Day">{FOLLOW_DAYS.map(([d, dt, closed], i) =>
@@ -272,7 +272,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Add a question' })}
       <div className="body g20">
-        {heading('What would you like to ask Dr. Sharma?', "Write it down now so you don't forget it at your visit.")}
+        {heading('What would you like to ask Dr. Sharma?', "Write it down now so you don't forget it at your visit.", undefined, 'h2')}
         <div className="inset"><div className="field-wrap">
           <label className="label" htmlFor="askq" style={{ lineHeight: '20px' }}>Your question</label>
           <div className="field textarea"><textarea id="askq" value={S.askQuestion} onChange={e => { S.askQuestion = e.target.value; paint(); }}></textarea></div>

@@ -5,7 +5,7 @@ import { Fragment } from 'react';
 import { AD_SHORT, Phone, RECORDS, bsText, family, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
 import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
 import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, payCard, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, render, reset } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, render, reset, toast } from './core.jsx';
 import { drShort } from './doctor.jsx';
 import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
 import { med } from './meds.jsx';
@@ -195,7 +195,7 @@ Object.assign(SCREENS, {
   cmoved: () => {
     const m = S.moved, added = S.cal[m.key];
     return frame('Appointment', <>
-      <div className="inset" role="status">{notice('success', 'Visit moved', `Your ${m.from} has been released. We've sent the new time by SMS.`)}</div>
+      <div className="inset">{notice('success', 'Visit moved', `Your ${m.from} has been released. We've sent the new time by SMS.`)}</div>
       {m.stale ? <div className="inset">{notice('warn', `Calendar still shows ${m.stale}`, "We can't change events in your calendar. Add the new time, then delete the old one.")}</div> : null}
       <div className="inset">{m.key === 'fu' ? fuCard() : todayCard(false)}</div>{added ? inCal : null}</>,
       { cta: added ? null : calBtn(m.key, m.stale ? 'Add the new time' : 'Add to calendar') });
@@ -248,7 +248,7 @@ Object.assign(SCREENS, {
 
   // ---------- Profile ----------
   pf: () => frame('Profile', <>
-    <div className="inset"><div className="who"><span className="avatar l">{initials(S.fullName)}</span>
+    <div className="inset"><div className="who"><span className="avatar l" aria-hidden="true">{initials(S.fullName)}</span>
       <div><p className="who-n">{S.fullName}</p><p className="body-s">Patient at City Hospital</p><p className="body-s tertiary">{masked()}</p></div></div></div>
     {sect('You', list([listItem('icon-person.svg', 'Your details', 'Name, birth date and mobile number', 'go:pfdetails'),
       listItem('lt-fee.svg', 'Payments', S.payments.length ? `${S.payments.length} paid in the app` : 'Fees paid in the app, with receipts', 'go:pfpay')]))}{/* T05/W02 */}
@@ -264,7 +264,7 @@ Object.assign(SCREENS, {
   pfdetails: () => {
     const me = DETAILS[S.fullName] || { dob: S.dob, sex: S.sex, no: 'At reception' }, p = parseDob(me.dob || ''), b = p && toBS(p.y, p.m, p.d);
     return frame('Your details', <>
-      {S.phoneChanged ? <div className="inset" role="status">{notice('success', 'Mobile number changed', "We've let your old number know too.")}</div> : null}
+      {S.phoneChanged ? <div className="inset">{notice('success', 'Mobile number changed', "We've let your old number know too.")}</div> : null}
       <div className="inset">{notice('', 'Kept by City Hospital', "To change your name, date of birth or sex, ask at reception — the clinic's record is the one that counts.")}</div>
       {sect('Details', list([row('icon-person.svg', 'Full name', S.fullName),
         row('lt-calendar-month.svg', 'Date of birth', p ? `${p.d} ${AD_SHORT[p.m]} ${p.y}${b ? `, or ${bsText(b)}` : ''}` : 'On file at reception'),
@@ -296,7 +296,7 @@ Object.assign(SCREENS, {
   },
 
   pflock: () => frame('Health lock', <>
-    {S.pinChanged ? <div className="inset" role="status">{notice('success', 'PIN changed', 'Use your new PIN from now on.')}</div> : null}
+    {S.pinChanged ? <div className="inset">{notice('success', 'PIN changed', 'Use your new PIN from now on.')}</div> : null}
     {sect('Lock and unlock', <div className="list">{row('lt-lock.svg', 'Locks automatically', 'When you leave Clinica, or after 5 idle minutes')}
       {listItem('lt-lock.svg', 'Change PIN', 'Choose a new 4-digit PIN', 'pf-pin')}<div className="sep" aria-hidden="true"></div>
       {S.noSensor ? setting('Use fingerprint', 'This phone has no fingerprint sensor.', false, '', true, lead('lt-fingerprint.svg')) // disabled, with the reason
@@ -317,7 +317,7 @@ Object.assign(SCREENS, {
   pfswitch: () => {
     const others = RECORDS.map((r, i) => [r, i]).filter(([r]) => r.name !== S.fullName && family().includes(r)); // F22/R22/T22: only this number's people
     return frame('Switch person', <>
-      {heading("Who's using the app?", `${others.length + 1} people at City Hospital share this phone, and each has their own PIN.`)}
+      {heading("Who's using the app?", `${others.length + 1} people at City Hospital share this phone, and each has their own PIN.`, undefined, 'h2')}
       {sect('People', list([<div className="list-item static">{lead('icon-person.svg')}<span className="text"><span className="item-title">{S.fullName}</span><span className="body-s">You, right now</span></span>
           <img src={`${A}icon-check-circle-20.svg`} width="20" height="20" alt="Current person" /></div>,
         ...others.map(([r, i]) => listItem('icon-person.svg', r.name, `Born ${r.born}${r.managedBy ? ` · Managed by ${r.managedBy}` : ''}`, `pf-switch:${i}`)),
@@ -337,13 +337,13 @@ Object.assign(SCREENS, {
 
   pfadd: () => frame('', centred(empty('icon-person-secondary-28.svg', 'Add someone on this phone',
     `We'll text a code to ${masked()} to find the other City Hospital records on this number.`,
-    <>{btn('Send code', 'add-code', { size: 'l' })}{btn('They have their own number', 'own-number', { kind: 'secondary', size: 'l' })}</>))),
+    <>{btn('Send code', 'add-code', { size: 'l' })}{btn('They have their own number', 'own-number', { kind: 'secondary', size: 'l' })}</>, false, 'h1'))), // W13
 
   closed: () => (
     <div className="screen">
       {statusBar()}
       {centred(empty('icon-check-circle-secondary-28.svg', 'Your account is closed',
-        'Your login and PIN are deleted. City Hospital keeps your medical records, as the law requires — ask at reception for a copy.', btn('Done', 'restart', { size: 'l' })))}
+        'Your login and PIN are deleted. City Hospital keeps your medical records, as the law requires — ask at reception for a copy.', btn('Done', 'restart', { size: 'l' }), false, 'h1'))}{/* W13 */}
       {homeInd()}
     </div>),
 
@@ -375,11 +375,12 @@ Object.assign(ACTIONS, {
   sheet: arg => { S.sheet = arg; render(); },
   os: arg => SYS_OS[arg] ? openSys(SYS_OS[arg]()) : endScreen(arg, 'On a phone this hands off to the system or to a screen outside these Figma sections.'),
   'add-cal': openCal,
-  'cal-add': () => { S.cal[S.calFor] = true; downloadIcs(calEvent(S.calFor)); S.sheet = null; render(); }, // iOS reports the save
+  'cal-add': () => { S.cal[S.calFor] = true; downloadIcs(calEvent(S.calFor)); S.sheet = null; toast('Added to your calendar.'); render(); }, // W03 // iOS reports the save
   'cancel-fu': () => {
     S.cancelled = { date: S.followup.day.split(', ')[1], day: S.followup.day, cal: S.cal.fu }; // a calendar copy would now be stale
     Object.assign(S, { followup: null, sheet: null, stack: [], screen: 'care' });
     S.cal.fu = false;
+    toast(`Your visit on ${S.cancelled.day} is cancelled.`); // W03
     render();
   },
   resched: key => {
@@ -403,6 +404,7 @@ Object.assign(ACTIONS, {
     if (key === 'fu') S.followup = { day: `${x.wd}, ${x.date}`, time: S.rsTime, iso: FOLLOW_DAYS[x.i][3] }; // F20
     else { takeSlot(a.doc, x.i, S.rsTime); S.appt = { ...a, day: x.i, time: S.rsTime }; S.visitDay = 'booked'; }
     S.cal[key] = false; S.moved = { key, from, stale };
+    toast(`Visit moved to ${x.wd}, ${S.rsTime}.`); // W03: announced once, by the shared toast
     S.screen = 'cmoved'; render(); // replaces the picker, so Back returns to the appointment
   },
   'cday-fu': () => { S.askDay = 1; S.askTime = null; go('askbook'); }, // the same Book follow-up screen as Ask

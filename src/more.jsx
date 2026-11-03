@@ -69,14 +69,14 @@ export const MORE_NOTIFS = [
 export const blocking = (icon, title, body, actions, after = null) => (
   <div className="screen">
     {statusBar()}
-    <div className="body" style={{ justifyContent: 'center', padding: '0 16px 16px', gap: 0 }}>{empty(icon, title, body, actions)}{after}</div>
+    <div className="body" style={{ justifyContent: 'center', padding: '0 16px 16px', gap: 0 }}>{empty(icon, title, body, actions, false, 'h1')}{after}</div>
     {homeInd()}
   </div>);
 
 Object.assign(SCREENS, {
   lockscreen: () => (
     <div className="screen lock">
-      <img src={`${A}lt-lock.svg`} width="20" height="20" alt="Locked" />
+      <h1 className="vh">Lock screen</h1>{/* W13 */}<img src={`${A}lt-lock.svg`} width="20" height="20" alt="Locked" />
       <p className="l-clock">9:41</p><p className="l-date">Thursday, 28 August</p>
       <div style={{ height: 32 }}></div>
       {LOCK_NOTIFS.map(n => <a key={n.act} href="#" className="l-card" data-act={n.act}><span className="l-app"><b>CLINICA</b><span>{n.when}</span></span>

@@ -65,6 +65,9 @@ body { background: var(--surface-page); }
 .tab { flex: none; padding: 10px 16px; border: 0; border-radius: var(--radius-large); background: none; font: 600 14px/20px "Open Sans"; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
 .tab:hover { background: var(--surface-secondary); }
 .tab[aria-current="true"] { background: var(--surface-action-subtle); color: var(--text-action); }
+/* W18: skip link, shown only when focused */
+.skip { position: absolute; top: 8px; left: 8px; z-index: 10; padding: 10px 16px; border-radius: var(--radius-large); background: var(--surface-action); color: var(--text-on-action); font: 600 14px/20px "Open Sans"; transform: translateY(-200%); }
+.skip:focus { transform: none; }
 .stage { flex: 1; display: flex; justify-content: center; align-items: flex-start; max-width: 100%; }
 .phone {
   position: relative;
@@ -509,6 +512,7 @@ button.card:hover { background: var(--surface-secondary); }
 
 /* Medicines */
 .tag.warn { background: var(--surface-warning); color: var(--text-warning); }
+.tag.edge { box-shadow: inset 0 0 0 1px var(--border-strong); } /* 1.4.11: "Closed today" keeps a 3:1 edge on grey (#838991 on #eff0f0) */
 .fields { display: flex; flex-direction: column; gap: 12px; }
 .ib-row { display: flex; align-items: center; gap: 4px; }
 .ib-field { flex: 1; height: 48px; display: flex; align-items: center; padding: 0 16px; border-radius: var(--radius-full); background: var(--surface-action-subtle); font: 600 16px/24px "Open Sans"; color: var(--text-action); }
@@ -1005,11 +1009,12 @@ button.att-c[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
 .att-key .present i { background: var(--text-success); } .att-key .leave i { background: var(--text-warning); }
 .att-key .absent i { background: var(--text-error); } .att-key .weekend i { background: var(--text-tertiary); }
 
-/* Toast: one success message with an optional action, in a live region (core.jsx toast(); F24/R20/T11/W07/V09) */
+/* Toast: one success message with an optional action, in a live region (core.jsx toast(); F24/R20/T11/W07/V09).
+   W03: every success state uses it, so the message never blocks a tap; only its action catches pointer events. */
 .toast-region { position: absolute; left: 16px; right: 16px; bottom: 104px; z-index: 5; display: flex; justify-content: center; pointer-events: none; }
 .phone.desk .toast-region { bottom: 32px; }
-.toast { pointer-events: auto; display: flex; align-items: center; gap: 16px; max-width: 480px; padding: 12px 16px; border-radius: var(--radius-large); background: var(--text-primary); color: var(--text-on-action); font: 600 14px/20px "Open Sans"; animation: fade .2s; }
-.toast-act { flex: none; border: 0; background: none; padding: 4px 0; font: 700 14px/20px "Open Sans"; color: #9cc3ff; cursor: pointer; }
+.toast { display: flex; align-items: center; gap: 16px; max-width: 480px; padding: 12px 16px; border-radius: var(--radius-large); background: var(--text-primary); color: var(--text-on-action); font: 600 14px/20px "Open Sans"; animation: fade .2s; }
+.toast-act { pointer-events: auto; flex: none; border: 0; background: none; padding: 4px 0; font: 700 14px/20px "Open Sans"; color: #9cc3ff; cursor: pointer; }
 /* R30: pending count on the Reports nav item */
 .nbadge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--surface-action); color: var(--text-on-action); font: 700 12px/20px "Open Sans"; text-align: center; }
 .bnav a > span { position: relative; }

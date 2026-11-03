@@ -52,7 +52,7 @@ export const iconBtn = (icon, label, act, extra = {}) =>
 export const bar = ({ back = true, title = '', actions = null, big = false } = {}) => (
   <div className="appbar">
     {back ? iconBtn('icon-back.svg', 'Back', 'back') : null}
-    <div className="title" style={big ? { fontSize: 20 } : undefined}>{title}</div>
+    {title ? <h1 className="title" style={big ? { fontSize: 20 } : undefined}>{title}</h1> : <div className="title"></div>}{/* W13: a titled bar is the screen's heading */}
     <div className="bar-acts">{actions || <div className="slot"></div>}</div>
   </div>);
 export const label = t => <p className="sec-label">{t}</p>;
@@ -95,7 +95,7 @@ export const callBtn = size => <a className={`btn secondary ${size}`} href="tel:
 export function apptCard(a, link = false) {
   const d = DOCTORS[a.doc], T = link ? 'button' : 'div';
   return <T className="card appt" data-act={link ? 'appt:today' : undefined}>
-    <span className="avatar l">{d.ini}</span>
+    <span className="avatar l" aria-hidden="true">{d.ini}</span>
     <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when(a.day, a.time)}</span><span className="where">{d.opd}, City Hospital</span></span>
     {link ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}
   </T>;
@@ -177,7 +177,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}
       <div className="appbar">
-        <div className="brand">Clinica</div>
+        <h1 className="vh">Home</h1>{/* W13: Home's heading, for screen readers */}<div className="brand">Clinica</div>
         <button className="icon-btn bell" data-act="go:notifs" aria-label={`Notifications${unread() ? ', unread' : ''}`}>
           <img src={`${A}icon-bell.svg`} width="24" height="24" alt="" />{unread() ? <img className="dot" src={`${A}unread-dot.svg`} width="12" height="12" alt="" /> : null}</button>
         <button className="icon-btn" data-act="go:history" aria-label="Your profile">
@@ -224,7 +224,7 @@ Object.assign(SCREENS, {
         </div>
         {Object.keys(DOCTORS).some(k => S.fav[k]) && !S.query.trim() ? <div className="stack4"><div className="inset">{lbl('Saved')}</div>
           <div className="list">{sepJoin(Object.keys(DOCTORS).filter(k => S.fav[k]).map(docRow))}</div></div> : null}
-        <div id="doclist">{docList()}</div>
+        <div id="doclist">{docList()}</div><p className="vh" aria-live="polite">{S.query.trim() ? docCount : ''}</p>{/* W18: the result count is announced */}
       </div>
       {homeInd()}
     </div>),
@@ -239,8 +239,8 @@ Object.assign(SCREENS, {
       {bar({ actions: iconBtn(S.fav[S.doc] ? 'icon-heart-filled.svg' : 'icon-heart-outline.svg', S.fav[S.doc] ? 'Remove from saved' : 'Save doctor', `fav:${S.doc}`, { 'aria-pressed': !!S.fav[S.doc] }) })}
       <div className="body g20">
         <div className="inset"><div className="doc-head">
-          <span className="avatar xl">{d.ini}</span>
-          <div className="doc-details"><p className="name">{d.name}</p><p className="spec">{d.spec}</p><p className="opd">{d.opd}, City Hospital</p>
+          <span className="avatar xl" aria-hidden="true">{d.ini}</span>
+          <div className="doc-details"><h1 className="name">{d.name}</h1>{/* W13: the bar has no title here */}<p className="spec">{d.spec}</p><p className="opd">{d.opd}, City Hospital</p>
             {n0 === 0 ? tag(tr('Available today'), 'success') : tag(n0 === 1 ? 'Next slot tomorrow' : n0 > 0 ? `Next slot ${dayName(n0)}` : 'No openings this week', 'neutral')}</div>
         </div></div>
         <div className="inset"><div className="card neutral">
@@ -283,7 +283,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Visit history', big: true })}
       <div className="body">
-        <div className="inset"><div className="pt-head"><span className="avatar l">{initials(S.fullName)}</span>
+        <div className="inset"><div className="pt-head"><span className="avatar l" aria-hidden="true">{initials(S.fullName)}</span>
           <div><p className="name">{S.fullName}</p><p className="body-s">Female · 32 · CH-2381</p></div></div></div>
         <div className="inset"><button className="list-item" data-act="stub:Visit history">
           <span className="lead-tile"><img src={`${A}lt-history.svg`} width="20" height="20" alt="" /></span>
@@ -336,7 +336,7 @@ Object.assign(SCREENS, {
       {statusBar()}{bar({ back: false, actions: iconBtn('icon-close-24.svg', 'Close', 'home') })}
       <div className="body center">
         <div className="success-mark"><img src={`${A}icon-task-alt.svg`} width="36" height="36" alt="" /></div>
-        <h2 className="h-lp">{tr('Appointment booked')}</h2>
+        <h1 className="h-lp">{tr('Appointment booked')}</h1>{/* W03/W13: focused on arrival */}
         <div className="inset"><p className="confirm-line">{other ? `${first} is` : "You're"} booked with {d.name} {a.day === 0 ? `at ${a.time} today` : `${rel(a.day)} at ${a.time}`}.</p></div>
         {S.bookedOnce ? <div className="inset" style={{ alignSelf: 'stretch' }}>{notice('success', "You're booked once", "Trying again didn't make a second booking.")}</div> : null}{/* W14 */}
         <div className="inset stack8" style={{ alignSelf: 'stretch' }}>{apptCard(a)}{payCard(a)}</div>{/* F09/T05/W02 */}
@@ -359,7 +359,7 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="body center" style={{ justifyContent: 'center', gap: 20, padding: '8px 0 16px' }}>
         <div className="notif-tile"><img src={`${A}icon-notifications-48.svg`} width="48" height="48" alt="" /></div>
-        <div className="inset"><div className="heading" style={{ textAlign: 'center' }}><h2 className="h-xl">Know if Dr. {surname(d.name)} is running late</h2>
+        <div className="inset"><div className="heading" style={{ textAlign: 'center' }}><h1 className="h-xl">Know if Dr. {surname(d.name)} is running late</h1>{/* W13 */}
           <p className="lede">Your visit is {rel(a.day)} at {a.time}. We'll only tell you about your own appointments — reminders, delays and cancellations. No marketing, ever.</p></div></div>
         <div className="inset" style={{ alignSelf: 'stretch' }}>{apptCard(a)}</div>
         <div className="inset"><p className="body-s tertiary" style={{ textAlign: 'center' }}>Turn this off and we'll still send updates by SMS.</p></div>
@@ -374,24 +374,27 @@ export function docRow(id) {
   const d = DOCTORS[id], n = nextOpen(id);
   const t = n === 0 ? tag('Available today', 'success') : n === 1 ? tag(`Next slot tomorrow, ${freeTimes(id, 1)[0]}`, 'neutral')
     : tag(n > 0 ? `Next slot ${d.spec !== GM ? dayName(n) : DAYS[n].date}` : 'No openings this week', 'neutral'); // specialists name the weekday (Figma 260:10739)
-  const inner = <><span className="avatar">{d.ini}</span><span className="text doctor"><span className="h-s">{d.name}</span><span className="spec">{d.spec}</span>{t}</span></>;
+  const inner = <><span className="avatar" aria-hidden="true">{d.ini}</span><span className="text doctor"><span className="h-s">{d.name}</span><span className="spec">{d.spec}</span>{t}</span></>;
   return d.noProfile ? <div className="list-item static">{inner}</div> : <button className="list-item" data-act={`doctor:${id}`}>{inner}{chev}</button>;
 }
 export const filtersOn = () => S.filt.today || S.filt.sex !== 'Any';
 export const filtMatch = (id, f = S.filt) => (!f.today || nextOpen(id) === 0) && (f.sex === 'Any' || DOCTORS[id].sex === f.sex);
 export const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
+export let docCount = ''; // W18: what the search found, for the live region under the list
 export function docList() {
   const q = S.query.trim().toLowerCase(), cond = q && CONDITIONS.find(([re]) => re.test(q));
+  docCount = cond && !cond[1] ? `No ${cond?.[2]} doctors at City Hospital` : '';
   if (cond && !cond[1]) return empty('icon-search-secondary-28.svg', `No ${cond[2]} doctors at City Hospital`,
     `For ${cond[2] === 'eye' ? 'an eye' : 'a dental'} problem, ask reception about a referral. Or search for a doctor's name or another specialty.`,
     <a className="btn secondary l" href="tel:+97710000000">Call the clinic</a>);
   const spec = cond ? cond[1] : S.specialty;
   const docs = Object.keys(DOCTORS).filter(id => DOCTORS[id].spec === spec && filtMatch(id) && (cond || !q || `${DOCTORS[id].name} ${DOCTORS[id].spec}`.toLowerCase().includes(q)));
+  if (!docs.length) docCount = 'No doctors match';
   if (!docs.length) return empty('icon-search-secondary-28.svg', q ? `No doctors match “${S.query.trim()}”` : `No ${spec.toLowerCase()} doctors match`,
     filtersOn() ? 'Try clearing the filters, or call the clinic to ask who can see you.' : 'Try another specialty, or call the clinic to ask who can see you.',
     <>{filtersOn() ? btn('Clear filters', 'filter-clear', { size: 'l' }) : null}<a className="btn secondary l" href="tel:+97710000000">Call the clinic</a></>);
-  const count = filtersOn() ? plural(docs.length, 'doctor') : spec === GM && !cond ? `${plural(docs.length, 'doctor')} at City Hospital` : `${plural(docs.length, 'doctor')} in ${spec}`;
+  const count = docCount = filtersOn() ? plural(docs.length, 'doctor') : spec === GM && !cond ? `${plural(docs.length, 'doctor')} at City Hospital` : `${plural(docs.length, 'doctor')} in ${spec}`;
   return <>{cond ? <div className="inset"><p className="search-hint">{S.query.trim()[0].toUpperCase() + S.query.trim().slice(1)} is usually seen in {spec}.</p></div> : null}
     {filtersOn() ? <div className="inset filt-row"><p>{[S.filt.today && 'Available today', S.filt.sex !== 'Any' && `${S.filt.sex} doctor`].filter(Boolean).join(' · ')}</p>
       <button className="btn secondary s" data-act="filter-clear">Clear</button></div> : null}
@@ -470,6 +473,7 @@ Object.assign(ACTIONS, {
     S.bookedOnce = !!mine; // W14: a retry that finds the booking says so
     if (!mine && fail === 'noreply') { S.failNext = ''; bookedDone(); return toFailed('noreply'); } // it went through, but no answer came back
     bookedDone(); S.reason = ''; S.payWith = null; S.fuOf = null;
+    toast(`Appointment booked with ${DOCTORS[S.booked.doc].name}, ${when(S.booked.day, S.booked.time)}.`); // W03: success goes through the one live region
     S.stack = []; S.screen = 'confirmed'; render(); // no back arrow
     if (WALLETS[S.booked.pay.how] && !S.booked.pay.paid) payHandOff(S.booked); // booked: now hand off to the wallet, through the phone's own prompt (more.jsx)
   },
