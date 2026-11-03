@@ -459,7 +459,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   const signStaff = async (id, pw = 'clinica') => { await p.fill('#st-id', id); await p.fill('#st-pw', pw); await p.click('#phone >> text=Sign in'); };
   await p.evaluate(() => start('staff')); assert(await P('text=Hospital management — City Hospital'), 'staff sign-in (T00)');
   await signStaff('CH-ADM-04', 'nope'); assert(await P('text=Admin ID or password is incorrect. Try again.'), 'wrong password (T00b)');
-  await signStaff('CH-ADM-04'); assert(await P('.st-stat:has-text("Reports pending") >> text=7') && await P('.st-stat:has-text("Not yet arrived") >> text=3'), 'admin dashboard counts from the shared day (T01)');
+  await signStaff('CH-ADM-04'); assert(await P('.st-stat:has-text("Reports awaiting review") >> text=7') && await P('.st-stat:has-text("Not yet arrived") >> text=4'), 'admin dashboard counts from the shared day (T01)');
   await p.click('#phone >> text=View all doctors'); assert(await P('text=8 on the roster · 6 on duty today'), 'doctors roster (T02)');
   await p.click('[data-act="st-menu:dept"]'); await p.click('[data-act="st-f:dept|Dermatology"]'); assert(await P('text=2 of 8 · filtered by department'), 'department filter (T02d)');
   await p.click('.st-ttl'); assert(!(await P('.st-dd')), 'a click outside closes the panel');
@@ -469,7 +469,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone >> a.k-link'); await p.click('[data-act="st-menu:date"]'); await p.click('[data-act="st-day:20"]'); await p.click('[data-act="st-day:28"]');
   assert(await P('text=20 of 33 · filtered by visited date'), 'date range filters by visit date (T05c)');
   await p.click('.k-ni >> text=Settings'); await p.click('#phone >> text=Add a doctor'); await p.click('#phone >> text=Add doctor'); assert(await P("text=Enter the doctor's full name."), 'add doctor needs a name');
-  await p.fill('#sa-name', 'Kabita Shrestha'); await p.fill('#sa-spec', 'Cardiology'); await p.click('#phone >> text=Add doctor');
+  await p.fill('#sa-name', 'Kabita Shrestha'); await p.selectOption('#sa-spec', 'Cardiology'); await p.click('#phone >> text=Add doctor'); await p.click('.csheet >> text=Save without them');
   assert(await P('text=Dr. Kabita Shrestha has been added'), 'doctor added (T04a2)'); await p.click('#phone >> text=View in roster');
   assert(await P('text=9 on the roster') && await P('text=Dr. Kabita Shrestha'), 'the new doctor is on the roster');
   await p.click('.k-ni >> text=Settings'); await p.click('#phone >> text=Assign roles'); await p.click('[aria-label="Select Sabina Rai"]'); await p.click('[aria-label="Select Rajesh Koirala"]');
@@ -479,15 +479,15 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('[data-act="st-pick:desk"]'); await p.click('#phone >> text=Save role'); assert(await P('text=Sabina Rai is now Front desk.'), 'role saved');
   await p.click('.k-me'); await p.click('.st-dd >> text=Sign out'); await p.click('.csheet button:has-text("Sign out")'); assert(await P('.k-card'), 'staff sign out');
   // Front desk
-  await signStaff('CH-FD-12'); assert(await P('text=20 patients across the hospital') && await P('.k-row:has-text("Nabin Tamang") >> text=With doctor'), "front desk: today's arrivals follow the doctor's queue (R01)");
-  await p.fill('#st-q', 'sunita'); assert(await P('text=1 result for “sunita”'), 'search (R01c)');
-  await p.click('[data-act="st-arr:sk"]'); await p.click('#phone >> text=Check in'); assert(await P('text=Checked in at 4:52 PM'), 'checked in (R03)');
+  await signStaff('CH-FD-12'); assert(await P('text=21 patients across the hospital') && await P('.k-row:has-text("Nabin Tamang") >> text=With doctor'), "front desk: today's arrivals follow the doctor's queue (R01)");
+  await p.fill('#st-q', 'sunita'); assert(await P('text=5 results for “sunita”') && await P('.k-row:has-text("Sunita Thapa")') && await P('.k-row:has-text("Sunita Karki")'), 'search finds both Sunitas, and Dr. Sunita Rai\'s patients (R01c, F10/T19)');
+  await p.click('[data-act="st-arr:sk"]'); await p.click('#phone >> text=Check in'); await p.click('.csheet .btn.primary'); assert(await P('text=Checked in at 4:52 PM'), 'checked in (R03)');
   assert(await p.evaluate(() => drStatus('sk')) === 'waiting', "Sunita is now Waiting in Dr. Sharma's queue");
-  await p.click('#phone >> a.k-link'); await p.click('#phone >> text=Register a walk-in'); await p.fill('#wk-name', 'Sunita'); await p.fill('#wk-doc', 'Dr. Suman KC');
+  await p.click('#phone >> a.k-link'); await p.click('#phone >> text=Register a walk-in'); await p.fill('#wk-name', 'Sunita'); await p.fill('#wk-age', '30'); await p.click('.radio-row:has-text("Female")'); await p.fill('#wk-doc', 'Dr. Suman KC');
   await p.click('#phone >> text=Add to queue'); assert(await P("text=Dr. Suman KC isn't in today"), "can't add a walk-in for a doctor who's off");
   await p.fill('#wk-doc', 'priya'); await p.fill('#wk-reason', 'Sore throat'); await p.click('#phone >> text=Add to queue');
   assert(await P('text=Is this Sunita?') && await P('text=phone ending 8821'), 'name matches two records (R06)');
-  await p.click('#phone >> text=None of these — register as new patient'); assert(await P('text=21 patients across the hospital'), 'walk-in added to arrivals');
+  await p.click('#phone >> text=None of these — register as new patient'); assert(await P('text=22 patients across the hospital'), 'walk-in added to arrivals');
   assert(await p.evaluate(() => drToday().some(k => DR_PATIENTS[k].name === 'Sunita' && drStatus(k) === 'waiting')), "and to Dr. Sharma's own queue");
   await p.click('#phone >> text=Register a walk-in'); await p.click('.radio-row:has-text("Follow-up visit")'); await p.fill('#wk-name', 'Kiran Basnet');
   assert(await P('text=Dr. Ramesh Shrestha · Chest infection'), 'follow-up shows recent visits (R05)');
@@ -496,12 +496,12 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await signStaff('CH-HR-03'); await p.click('.k-ni >> text=Staff'); assert(await P('text=15 people · 1 on leave'), 'HR staff directory, with the new doctor (HR01)');
   await p.click('[data-act="st-menu:role"]'); await p.click('[data-act="st-f:role|Nurse"]'); assert(await P('text=2 of 15 · filtered by role'), 'role filter (HR01b)');
   await p.click('[data-act="st-person:mt"]'); assert(await P('text=CH-STF-0231'), 'staff record (HR02)');
-  await p.click('.k-ni >> text=Leave requests'); assert(await P('text=1 pending · 1 already approved'), 'leave requests (HR03)');
-  await p.click('[data-act="st-req:pk"]'); await p.click('#phone >> text=Approve'); assert(await P('text=Approved — Prasant has been notified'), 'approved (HR05)');
+  await p.click('.k-ni >> text=Leave requests'); assert(await P('text=1 pending · 4 already approved'), 'leave requests (HR03)');
+  await p.click('[data-act="st-req:pk"]'); await p.click('#phone .btn:has-text("Approve")'); await p.click('.csheet >> text=Approve request'); assert(await P('text=Approved by Anjali Basnet, today') && await P('text=Prasant has been notified'), 'approved, with the approver (HR05)');
   await p.click('#phone >> a.k-link'); assert(await P('text=No pending requests') && await P('text=History'), 'none pending, history kept (HR03b)');
-  await p.click('.k-ni >> text=Attendance'); await p.click('[data-act="st-menu:absent"]'); await p.click('[data-act="st-sort:absent-desc"]');
+  await p.click('.k-ni >> text=Attendance'); await p.click('[data-act="st-menu:sort"]'); await p.click('[data-act="st-sort:absent-desc"]');
   assert(await p.textContent('.st-rows .st-tr .nm') === 'SKDr. Suman KC', 'sorted by absences (HR08b)');
-  await p.click('[data-act="st-att:ms"]'); assert(await P("text=Leave continues through Sep 2 — shown on next month's attendance."), "Maya's attendance (HR09)");
+  await p.click('[data-act="st-att:ms"]'); assert(await P("text=Counts are working days in August 2026 only"), "Maya's attendance (HR09)");
   // ---- The Sep design round: IDs, tags, sign-out sheets, offline, history, follow-up date, payment ----
   const T = () => p.textContent('#phone'), has = async t => (await T()).includes(t);
   const tagCls = l => p.evaluate(l => [...document.querySelectorAll('#phone .tag')].filter(x => x.textContent.trim() === l).map(x => x.className).join('|'), l);
@@ -556,7 +556,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'care'; S.stack = []; render(); }); await p.click('#phone .card >> text=Dr. Priya Sharma');
   assert(await has('Follow-up on Sep 18'), "the date shows on the patient's visit day");
   // HR adds staff
-  await J('HR11'); const sel = await p.$$('#phone select'); await p.fill('#phone input >> nth=0', 'Test Person'); await p.fill('#phone input >> nth=1', '+977 9800000000');
+  await J('HR11'); const sel = await p.$$('#phone select'); await p.fill('#phone input >> nth=0', 'Test Person'); await p.fill('#phone input >> nth=1', '+977 9800000000'); await p.fill('#as-start', '2026-08-28');
   await sel[0].selectOption({ label: 'Nurse' }); await sel[1].selectOption({ index: 1 }); await p.click('#phone .btn:has-text("Add staff")');
   assert(await has('Test Person has been added'), 'staff added (HR11)'); await p.click('#phone >> text=Test Person >> nth=-1'); assert(await has('Added by'), 'the record says who added them');
   // ---- Phase 3: patient app ----
@@ -621,6 +621,43 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   // V18, F15/R12
   await J('B03'); assert(!(await p.$('#phone img[src$="icon-more.svg"]')), 'V18: no dead "more" icon');
   await J('B04'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('text=बुकिङ जाँच्नुहोस्') && await P('text=बुकिङ पक्का गर्नुहोस्'), 'F15/R12: Nepali booking strings');
+  // ---- Phase 4: Reception, HR, Admin ----
+  await p.click('[aria-label="Close edge cases"]', { timeout: 1000 }).catch(() => {}); // the Phase 3 steps left the panel open
+  await J('R01'); await p.fill('#st-q', '8821'); assert(await P('.k-row:has-text("Sunita Thapa") >> text=41 yrs · phone ending 8821'), 'F10/F11/R09: Sunita Thapa listed, found by the last 4 digits, age shown');
+  assert((await p.textContent('.k-row:has-text("Sunita Thapa")')).includes('General medicine'), 'F21: department on each arrival');
+  await p.fill('#st-q', 'CH-1187'); assert((await p.$$('.k-row')).length === 1, 'T19: search by CH- ID');
+  await p.fill('#st-q', 'Ramesh'); assert(await p.evaluate(() => [...document.querySelectorAll('.k-row')].every(r => r.textContent.includes('Ramesh Shrestha'))), 'T19: search by doctor');
+  await J('R02b'); const ck = await p.textContent('.csheet'); assert(ck.includes('Check in Sunita Thapa?') && ck.includes('8821') && ck.includes('Dr. Ramesh Shrestha'), 'F11/T19: check-in asks first, naming the patient');
+  await J('R04b'); assert(await has('General medicine doctors on duty — choose one') && await has('Dr. Anita Joshi · OPD 3'), "W12: a department lists its doctors on duty");
+  await p.fill('#wk-name', 'Kamal Thapa'); await p.fill('#wk-age', '45'); await p.click('.radio-row:has-text("Male")'); await p.click('#phone >> text=Add to queue');
+  assert(await has('Choose one of the General medicine doctors below.'), 'W12: no silent pick');
+  await p.click('.radio-row:has-text("Dr. Anita Joshi")'); await p.fill('#wk-note', 'Headaches'); await p.press('#wk-note', 'Enter'); await p.waitForTimeout(150);
+  assert((await p.textContent('.toast-region')).includes("Kamal Thapa (CH-2508) added to Dr. Anita Joshi's queue") && await P('.k-row.sel:has-text("Kamal Thapa")'), 'F12/R14/T20/F26: Enter submits; toast with ID; row highlighted');
+  await J('R04'); await p.fill('#wk-doc', 'fever'); assert(await has('“fever” usually goes to General medicine'), 'R15: symptom → department');
+  await J('R07'); assert(await has('Matched to CH-1187') && await has('BP follow-up – headaches this week') && await has('Follow-up, hypertension review'), 'T09/V10: matched, both reasons kept');
+  await J('HR04'); assert(await has("My sister's wedding") && await has('Cardiology will have no nurse') && await has('3 calendar days · 1 working day'), 'F16/T17: reason, coverage from the staff list, calendar vs working days');
+  await p.click('#phone .btn:has-text("Deny")'); await p.fill('#sl-why', 'No cover'); await p.click('.csheet >> text=Deny request');
+  assert(await has('Denied by Anjali Basnet') && await has('Sent to Prasant: “No cover”'), 'W08: deny confirmed, reason sent, approver shown');
+  await p.click('.toast-act'); assert(!(await has('Denied by')), 'W08/V11: Undo');
+  await J('HR03'); assert(await has('Nurse · Cardiology · Annual leave'), 'W19: role · department on leave rows');
+  await J('HR10'); assert(await P('.k-row .tag'), 'V13: status chips on the dashboard leave rows');
+  await J('HR08'); assert((await p.$$('#phone .st-chips [data-act^="st-menu:"]')).length === 1, 'V13: one Sort control'); await p.fill('#st-q', 'maya'); assert(await has('August 2026 · 20 working days'), 'V13: period kept while searching');
+  await J('HR09'); assert(!(await has('Non-requested')) && await has('Annual leave'), 'R17: one label; Aug 17–21 has a request');
+  await p.click('[data-act="st-calday:18"]'); assert(await P('.att-pop a:has-text("Annual leave")'), 'F17: a leave day links to its request');
+  await J('HR11'); await p.fill('#as-name', 'Kopila Rai'); await p.fill('#as-phone', '+977 9811111111'); await p.selectOption('#as-role', 'Nurse'); await p.selectOption('#as-dept', 'Cardiology'); await p.fill('#as-start', '2026-09-14');
+  await p.click('#phone .btn:has-text("Add staff")'); assert(await P('.st-tr:has-text("Kopila Rai") >> text=Pending'), 'F18/R19/T13: Pending until the start date');
+  await p.click('.st-tr:has-text("Kopila Rai")'); await p.click('#phone .btn:has-text("Edit")'); await p.fill('#as-grade', 'Level 4'); await p.click('#phone .btn:has-text("Save changes")'); assert(await has('Level 4'), 'R19: the record is editable');
+  await J('T04a'); await p.fill('#sa-name', 'Nirmala Pandey'); await p.selectOption('#sa-spec', 'Cardiology'); await p.click('#phone .btn:has-text("Add doctor")');
+  assert((await p.textContent('.csheet')).includes('Save without an OPD or working days?'), 'R06: warns before saving without OPD/days'); await p.click('.csheet >> text=Save without them');
+  await p.click('#phone >> text=View in roster'); await p.click('.st-tr:has-text("Nirmala Pandey")'); assert(!(await has('nirmala.pandey@')) && !(await has('Sun–Thu')) && (await T()).split('Not set').length > 4, 'F06/T24: Not set, nothing invented');
+  await J('T04c5'); assert(await has('Not included: prescriptions and releasing lab reports'), 'F08: Nurse access role');
+  await J('T04c6'); assert((await p.textContent('.csheet')).includes('They lose:'), 'F19/T18: switch warns what is lost');
+  await J('T04c'); await p.click('[data-act="st-lvok"]'); await p.fill('#sr-until', '2026-09-30'); await p.click('#phone >> text=Save role');
+  assert((await p.textContent('.toast-region')).includes('Front desk + approves leave until Sep 30'), 'W04: leave add-on saved, toast');
+  await p.click('.k-ni >> text=Settings'); assert(await has('Sabina Rai: Front desk → Front desk + approves leave until Sep 30'), 'R16/T18: audit log in Settings');
+  await J('T01'); assert(await has('Waiting by department') && await has('Cardiology · heart') && await has('Reopens Sun, Aug 30, 9 AM'), 'F13/R21/T27/T23: waiting per department, closure flagged');
+  await J('T03'); assert(await has('Dr. Maya Shrestha on leave'), 'R29: full doctor names');
+  await J('HR01'); assert(await has('Job title'), 'W09: the Staff column is Job title');
   console.log('page errors:', errs);
   await b.close();
 })().catch(e => { console.error(e.message); process.exit(1); });

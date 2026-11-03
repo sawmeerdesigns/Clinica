@@ -41,6 +41,12 @@ export const DOCTORS = {
 };
 // R07/T08: a department is a name and its OPDs; its doctors are whoever on the roster has that specialty (staff.jsx depts()).
 export const DEPTS = { gm: [GM, 'OPD 1–3'], derm: ['Dermatology', 'OPD 5'], paed: ['Paediatrics', 'OPD 6'], gyn: ['Gynaecology', 'OPD 7'], card: ['Cardiology', 'OPD 4'] };
+// T23: what each department is for, in plain words. R15: the words a patient uses at the desk, mapped to a department.
+export const PLAIN = { gm: 'everyday illness', derm: 'skin', paed: 'children', gyn: "women's health", card: 'heart' };
+export const SYMPTOMS = { gm: ['fever', 'cough', 'cold', 'headache', 'blood pressure', 'bp', 'diabetes', 'checkup', 'back pain', 'sore throat', 'flu'],
+  derm: ['skin', 'rash', 'acne', 'itch', 'eczema'], paed: ['child', 'baby', 'vaccin', 'kid'], gyn: ['pregnan', 'antenatal', 'period', 'women'], card: ['heart', 'chest pain', 'palpitation'] };
+// R21/T27: who covers a department while it's closed (Decisions taken: Cardiology's urgent cases go to General medicine's Dr. Ramesh Shrestha).
+export const COVER = { card: 'rs' };
 
 // ---------- today's arrivals ----------
 // F07/R05/T06/V07: one arrivals list. Every count — dashboard, Departments, Reception, a doctor's "patients today" — is derived from
@@ -62,7 +68,7 @@ export const ARR = {
   rt: ['Rita Thapa', 'RT', 'Female · 62 · CH-2411', 'rs', '3:00 PM', 'Follow-up, diabetes review', [['Jul 14, 2026', 'Dr. Ramesh Shrestha · Diabetes review']]],
   bp: ['Binod Pandey', 'BP', 'Male · 47 · CH-1490', 'aj', '3:15 PM', 'Chest pain on exertion', []],
   pa: ['Prakash Adhikari', 'PA', 'Male · 55 · CH-1302', 'rs', '5:15 PM', 'General checkup', []],
-  st: ['Sunita Thapa', 'ST', 'Female · 41 · CH-1187', 'rs', '5:15 PM', 'Follow-up, hypertension review', [['Jan 14, 2026', 'Dr. Ramesh Shrestha · Blood pressure check']], '+977 98XX-XX8821'],
+  st: ['Sunita Thapa', 'ST', 'Female · 41 · CH-1187', 'rs', '5:15 PM', 'Follow-up, hypertension review', [['Jan 14, 2026', 'Dr. Ramesh Shrestha · Blood pressure check']]],
   kb: ['Kiran Basnet', 'KB', 'Male · 38 · CH-1956', 'rs', '', 'Chest infection', [['Aug 12, 2026', 'Dr. Ramesh Shrestha · Chest infection'], ['May 30, 2026', 'Dr. Priya Sharma · General checkup'], ['Feb 9, 2026', 'Dr. Ramesh Shrestha · Cough']]],
   // R05/T06: Reception covers every department, not only General medicine.
   pm: ['Pooja Magar', 'PM', 'Female · 26 · CH-2501', 'bt', '10:30 AM', 'Acne flare-up', []],
@@ -73,9 +79,15 @@ export const ARR = {
   ls: ['Laxmi Shrestha', 'LS', 'Female · 31 · CH-2506', 'kg', '12:30 PM', 'Antenatal check, 24 weeks', []],
   sg: ['Sabita Ghimire', 'SG', 'Female · 45 · CH-2507', 'kg', '4:30 PM', 'Irregular periods', []],
 };
-// Who is in today's arrivals, and how far along. Sunita Thapa's booking isn't listed yet (found through the walk-in search; Phase 4).
-export const ARR_STATE = { sl: 'done', nk: 'done', rt: 'waiting', bp: 'with', pa: 'notarrived',
+// Who is in today's arrivals, and how far along. F10/R09/T19/V08: every booking is listed, Sunita Thapa's 5:15 PM included
+// (this reverses Figma R06/R07, where she was found only through the walk-in search).
+export const ARR_STATE = { sl: 'done', nk: 'done', rt: 'waiting', bp: 'with', pa: 'notarrived', st: 'notarrived',
   pm: 'done', hb: 'waiting', aa: 'done', ik: 'done', rm: 'notarrived', ls: 'done', sg: 'with' };
+
+// F11/R09: each patient's phone on record, masked to its last four digits so the desk can match a caller.
+export const PHONE_END = { as: '4412', bt: '7310', sm: '2265', di: '9047', kg: '5582', rb: '3176', nt: '6631', sk: '0234', sl: '1458', nk: '7702', rt: '3349', bp: '8815',
+  pa: '2093', st: '8821', kb: '6127', pm: '4470', hb: '5918', aa: '0386', ik: '7254', rm: '1693', ls: '8402', sg: '3527' };
+export const phoneOf = k => PHONE_END[k] ? `+977 98XX-XX${PHONE_END[k]}` : '';
 
 // ---------- fees ----------
 export const FEE = 800; // NPR, the consultation fee
