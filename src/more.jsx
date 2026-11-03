@@ -10,6 +10,7 @@ import { MAPS, NOTIFS, emergency, setting } from './care.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, fresh, go, later, render, reset } from './core.jsx';
 import { errLine, keypad, list, openHealth, pinDots, unlock } from './health.jsx';
 import { MED_NOTIFS, ring } from './meds.jsx';
+import { FEE, FU_DAY, dayLabel } from './data.js';
 import { clock, filtered, img, now, patients, people, person, results } from './staff.jsx';
 
 export const radioRow = (on, label, act) => <button className="radio-row" role="radio" aria-checked={on} data-act={act}><span className="ring"></span>{label}</button>;
@@ -107,7 +108,7 @@ later(() => { // wraps the Notification centre's number from meds.jsx
 // ---------- side panel ----------
 export let TODAY_HOME; // Figma's Home states show no low stock
 later(() => { TODAY_HOME = { screen: 'home', meds: fresh().meds.map(m => ({ ...m, left: m.total })) }; }, ORDER.more);
-export const RESCHED = { screen: 'cresched', stack: ['care', 'cappt'], rsKey: 'fu', rsDay: 2 };
+export const RESCHED = { screen: 'cresched', stack: ['care', 'cappt'], rsKey: 'fu', rsDay: 3 }; // F20: Sun, Sep 13 — Sat, Sep 12 is closed
 export const HU = { unlocked: true };
 export const PFS = ['pf'];
 FLOW.push(
@@ -125,7 +126,7 @@ FLOW.push(
     ['SB05', "Couldn't confirm your booking", 'Branch from Review booking — no reply', "The request went out but no answer came back. Retrying straight away risks a double booking, so checking comes first. (Here it did go through: Care shows it.)", () => ({ screen: 'failed', failKind: 'noreply', stack: [...BOOKING_STACK, 'review'], reason: 'Fever for three days, with a headache' })],
     ['SB06', 'Search — a condition', 'From Find doctor — searching', 'A condition search explains itself: which specialty treats it, then those doctors. The rows still open their profiles. Try “fever”, “rash” or “chest pain”.', () => ({ screen: 'finddoctor', stack: ['home'], query: 'fever' })],
     ['SB07', 'Search — no results', 'Branch — nothing matches', 'City Hospital has no eye doctor. The empty state says so and gives the real next step: ask reception about a referral.', () => ({ screen: 'finddoctor', stack: ['home'], query: 'eye' })],
-    ['SB08', 'Specialty — Cardiology', 'From a specialty tile', "Filtered to Cardiology: Dr. Suman KC, next slot Mon, Sep 1. His row opens his profile.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Cardiology' })],
+    ['SB08', 'Specialty — Cardiology', 'From a specialty tile', "Filtered to Cardiology: Dr. Suman KC, next slot Tue, Sep 1. His row opens his profile.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Cardiology' })],
     ['SB09', 'Specialty — Dermatology', 'From a specialty tile', "Filtered to Dermatology. These specialists' profiles aren't designed yet, so the rows don't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Dermatology' })],
     ['SB10', 'Specialty — Paediatrics', 'From a specialty tile', "Filtered to Paediatrics. This specialist's profile isn't designed yet, so the row doesn't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Paediatrics' })],
     ['SB11', 'Specialty — Gynaecology', 'From a specialty tile', "Filtered to Gynaecology. This specialist's profile isn't designed yet, so the row doesn't open.", () => ({ screen: 'finddoctor', stack: ['home'], specialty: 'Gynaecology' })],
@@ -137,7 +138,7 @@ FLOW.push(
   ['Care — more states', [
     ['SC01', 'Your turn', 'From Checked in — the doctor is ready', "Success: the one moment that needs the patient to move. Says where to go, and what to do if they can't go yet.", () => ({ screen: 'cday', stack: ['care'], visitDay: 'turn' })],
     ['SC02', 'With the doctor', 'From Your turn', 'Says where the notes will appear, and the one thing left to do: pay at reception on the way out. (Figma pairs an Info tag with an Info card, which the Content/Notice rule warns against — kept as designed.)', () => ({ screen: 'cday', stack: ['care'], visitDay: 'with' })],
-    ['SC03', 'Reschedule — time taken', 'Branch from Reschedule — the new time was taken', "The taken slot turns disabled, and the button waits for a new choice. The first thing it says after 'what happened' is that the current visit is still booked.", () => ({ ...RESCHED, rsErr: { t: '11:00 AM', wd: 'Fri' }, rsTaken: ['fu|2|11:00 AM'] })],
+    ['SC03', 'Reschedule — time taken', 'Branch from Reschedule — the new time was taken', "The taken slot turns disabled, and the button waits for a new choice. The first thing it says after 'what happened' is that the current visit is still booked.", () => ({ ...RESCHED, rsErr: { t: '11:00 AM', wd: 'Sun' }, rsTaken: ['fu|3|11:00 AM'] })],
     ['SC04', 'Reschedule — no times left', 'Branch from Reschedule — nothing free', 'The same reassurance, then the realistic options: keep the visit, or call about next week.', () => ({ ...RESCHED, rsNone: true })],
     ['SC05', 'Delay cleared', 'From Running late — the delay is over', "The card turns Success, and 'Reschedule instead' goes, since it no longer applies.", () => ({ screen: 'cday', stack: ['care'], visitDay: 'ontime' })],
     ['SC06', 'Cancelled by the clinic', 'The clinic cancelled', "Error, because it was done to the patient — a patient's own cancellation stays Neutral. Says why, apologises, and offers another time.", () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', byClinic: true, cal: false } })],
@@ -207,7 +208,7 @@ export function openSys(p) { S.sys = p; S.sheet = 'sys'; render(); }
 export const CLINIC_TEL = 'tel:+97714412345';
 export const SYS_OS = {
   'Phone settings': () => ({ title: "Open your phone's settings for Clinica?", sub: 'You can turn on notifications or calendar access there.', confirm: 'Open Settings' }),
-  Calendar: () => ({ title: `Open your calendar at ${S.cancelled?.day || 'Thu, Sep 11'}?`, sub: 'You can delete the old visit there.', confirm: 'Open Calendar' }),
+  Calendar: () => ({ title: `Open your calendar at ${S.cancelled?.day || dayLabel(FU_DAY)}?`, sub: 'You can delete the old visit there.', confirm: 'Open Calendar' }),
 };
 export function interceptLink(e) {
   const ok = e.target.closest('.as a.as-btn');
@@ -237,12 +238,12 @@ OVERLAY.sys = () => {
 export const SYSP = (title, sub, confirm) => () => ({ screen: 'home', sheet: 'sys', sys: { title, sub, confirm, href: '#' } });
 FLOW.push(
   ['Book a visit — other doctors', [
-    ['OD11', 'Doctor profile — Ramesh Shrestha', 'From Find doctor', "From Find doctor. Fully booked until Wed, Sep 3; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'rs', day: 6, time: '11:30 AM' })],
-    ['OD12', 'Review booking — Ramesh Shrestha', 'Book Wed, Sep 3, 11:30 AM', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'rs', day: 6, time: '11:30 AM' })],
+    ['OD11', 'Doctor profile — Ramesh Shrestha', 'From Find doctor', "From Find doctor. Fully booked until Thu, Sep 3; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'rs', day: 6, time: '11:30 AM' })],
+    ['OD12', 'Review booking — Ramesh Shrestha', 'Book Thu, Sep 3, 11:30 AM', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'rs', day: 6, time: '11:30 AM' })],
     ['OD13', 'Confirmed — Ramesh Shrestha', 'Confirm booking', "Done goes to Home: the notifications prompt and the calendar sheet are written about Dr. Priya Sharma's visit, and are tested on her path.", () => ({ screen: 'confirmed', doc: 'rs', booked: { doc: 'rs', day: 6, time: '11:30 AM', for: 'Anisha Sharma' }, appt: { doc: 'rs', day: 6, time: '11:30 AM' } })],
-    ['OD14', 'Doctor profile — Anita Joshi', 'From Find doctor', "From Find doctor. Next slot tomorrow; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'aj', day: 1, time: '9:00 AM' })],
-    ['OD15', 'Review booking — Anita Joshi', 'Book tomorrow, 9:00 AM', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'aj', day: 1, time: '9:00 AM' })],
-    ['OD16', 'Confirmed — Anita Joshi', 'Confirm booking', "Done goes to Home: the notifications prompt and the calendar sheet are written about Dr. Priya Sharma's visit, and are tested on her path.", () => ({ screen: 'confirmed', doc: 'aj', booked: { doc: 'aj', day: 1, time: '9:00 AM', for: 'Anisha Sharma' }, appt: { doc: 'aj', day: 1, time: '9:00 AM' } })],
+    ['OD14', 'Doctor profile — Anita Joshi', 'From Find doctor', "From Find doctor. Next slot Sun, Aug 30, after the closed Saturday; the selected day and time are this doctor's.", () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], doc: 'aj', day: 2, time: '9:00 AM' })],
+    ['OD15', 'Review booking — Anita Joshi', 'Book Sun, Aug 30, 9:00 AM', 'Same review as the main path, with this doctor and time.', () => ({ screen: 'review', stack: ['home', 'finddoctor', 'doctor'], doc: 'aj', day: 2, time: '9:00 AM' })],
+    ['OD16', 'Confirmed — Anita Joshi', 'Confirm booking', "Done goes to Home: the notifications prompt and the calendar sheet are written about Dr. Priya Sharma's visit, and are tested on her path.", () => ({ screen: 'confirmed', doc: 'aj', booked: { doc: 'aj', day: 2, time: '9:00 AM', for: 'Anisha Sharma' }, appt: { doc: 'aj', day: 2, time: '9:00 AM' } })],
   ]],
   ['System prompts (prototype overlays)', [
     ['SY1', 'Call City Hospital', 'Any “Call the clinic” or reception button', "The phone's own call prompt: every clinic number is City Hospital reception.", () => ({ screen: 'pfclinic', stack: ['pf'], sheet: 'sys', sys: { title: 'City Hospital reception', sub: '+977 1-4412345', confirm: 'Call +977 1-4412345', href: CLINIC_TEL } })],
@@ -250,8 +251,8 @@ FLOW.push(
     ['SY3', 'Directions', 'Get directions', 'Hands off to Maps with the place filled in.', () => ({ screen: 'cday', stack: ['care'], sheet: 'sys', sys: { title: 'Open Maps for directions to', sub: 'OPD 2, City Hospital, Maharajgunj', confirm: 'Open Maps', href: MAPS, blank: true } })],
     ['SY4', 'Phone settings', 'Open phone settings / Turn them on', 'Notifications and calendar access are the phone\'s to change, so it opens its settings.', () => ({ screen: 'pfnotif', stack: ['pf'], notifOff: true, sheet: 'sys', sys: SYS_OS['Phone settings']() })],
     ['SY5', 'Download', 'Download report', "Saved to the phone's Files, with a way to open it. (Here the PDF is real.)", () => ({ screen: 'hreport', stack: ['health', 'hlabs'], unlocked: true, sheet: 'sys', sys: { title: 'Thyroid panel report.pdf', sub: "Saved to your phone's Files.", confirm: 'Open file', href: '#' } })],
-    ['SY6', 'Open calendar', 'Open calendar, after a cancellation', 'Opens the calendar at the old visit, so it can be deleted.', () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', day: 'Thu, Sep 11', cal: true }, sheet: 'sys', sys: SYS_OS.Calendar() })],
-    ['SY7', 'Pay with a wallet', 'Confirm booking, with eSewa, Khalti or Fonepay chosen', "Once the visit is booked, the phone's own prompt hands off to the wallet to pay the NPR 800 fee.", () => ({ screen: 'confirmed', booked: { doc: 'ps', day: 0, time: '4:30 PM', for: 'Anisha Sharma' }, sheet: 'sys', sys: { title: 'Pay NPR 800 with eSewa?', sub: 'Consultation fee for your visit with Dr. Priya Sharma.', confirm: 'Pay with eSewa', href: '#' } })],
+    ['SY6', 'Open calendar', 'Open calendar, after a cancellation', 'Opens the calendar at the old visit, so it can be deleted.', () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', day: dayLabel(FU_DAY), cal: true }, sheet: 'sys', sys: SYS_OS.Calendar() })],
+    ['SY7', 'Pay with a wallet', 'Confirm booking, with eSewa, Khalti or Fonepay chosen', `Once the visit is booked, the phone's own prompt hands off to the wallet to pay the NPR ${FEE} fee.`, () => ({ screen: 'confirmed', booked: { doc: 'ps', day: 0, time: '4:30 PM', for: 'Anisha Sharma' }, sheet: 'sys', sys: { title: `Pay NPR ${FEE} with eSewa?`, sub: 'Consultation fee for your visit with Dr. Priya Sharma.', confirm: 'Pay with eSewa', href: '#' } })],
   ]],
 );
 export const SYS_NUM = p => ({ 'City Hospital reception': 'SY1', Ambulance: 'SY2', 'Open Maps for directions to': 'SY3' })[p.title]

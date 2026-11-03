@@ -61,7 +61,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.specs >> text=General medicine');
   await p.click('text=Dr. Ramesh Shrestha'); assert(await p.isVisible('text=No times left today'), 'no slots (B07)');
   assert(!(await p.isVisible('.cta >> text=Book')), 'no Book button when nothing to book');
-  await p.click('text=See Wed, Sep 3'); assert(await p.isVisible('text=Choose a time'), 'next opening shows times');
+  await p.click('text=See Thu, Sep 3'); assert(await p.isVisible('text=Choose a time'), 'next opening shows times');
   await p.click('[aria-label=Back]'); await p.click('text=Dr. Priya Sharma');
   assert(await p.isDisabled('.pick.day >> text=Sat'), 'Saturday closed');
   assert(await p.isDisabled('.pick.time >> text=10:30 AM'), 'taken slot disabled');
@@ -133,8 +133,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(!(await V('.banner')), 'Home banner follows stock');
   // ---- Care: cancel the follow-up, so Ask can book one ----
   await p.click('.bnav >> text=Care'); assert(await p.isVisible('#phone >> text=Coming up') && await p.isVisible('#phone >> text=Past visits'), 'Care tab (C01)');
-  await p.click('.card >> text=Thu, Sep 11, 10:30 AM'); assert(await p.isVisible('#phone >> text=Before you come'), 'appointment detail (C02)');
-  await p.click('button:text-is("Cancel visit")'); assert(await p.isVisible('#phone >> text=Cancel your visit on Thu, Sep 11?'), 'cancel sheet (C05)');
+  await p.click('.card >> text=Fri, Sep 11, 10:30 AM'); assert(await p.isVisible('#phone >> text=Before you come'), 'appointment detail (C02)');
+  await p.click('button:text-is("Cancel visit")'); assert(await p.isVisible('#phone >> text=Cancel your visit on Fri, Sep 11?'), 'cancel sheet (C05)');
   await p.mouse.click(180 + (await p.locator('#phone').boundingBox()).x, 120 + (await p.locator('#phone').boundingBox()).y);
   assert(!(await p.isVisible('.csheet')), 'scrim is the safe choice');
   await p.click('button:text-is("Cancel visit")'); await p.click('.csheet >> text=Cancel visit');
@@ -151,7 +151,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('text=Unlock with PIN'); await pin('5678'); await p.waitForTimeout(300);
   assert(await p.isVisible('text=Dr. Priya Sharma wrote'), 'after unlocking, the answer shows (A06)');
   await p.click('button:text-is("Book follow-up")'); assert(await p.isDisabled('.cta .btn'), 'patient must choose the time (A10)');
-  await p.click('.pick.time >> text=11:00 AM'); await p.click('text=Book Thu, Sep 11, 11:00 AM');
+  await p.click('.pick.time >> text=11:00 AM'); await p.click('text=Book Fri, Sep 11, 11:00 AM');
   assert(await p.isVisible("text=Your follow-up is booked. We've sent the details by SMS."), 'booked, back in the conversation (A11)');
   assert(await p.isVisible("text=A follow-up in 2 weeks isn't booked yet."), 'earlier answer unchanged');
   await p.fill('#ask-in', 'Is my thyroid result normal?'); await p.press('#ask-in', 'Enter'); await p.waitForTimeout(800);
@@ -173,18 +173,18 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   const box = await p.locator('#phone').boundingBox(), scrim = () => p.mouse.click(box.x + 180, box.y + 120);
   await p.evaluate(() => jumpTo('C02')); await p.click('#phone >> text=So you get a reminder too');
   assert(await p.isVisible('.syscal >> text=Appointment — City Hospital') && !(await p.isVisible('.syscal >> text=Priya')), 'system sheet names the clinic, not the doctor (K02)');
-  assert(await p.isVisible('.syscal >> text=Thu, Sep 11, 10:30 AM') && await p.isVisible('.syscal >> text=11:00 AM'), 'sheet pre-filled with time and a 30-minute end');
+  assert(await p.isVisible('.syscal >> text=Fri, Sep 11, 10:30 AM') && await p.isVisible('.syscal >> text=11:00 AM'), 'sheet pre-filled with time and a 30-minute end');
   const dl = p.waitForEvent('download'); await p.click('.syscal >> text=Add'); const ics = await (await dl).path();
   const icsText = require('fs').readFileSync(ics, 'utf8');
   assert(/SUMMARY:Appointment — City Hospital/.test(icsText) && /TRIGGER:-P1D/.test(icsText) && /TRIGGER:-PT2H/.test(icsText), '.ics has the clinic title and both alerts');
   assert(await p.isVisible('#phone >> text=In your calendar'), 'saved (K03)');
   await p.click('#phone >> text=Reschedule'); assert(await p.isDisabled('.cta .btn'), 'reschedule needs a time (C03)');
   assert(await p.isDisabled('.pick.day[aria-label^="Sat"]') && await p.isDisabled('.pick.time[aria-label^="10:30 AM"]'), 'Saturday closed; the current time is not a choice');
-  await p.click('.pick.day >> text=Fri'); await p.click('.pick.time >> text=11:00 AM'); await p.click('#phone >> text=Move to Fri, 11:00 AM');
-  assert(await p.isVisible('#phone >> text=Visit moved') && await p.isVisible('#phone >> text=Calendar still shows Thu, Sep 11'), 'moved, calendar copy is stale (K05)');
-  await p.click('[aria-label=Back]'); assert(await p.isVisible('.card >> text=Fri, Sep 12, 11:00 AM') && await p.isVisible('#phone >> text=So you get a reminder too'), 'back to the appointment, at the new time');
+  await p.click('.pick.day >> text=Sun'); await p.click('.pick.time >> text=11:00 AM'); await p.click('#phone >> text=Move to Sun, 11:00 AM');
+  assert(await p.isVisible('#phone >> text=Visit moved') && await p.isVisible('#phone >> text=Calendar still shows Fri, Sep 11'), 'moved, calendar copy is stale (K05)');
+  await p.click('[aria-label=Back]'); assert(await p.isVisible('.card >> text=Sun, Sep 13, 11:00 AM') && await p.isVisible('#phone >> text=So you get a reminder too'), 'back to the appointment, at the new time');
   await p.click('button:text-is("Cancel visit")'); await p.click('.csheet >> text=Cancel visit');
-  assert(await p.isVisible('#phone >> text=Your Sep 12 visit is cancelled') && !(await p.isVisible('#phone >> text=Remove it from your calendar')), 'no calendar warning when the new time was never added');
+  assert(await p.isVisible('#phone >> text=Your Sep 13 visit is cancelled') && !(await p.isVisible('#phone >> text=Remove it from your calendar')), 'no calendar warning when the new time was never added');
   await p.evaluate(() => jumpTo('C02')); await p.click('#phone >> text=So you get a reminder too'); await p.click('.syscal >> text=Add');
   await p.click('button:text-is("Cancel visit")'); await p.click('.csheet >> text=Cancel visit');
   assert(await p.isVisible('#phone >> text=Remove it from your calendar'), 'cancelled after adding → remove it (K06)');
@@ -195,18 +195,18 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.evaluate(() => jumpTo('C01')); await p.click('.card >> text=Today, 4:30 PM'); assert(await p.isVisible('#phone >> text=Arrive by 4:15 PM'), 'visit day (C07)');
   await p.selectOption('[data-s="visitDay"]', 'late'); assert(await p.isVisible('#phone >> text=Dr. Sharma is running late') && await p.isVisible('#phone >> text=Reschedule instead'), 'running late (C08)');
   await p.click('#phone >> text=Reschedule instead'); assert(await p.isVisible('#phone >> text=Currently') && !(await p.isVisible('.pick.day >> text=Aug 28')), "today's visit moves within the booking week");
-  await p.click('.pick.day >> text=Fri'); await p.click('.pick.time >> text=4:30 PM'); await p.click('#phone >> text=Move to Fri, 4:30 PM');
+  await p.click('.pick.day >> text=Sun'); await p.click('.pick.time >> text=4:30 PM'); await p.click('#phone >> text=Move to Sun, 4:30 PM');
   assert(await p.isVisible('#phone >> text=Your slot today at 4:30 PM has been released'), 'today moved');
   await p.click('.btn >> text=Add to calendar'); await p.click('.syscal >> text=Add');
-  await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=Tomorrow, 4:30 PM') && !(await p.isVisible('#phone >> text=Reschedule instead')), 'back on the visit, booked again at the new time');
-  await p.click('[aria-label=Back]'); await p.click('.bnav >> text=Home'); assert(await p.isVisible('#phone >> text=Tomorrow, 4:30 PM'), 'Home follows the move');
+  await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=Sun, Aug 30, 4:30 PM') && !(await p.isVisible('#phone >> text=Reschedule instead')), 'back on the visit, booked again at the new time');
+  await p.click('[aria-label=Back]'); await p.click('.bnav >> text=Home'); assert(await p.isVisible('#phone >> text=Sun, Aug 30, 4:30 PM'), 'Home follows the move');
   await p.selectOption('[data-s="visitDay"]', 'checkedin'); await p.click('.bnav >> text=Care');
-  await p.click('.card >> text=Tomorrow, 4:30 PM'); assert(await p.isVisible('#phone >> text=Waiting for Dr. Priya Sharma'), 'checked in (C09)');
-  await p.selectOption('[data-s="visitDay"]', 'done'); assert(await p.isVisible('#phone >> text=Visit complete') && await p.isVisible('#phone >> text=Fri, Sep 12, 11:00 AM') === false, 'visit complete (C10)');
+  await p.click('.card >> text=Sun, Aug 30, 4:30 PM'); assert(await p.isVisible('#phone >> text=Waiting for Dr. Priya Sharma'), 'checked in (C09)');
+  await p.selectOption('[data-s="visitDay"]', 'done'); assert(await p.isVisible('#phone >> text=Visit complete') && await p.isVisible('#phone >> text=Sun, Sep 13, 11:00 AM') === false, 'visit complete (C10)');
   await p.selectOption('[data-s="visitDay"]', 'missed'); await p.evaluate(() => jumpTo('C01')); await p.selectOption('[data-s="visitDay"]', 'missed');
   assert(await p.isVisible('#phone >> text=We missed you at 4:30 PM'), 'missed replaces the visit (C11)');
-  await p.evaluate(() => jumpTo('C10')); await p.click('#phone >> text=Book follow-up'); await p.click('.pick.time >> text=10:30 AM'); await p.click('#phone >> text=Book Thu, Sep 11, 10:30 AM');
-  assert(await p.isVisible('#phone >> text=Next step') && await p.isVisible('.card >> text=Thu, Sep 11, 10:30 AM'), 'follow-up booked from Care replaces the card');
+  await p.evaluate(() => jumpTo('C10')); await p.click('#phone >> text=Book follow-up'); await p.click('.pick.time >> text=10:30 AM'); await p.click('#phone >> text=Book Fri, Sep 11, 10:30 AM');
+  assert(await p.isVisible('#phone >> text=Next step') && await p.isVisible('.card >> text=Fri, Sep 11, 10:30 AM'), 'follow-up booked from Care replaces the card');
   // ---- Notification centre ----
   await p.evaluate(() => jumpTo('B01')); assert(await p.isVisible('.bell .dot'), 'unread dot on the bell');
   await p.click('[aria-label^="Notifications"]'); assert(await p.isVisible('#phone >> text=Dr. Sharma is running late'), 'bell opens the centre (N01)');
@@ -271,9 +271,9 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('[data-act="doctor:ps"]'); await p.click('[aria-label="Save doctor"]'); assert(await p.getAttribute('[data-act="fav:ps"] img', 'src') === 'assets/icon-heart-filled.svg', 'saved: a filled heart (SB14)');
   await p.click('[aria-label=Back]'); assert(await P('.sec-label:text-is("Saved")'), 'saved doctors on top (SB15)');
   // reschedule: the time was taken meanwhile
-  await J('C03'); await p.selectOption('[data-s="failNext"]', 'taken'); await p.click('#phone >> text=Move to Fri, 11:00 AM');
-  assert(await P('text=11:00 AM on Fri was just taken') && await p.isDisabled('.pick.time[aria-label^="11:00 AM"]') && await p.isDisabled('.cta .btn'), 'time taken; current visit still booked (SC03)');
-  await p.click('.pick.time >> text=3:30 PM'); await p.click('#phone >> text=Move to Fri, 3:30 PM'); assert(await P('text=Visit moved'), 'then moves');
+  await J('C03'); await p.selectOption('[data-s="failNext"]', 'taken'); await p.click('#phone >> text=Move to Sun, 11:00 AM');
+  assert(await P('text=11:00 AM on Sun was just taken') && await p.isDisabled('.pick.time[aria-label^="11:00 AM"]') && await p.isDisabled('.cta .btn'), 'time taken; current visit still booked (SC03)');
+  await p.click('.pick.time >> text=3:30 PM'); await p.click('#phone >> text=Move to Sun, 3:30 PM'); assert(await P('text=Visit moved'), 'then moves');
   // visit day
   await J('C07'); for (const [v, t] of [['ontime', 'is back on time'], ['turn', 'Your turn'], ['with', 'In progress']]) {
     await p.selectOption('[data-s="visitDay"]', v); assert(await P(`text=${t}`), `visit day: ${v} (SC)`); }
@@ -314,10 +314,10 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.bnav >> text=Care'); assert(await P('text=Updating…'), 'tapping Care again refreshes (GX05)'); await p.waitForTimeout(1400); assert(!(await P('text=Updating…')), 'refresh ends');
   await J('GX06'); await p.click('#phone >> text=Try again'); assert(await P('.sk'), 'try again → loading (GX04)'); await p.waitForTimeout(1100); assert(await P('text=Good morning,'), 'content arrives');
   // ---- Section 3: other doctors; system prompts ----
-  await J('B02'); await p.click('[data-act="doctor:aj"]'); assert(await P('text=Next slot tomorrow') && await P('text=Closed on Saturdays'), 'Dr. Joshi: next slot tomorrow (OD14)');
-  await p.click('.pick.day >> text=Fri'); await p.click('.pick.time >> text=9:00 AM'); await p.click('#phone >> text=Book tomorrow, 9:00 AM');
-  assert(await P('text=Tomorrow, 9:00 AM'), 'review with this doctor and time (OD15)'); await p.click('#phone >> text=Confirm booking');
-  assert(await P('text=booked with Dr. Anita Joshi tomorrow at 9:00 AM'), 'confirmed (OD16)');
+  await J('B02'); await p.click('[data-act="doctor:aj"]'); assert(await P('text=Next slot Sun, Aug 30') && await P('text=Closed on Saturdays'), 'Dr. Joshi: next slot Sun, Aug 30 after the closed Saturday (OD14)');
+  await p.click('.pick.day >> text=Sun'); await p.click('.pick.time >> text=9:00 AM'); await p.click('#phone >> text=Book Sun, Aug 30, 9:00 AM');
+  assert(await P('text=Sun, Aug 30, 9:00 AM'), 'review with this doctor and time (OD15)'); await p.click('#phone >> text=Confirm booking');
+  assert(await P('text=booked with Dr. Anita Joshi on Sun, Aug 30 at 9:00 AM'), 'confirmed (OD16)');
   await p.click('#phone >> text=Done'); assert(await P('text=Good morning,') && !(await P('text=Allow notifications')), "Done goes to Home, not the notifications prompt");
   await J('P06'); await p.click('#phone >> text=Call reception'); assert(await P('.as >> text=Call +977 1-4412345'), 'the phone asks before calling (SY1)');
   assert(await p.getAttribute('.as a.as-btn', 'href') === 'tel:+97714412345', 'the confirm really dials');
@@ -325,7 +325,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone a[href="tel:102"]'); assert(await P('.as >> text=Ambulance'), 'call 102 prompt (SY2)'); await p.click('.as-cancel');
   await J('C07'); await p.click('#phone >> text=Get directions'); assert(await P('.as >> text=OPD 2, City Hospital, Maharajgunj'), 'directions prompt (SY3)'); await p.click('.as-cancel');
   await J('P09'); await p.click('#phone >> text=Open phone settings'); assert(await P(".as >> text=Open your phone's settings for Clinica?"), 'phone settings prompt (SY4)'); await p.click('.as-cancel');
-  await J('K06'); await p.click('#phone >> text=Open calendar'); assert(await P('.as >> text=Open your calendar at Thu, Sep 11?'), 'open calendar prompt (SY6)'); await p.click('.as-cancel');
+  await J('K06'); await p.click('#phone >> text=Open calendar'); assert(await P('.as >> text=Open your calendar at Fri, Sep 11?'), 'open calendar prompt (SY6)'); await p.click('.as-cancel');
   await J('H09'); const dl3 = p.waitForEvent('download'); await p.click('#phone >> text=Download report'); await dl3;
   assert(await P(".as >> text=Thyroid panel report.pdf") && await P(".as >> text=Saved to your phone's Files."), 'download prompt (SY5)');
   // ---- One prototype: two ways in, and the situations in Demo inputs ----
@@ -407,7 +407,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   const signStaff = async (id, pw = 'clinica') => { await p.fill('#st-id', id); await p.fill('#st-pw', pw); await p.click('#phone >> text=Sign in'); };
   await p.evaluate(() => start('staff')); assert(await P('text=Hospital management — City Hospital'), 'staff sign-in (T00)');
   await signStaff('CH-ADM-04', 'nope'); assert(await P('text=Admin ID or password is incorrect. Try again.'), 'wrong password (T00b)');
-  await signStaff('CH-ADM-04'); assert(await P('.st-stat:has-text("Reports pending") >> text=7') && await P('.st-stat:has-text("Not yet arrived") >> text=2'), 'admin dashboard counts from the shared day (T01)');
+  await signStaff('CH-ADM-04'); assert(await P('.st-stat:has-text("Reports pending") >> text=7') && await P('.st-stat:has-text("Not yet arrived") >> text=3'), 'admin dashboard counts from the shared day (T01)');
   await p.click('#phone >> text=View all doctors'); assert(await P('text=8 on the roster · 6 on duty today'), 'doctors roster (T02)');
   await p.click('[data-act="st-menu:dept"]'); await p.click('[data-act="st-f:dept|Dermatology"]'); assert(await P('text=2 of 8 · filtered by department'), 'department filter (T02d)');
   await p.click('.st-ttl'); assert(!(await P('.st-dd')), 'a click outside closes the panel');
@@ -415,7 +415,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await P('text=Staff on leave') && await P('text=Dr. Maya Shrestha · OPD 5'), 'department detail (T03b)');
   await p.click('.k-ni >> text=Patients'); await p.click('[data-act="st-pat:as|0"]'); assert(await P('text=Dr. Ramesh Shrestha · Ear infection') && await P('text=Female · 32 · CH-2381'), "Anisha's record matches her apps (T05a)");
   await p.click('#phone >> a.k-link'); await p.click('[data-act="st-menu:date"]'); await p.click('[data-act="st-day:20"]'); await p.click('[data-act="st-day:28"]');
-  assert(await P('text=13 of 26 · filtered by visited date'), 'date range filters by visit date (T05c)');
+  assert(await P('text=20 of 33 · filtered by visited date'), 'date range filters by visit date (T05c)');
   await p.click('.k-ni >> text=Settings'); await p.click('#phone >> text=Add a doctor'); await p.click('#phone >> text=Add doctor'); assert(await P("text=Enter the doctor's full name."), 'add doctor needs a name');
   await p.fill('#sa-name', 'Kabita Shrestha'); await p.fill('#sa-spec', 'Cardiology'); await p.click('#phone >> text=Add doctor');
   assert(await P('text=Dr. Kabita Shrestha has been added'), 'doctor added (T04a2)'); await p.click('#phone >> text=View in roster');
@@ -427,7 +427,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('[data-act="st-pick:desk"]'); await p.click('#phone >> text=Save role'); assert(await P('text=Sabina Rai is now Front desk.'), 'role saved');
   await p.click('.k-me'); await p.click('.st-dd >> text=Sign out'); await p.click('.csheet button:has-text("Sign out")'); assert(await P('.k-card'), 'staff sign out');
   // Front desk
-  await signStaff('CH-FD-12'); assert(await P('text=13 patients across the hospital') && await P('.k-row:has-text("Nabin Tamang") >> text=With doctor'), "front desk: today's arrivals follow the doctor's queue (R01)");
+  await signStaff('CH-FD-12'); assert(await P('text=20 patients across the hospital') && await P('.k-row:has-text("Nabin Tamang") >> text=With doctor'), "front desk: today's arrivals follow the doctor's queue (R01)");
   await p.fill('#st-q', 'sunita'); assert(await P('text=1 result for “sunita”'), 'search (R01c)');
   await p.click('[data-act="st-arr:sk"]'); await p.click('#phone >> text=Check in'); assert(await P('text=Checked in at 4:52 PM'), 'checked in (R03)');
   assert(await p.evaluate(() => drStatus('sk')) === 'waiting', "Sunita is now Waiting in Dr. Sharma's queue");
@@ -435,7 +435,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone >> text=Add to queue'); assert(await P("text=Dr. Suman KC isn't in today"), "can't add a walk-in for a doctor who's off");
   await p.fill('#wk-doc', 'priya'); await p.fill('#wk-reason', 'Sore throat'); await p.click('#phone >> text=Add to queue');
   assert(await P('text=Is this Sunita?') && await P('text=phone ending 8821'), 'name matches two records (R06)');
-  await p.click('#phone >> text=None of these — register as new patient'); assert(await P('text=14 patients across the hospital'), 'walk-in added to arrivals');
+  await p.click('#phone >> text=None of these — register as new patient'); assert(await P('text=21 patients across the hospital'), 'walk-in added to arrivals');
   assert(await p.evaluate(() => drToday().some(k => DR_PATIENTS[k].name === 'Sunita' && drStatus(k) === 'waiting')), "and to Dr. Sharma's own queue");
   await p.click('#phone >> text=Register a walk-in'); await p.click('.radio-row:has-text("Follow-up visit")'); await p.fill('#wk-name', 'Kiran Basnet');
   assert(await P('text=Dr. Ramesh Shrestha · Chest infection'), 'follow-up shows recent visits (R05)');

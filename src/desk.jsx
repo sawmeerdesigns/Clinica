@@ -5,7 +5,8 @@ import { btn, empty, listItem, start, support } from './app.jsx';
 import { T, ask, src } from './ask.jsx';
 import { label, rel, row, rows, sk, tag, when } from './booking.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, go, later, mount, paint, render, sepJoin } from './core.jsx';
-import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_PATIENTS, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drChip, drDate, drField, drMed, drMeds, drOffline, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
+import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drChip, drDate, drField, drMed, drMeds, drOffline, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
+import { DR_PATIENTS, TODAY, mdOf } from './data.js'; // one arrivals list and one today (F07/F20)
 import { centred, docCard, field, list } from './health.jsx';
 import { img, now, patients, person } from './staff.jsx';
 
@@ -95,8 +96,8 @@ Object.assign(SCREENS, {
   kqueue: () => {
     const ids = S.drNoPatients ? [] : drToday(), seen = ids.filter(id => drStatus(id) === 'done').length;
     if (!ids.length) return kPage('Queue', <section className="k-list wide">{kHead('Today', 'Aug 28')}<div className="k-fill">{kEmpty('qa-book.svg', 'No patients scheduled today', 'A booked visit will show up here.', 300)}</div></section>);
-    if (S.drOffline) return kPage('Queue', <section className="k-list wide">{kHead('Today', `Aug 28 · ${seen} of ${ids.length} seen`)}<div className="k-fill"><div style={{ width: 360 }}>{drOffline()}</div></div></section>);
-    return kPage('Queue', <><section className="k-list">{kHead('Today', `Aug 28 · ${seen} of ${ids.length} seen`)}
+    if (S.drOffline) return kPage('Queue', <section className="k-list wide">{kHead('Today', `${mdOf(TODAY)} · ${seen} of ${ids.length} seen`)}<div className="k-fill"><div style={{ width: 360 }}>{drOffline()}</div></div></section>);
+    return kPage('Queue', <><section className="k-list">{kHead('Today', `${mdOf(TODAY)} · ${seen} of ${ids.length} seen`)}
       <div className="k-filt">{drChip('status', 'Status', drStatusOpts(ids), S.drFilt, 'd-filt')}</div>
       <div className="k-scroll">{sepJoin(drShown(ids).map(id => kPatientRow(id, id === S.kSel)))}</div></section>{kDetail()}</>);
   },

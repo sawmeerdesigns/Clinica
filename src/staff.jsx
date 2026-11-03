@@ -11,6 +11,7 @@ import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, 
 import { DR_HISTORY, DR_PATIENTS, EXTRA_STATE_DR, drField, drRadio, drStatus, drTime, drToday, showApp } from './doctor.jsx';
 import { field, list } from './health.jsx';
 import { ring } from './meds.jsx';
+import { ARR, ARR_STATE, DEPTS, DOCTORS } from './data.js';
 
 // ---------- data ----------
 export const ROLES = {
@@ -20,48 +21,25 @@ export const ROLES = {
   admin: ['Hospital administrator', 'Sees hospital-wide dashboards, doctors and departments', ['Hospital-wide dashboard and reports', 'Full doctor roster and departments', 'Settings, including adding doctors and assigning roles']],
 };
 // id: initials, name, job title, department, access role, employee ID, joined
-export const STAFF = Object.entries({
-  ps: ['PS', 'Dr. Priya Sharma', 'Doctor', 'General medicine', 'doctor', 'CH-0231', 'Jun 2019'],
-  rs: ['RS', 'Dr. Ramesh Shrestha', 'Doctor', 'General medicine', 'doctor', 'CH-0198', 'Feb 2017'],
-  aj: ['AJ', 'Dr. Anita Joshi', 'Doctor', 'General medicine', 'doctor', 'CH-0244', 'Aug 2020'],
-  bt: ['BT', 'Dr. Bikash Thapa', 'Doctor', 'Dermatology', 'doctor', 'CH-0212', 'Apr 2018'],
-  sr: ['SR', 'Dr. Sunita Rai', 'Doctor', 'Paediatrics', 'doctor', 'CH-0226', 'Jan 2019'],
-  kg: ['KG', 'Dr. Kiran Gurung', 'Doctor', 'Gynaecology', 'doctor', 'CH-0251', 'Mar 2021'],
-  sk: ['SK', 'Dr. Suman KC', 'Doctor', 'Cardiology', 'doctor', 'CH-0187', 'Sep 2016'],
-  ms: ['MS', 'Dr. Maya Shrestha', 'Doctor', 'Dermatology', 'doctor', 'CH-0263', 'Nov 2022'],
+// W20: the doctors come from the one doctor list (data.js); the rest of the staff are listed here.
+export const STAFF = [...Object.entries(DOCTORS).map(([id, d]) => [id, [d.ini, d.name, 'Doctor', d.spec, 'doctor', d.emp, d.joined]]), ...Object.entries({
   sbr: ['SbR', 'Sabina Rai', 'Front desk', 'Reception', 'desk', 'CH-STF-0204', 'May 2021'],
   rk: ['RK', 'Rajesh Koirala', 'Administrator', 'Hospital management', 'admin', 'CH-ADM-04', 'Jul 2015'],
   ab: ['AB', 'Anjali Basnet', 'HR manager', 'Human resources', 'hr', 'CH-HR-03', 'Oct 2018'],
   mt: ['MT', 'Maya Tuladhar', 'Nurse', 'General medicine', 'doctor', 'CH-STF-0231', 'Mar 2022'],
   pk: ['PsK', 'Prasant Khadka', 'Nurse', 'Cardiology', 'doctor', 'CH-STF-0247', 'Jan 2023'],
   nl: ['NL', 'Nirmala Lama', 'Lab technician', 'City Hospital lab', 'doctor', 'CH-STF-0219', 'Jun 2020'],
-}).map(([id, [ini, name, title, dept, access, emp, joined]]) => ({ id, ini, name, title, dept, access, emp, joined }));
-// The roster: OPD, patients booked today, duty, NMC registration, next free slot, reports waiting on them.
-export const DOC = {
-  ps: ['OPD 2', 8, 'on', '12345', '5:30 PM', 2], rs: ['OPD 1', 6, 'on', '9231', '10:15 AM', 2], aj: ['OPD 3', 5, 'on', '10877', '11:00 AM', 1],
-  bt: ['OPD 5', 4, 'on', '11502', '2:30 PM', 1], sr: ['OPD 6', 7, 'on', '9874', '3:45 PM', 1], kg: ['OPD 7', 3, 'on', '12210', '1:15 PM', 0],
-  sk: ['OPD 4', 0, 'off', '8456', '', 0], ms: ['OPD 5', 0, 'leave', '11930', '', 0],
-};
-export const DEPTS = { gm: ['General medicine', 'OPD 1–3', ['ps', 'rs', 'aj']], derm: ['Dermatology', 'OPD 5', ['bt', 'ms']], paed: ['Paediatrics', 'OPD 6', ['sr']], gyn: ['Gynaecology', 'OPD 7', ['kg']], card: ['Cardiology', 'OPD 4', ['sk']] };
-// Today's arrivals with other doctors; Dr. Sharma's come from her queue (doctor.jsx). name, initials, info, doctor, time, reason, history
-export const ARR = {
-  sl: ['Sabin Lama', 'SL', 'Male · 34 · CH-1765', 'rs', '10:15 AM', 'Back pain', [['Apr 2, 2026', 'Dr. Ramesh Shrestha · Back pain']]],
-  nk: ['Nisha Karki', 'NK', 'Female · 29 · CH-2033', 'aj', '11:30 AM', 'Migraine', []],
-  rt: ['Rita Thapa', 'RT', 'Female · 62 · CH-2411', 'rs', '3:00 PM', 'Follow-up, diabetes review', [['Jul 14, 2026', 'Dr. Ramesh Shrestha · Diabetes review']]],
-  bp: ['Binod Pandey', 'BP', 'Male · 47 · CH-1490', 'aj', '3:15 PM', 'Chest pain on exertion', []],
-  pa: ['Prakash Adhikari', 'PA', 'Male · 55 · CH-1302', 'rs', '5:15 PM', 'General checkup', []],
-  st: ['Sunita Thapa', 'ST', 'Female · 41 · CH-1187', 'rs', '5:15 PM', 'Follow-up, hypertension review', [['Jan 14, 2026', 'Dr. Ramesh Shrestha · Blood pressure check']], '+977 98XX-XX8821'],
-  kb: ['Kiran Basnet', 'KB', 'Male · 38 · CH-1956', 'rs', '', 'Chest infection', [['Aug 12, 2026', 'Dr. Ramesh Shrestha · Chest infection'], ['May 30, 2026', 'Dr. Priya Sharma · General checkup'], ['Feb 9, 2026', 'Dr. Ramesh Shrestha · Cough']]],
-};
+})].map(([id, [ini, name, title, dept, access, emp, joined]]) => ({ id, ini, name, title, dept, access, emp, joined }));
 // Everyone on the hospital's books: id, usual doctor, visits, last visit.
 export const PATS = [['as', 'ps', 4, 'Aug 28, 2026'], ['bt', 'ps', 2, 'Aug 28, 2026'], ['sm', 'ps', 1, 'Aug 28, 2026'], ['di', 'ps', 3, 'Aug 28, 2026'], ['sl', 'rs', 1, 'Aug 28, 2026'],
   ['kg', 'ps', 2, 'Aug 28, 2026'], ['nk', 'aj', 1, 'Aug 28, 2026'], ['rb', 'ps', 1, 'Aug 28, 2026'], ['rt', 'rs', 2, 'Aug 28, 2026'], ['bp', 'aj', 1, 'Aug 28, 2026'],
-  ['nt', 'ps', 3, 'Aug 28, 2026'], ['sk', 'ps', 2, 'Mar 3, 2026'], ['pa', 'rs', 1, 'Aug 28, 2026'], ['kb', 'rs', 3, 'Aug 12, 2026'], ['st', 'rs', 1, 'Jan 14, 2026']];
+  ['nt', 'ps', 3, 'Aug 28, 2026'], ['sk', 'ps', 2, 'Mar 3, 2026'], ['pa', 'rs', 1, 'Aug 28, 2026'], ['kb', 'rs', 3, 'Aug 12, 2026'], ['st', 'rs', 1, 'Jan 14, 2026'],
+  ['pm', 'bt', 1, 'Aug 28, 2026'], ['hb', 'bt', 1, 'Aug 28, 2026'], ['aa', 'sr', 1, 'Aug 28, 2026'], ['ik', 'sr', 1, 'Aug 28, 2026'], ['rm', 'sr', 1, 'Aug 28, 2026'], ['ls', 'kg', 1, 'Aug 28, 2026'], ['sg', 'kg', 1, 'Aug 28, 2026']]; // R05/T06: today's arrivals in every department
 export const EARLIER = { di: [['Nov 4, 2025', 'Dr. Priya Sharma · Skin rash']], sk: [['Oct 21, 2025', 'Dr. Priya Sharma · General checkup']],
   as: [['Aug 12, 2026', 'Dr. Ramesh Shrestha · Ear infection'], ['Jul 3, 2026', 'Dr. Anita Joshi · General checkup'], ['Jun 20, 2026', 'Dr. Anita Joshi · Walk-in']] };
 export const LEAVES = {
   ms: { type: 'Sick leave', dates: 'Aug 26 – Sep 2, 2026', days: '8 days', asked: 'Aug 20, 2026' },
-  pk: { type: 'Annual leave', dates: 'Sep 5 – Sep 7, 2026', days: '3 days', asked: 'Aug 30, 2026', note: '3 days off leaves the cardiology ward with one nurse on those dates.' },
+  pk: { type: 'Annual leave', dates: 'Sep 5 – Sep 7, 2026', days: '3 days', asked: 'Aug 27, 2026' /* T28/R18: before the demo's today, Aug 28 */, note: '3 days off leaves the cardiology ward with one nurse on those dates.' },
 };
 // August so far: total working days, present, on leave, absent.
 export const ATT = { ps: [20, 20, 0, 0], rs: [20, 19, 1, 0], aj: [20, 20, 0, 0], bt: [20, 20, 0, 0], sr: [20, 19, 1, 0], kg: [20, 20, 0, 0], sk: [20, 18, 0, 2], ms: [20, 12, 8, 0],
@@ -71,7 +49,7 @@ export const SIGN_IDS = { 'CH-ADM-04': 'rk', 'CH-FD-12': 'sbr', 'CH-HR-03': 'ab'
 
 export const EXTRA_STATE_ST = () => ({
   stMe: null, stErr: false, stForgot: false, stHoliday: false, stAccess: {}, stDocs: [], walk: {}, ckAt: {},
-  rq: { sl: 'done', nk: 'done', rt: 'waiting', bp: 'with', pa: 'notarrived' }, leave: { ms: 'approved', pk: 'pending' },
+  rq: { ...ARR_STATE } /* everyone else's arrivals today (data.js) */, leave: { ms: 'approved', pk: 'pending' },
   stQ: '', stMenu: null, stF: {}, stSort: '', stRange: [], stSel: [], stId: null, stWho: [], stPick: null, stDone: '',
   wk: { type: 'new' }, wkErr: {}, stAdd: {}, stAddErr: {}, stAdded: null, stHospSaved: false, stSet: { leave: true, reports: true, staff: false },
   stSignId: '', // the Admin ID field
@@ -85,14 +63,15 @@ export const STAFF_START = () => ({ app: 'staff', screen: 'ssignin', signedIn: t
 
 // ---------- the shared world ----------
 export const people = () => [...STAFF, ...S.stDocs.map(d => ({ ...d, title: 'Doctor', dept: d.spec, access: 'doctor', emp: d.emp, joined: 'Aug 2026' })), ...S.stStaff]
-  .map(p => ({ ...p, access: S.stAccess[p.id] || p.access, dept: S.stMoved[p.id] ? deptOf(S.stMoved[p.id])[0] : p.dept }));
+  .map(p => ({ ...p, access: S.stAccess[p.id] || p.access, dept: S.stMoved[p.id] ? deptName(S.stMoved[p.id]) : p.dept }));
 export const person = id => people().find(p => p.id === id);
 export const stMe = () => person(S.stMe);
 export const stHome = () => ({ admin: 'sdash', desk: 'sarr', hr: 'shdash' })[stMe()?.access] || 'ssignin';
 export const roster = () => people().filter(p => p.title === 'Doctor');
-export const docOf = id => { const d = S.stDocs.find(x => x.id === id); return d ? [d.opd || '', 0, 'off', d.nmc || '', '', 0] : DOC[id]; };
-export const walkFor = id => Object.values(S.walk).filter(w => w.doc === id && w.doc !== 'ps').length; // Dr. Sharma's walk-ins are in her own queue
-export const ptToday = id => id === 'ps' ? drToday().length : docOf(id)[1] + walkFor(id);
+// OPD, (unused), duty, NMC registration, next free slot, reports waiting on them — from the one doctor list (data.js).
+export const docOf = id => { const d = S.stDocs.find(x => x.id === id), r = DOCTORS[id]; return d ? [d.opd || '', 0, 'off', d.nmc || '', '', 0] : [r.opd, 0, r.duty, r.nmc, r.slot, r.reps]; };
+// F07/R05/T06/V07: a doctor's patients today are counted from today's arrivals, walk-ins included — never a typed number.
+export const ptToday = id => arrivals().filter(k => arr(k).doc === id).length;
 export const duty = id => docOf(id)[2];
 export const repsOf = id => id === 'ps' ? S.drPending.length : docOf(id)[5];
 export const DUTY = { on: ['On duty', 'success'], off: ['Off duty', 'neutral'], leave: ['On leave', 'warn'] };
@@ -100,11 +79,13 @@ export const ARR_TAG = { done: ['Completed', 'neutral'], waiting: ['Waiting', 'w
 export const pid = k => (arr(k).info.match(/CH-\d+/) || [])[0] || ''; // the record's own ID; a new walk-in has none yet
 export const staffStatus = p => p.id === 'ms' ? 'On leave' : 'Active';
 // Departments, with any added today; a doctor moved into a new one leaves their old one (one department each).
-export const depts = () => [...Object.entries(DEPTS), ...S.stDepts.map(d => [d.k, [d.name, d.opd, []]])]
-  .map(([k, [name, opd, ids]]) => [k, [name, opd, [...ids.filter(i => !S.stMoved[i]), ...Object.keys(S.stMoved).filter(i => S.stMoved[i] === k)]]]);
+// R07/T08: each department's doctors come from the roster, so a doctor added in admin joins hers straight away.
+export const deptName = k => DEPTS[k]?.[0] || S.stDepts.find(d => d.k === k)?.name;
+export const depts = () => [...Object.entries(DEPTS), ...S.stDepts.map(d => [d.k, [d.name, d.opd]])]
+  .map(([k, [name, opd]]) => [k, [name, opd, roster().filter(p => p.dept.trim().toLowerCase() === name.toLowerCase()).map(p => p.id)]]);
 export const deptOf = k => Object.fromEntries(depts())[k];
 export const isNewDept = k => S.stDepts.some(d => d.k === k); // added today: running, nobody seen yet
-export const deptPts = k => isNewDept(k) ? 0 : deptOf(k)[2].reduce((s, i) => s + ptToday(i), 0);
+export const deptPts = k => deptOf(k)[2].reduce((s, i) => s + ptToday(i), 0); // F07: its doctors' arrivals, so the cards add up to the dashboard
 // Who can sign in to what follows the job: the same access the existing staff with that title have.
 export const ACCESS_OF = { Doctor: 'doctor', 'Front desk': 'desk', 'HR manager': 'hr', Administrator: 'admin', Nurse: 'doctor', 'Lab technician': 'doctor' };
 export const signoutBody = { desk: "You'll need to sign in again to see today's check-ins.", hr: "You'll need to sign in again to see staff and leave requests.", admin: "You'll need to sign in again to manage the hospital." };
@@ -244,7 +225,7 @@ Object.assign(SCREENS, {
   // ----- Administrator -----
   sdash: () => {
     const docs = roster(), on = docs.filter(d => duty(d.id) === 'on'), h = S.stHoliday;
-    const stats = [[h ? 0 : docs.reduce((s, d) => s + ptToday(d.id), 0), 'Patients today', 'Across all departments'], [h ? 0 : on.length, 'Doctors on duty', `Of ${docs.length} on the roster`],
+    const stats = [[arrivals().length, 'Patients today', 'Across all departments'] /* F07/R05/T06/V07: the same list Reception shows */, [h ? 0 : on.length, 'Doctors on duty', `Of ${docs.length} on the roster`],
       [h ? 0 : docs.reduce((s, d) => s + repsOf(d.id), 0), 'Reports pending', 'Waiting on doctor review'], [arrivals().filter(k => arrSt(k) === 'notarrived').length, 'Not yet arrived', 'Booked, not checked in']];
     return sPage(<>{sHead('Today', 'Aug 28, 2026 · City Hospital')}
       <div className="st-stats">{stats.map(([v, l, c]) => <div key={l} className="st-stat"><p className="k-h2">{v}</p><p className="st-sl">{l}</p><p className="dr-body">{c}</p></div>)}</div>
@@ -278,11 +259,11 @@ Object.assign(SCREENS, {
     const d = person(S.stId), [opd, , , nmc, slot] = docOf(d.id), st = duty(d.id), extra = S.stDocs.find(x => x.id === d.id);
     const email = extra?.email || `${d.name.replace(/^Dr\.\s*/, '').toLowerCase().replace(/\s+/g, '.')}@cityhospital.np`;
     return sPage(<>{sBack('Doctors', 'sdocs')}{sWho(d.ini, d.name, `${d.dept}${opd ? ` · ${opd}` : ''}`, sTag(DUTY[st]))}
-      {sSec('Details', sKV([['NMC registration', nmc || '—'], ['Phone', extra?.phone || '+977 98XX-XXXXXX'], ['Email', email], ['Working days', extra?.days || 'Sun–Thu, 9 AM–5 PM']]))}
+      {sSec('Details', sKV([['NMC registration', nmc || '—'], ['Phone', extra?.phone || '+977 98XX-XXXXXX'], ['Email', email], ['Working days', extra?.days || DOCTORS[d.id]?.days || 'Sun–Thu, 9 AM–5 PM']]))}
       {sSec('Today', sKV([['Patients today', ptToday(d.id)], ['Reports pending', repsOf(d.id)], ['Next available slot', st === 'on' ? slot : st === 'leave' ? 'On leave' : 'Not in today']]))}</>);
   },
 
-  sdepts: () => sPage(<>{sHead('Departments', `${7 + S.stDepts.length} OPDs · City Hospital`,
+  sdepts: () => sPage(<>{sHead('Departments', `${depts().length} departments · ${new Set([...roster().map(d => docOf(d.id)[0]), ...S.stDepts.map(d => d.opd)].filter(Boolean)).size} OPDs · City Hospital`, // R29/F26: both counted, not typed
       <button className="btn primary l hug" data-act="st-newdept">{img('icon-add-white-24', 24)}Add department</button>)}<div className="st-grid">{depts().map(([k, [name, opd, ids]]) => {
     const on = ids.filter(i => duty(i) === 'on'), sur = i => `Dr. ${dname(i).split(' ').pop()}`, run = on.length || isNewDept(k);
     const who = on.length ? [on.map(sur).join(', '), ...ids.filter(i => duty(i) === 'leave').map(i => `${sur(i)} on leave`)].join(' · ') : ids.length ? `${ids.map(sur).join(', ')} — not in today` : null;
@@ -295,7 +276,7 @@ Object.assign(SCREENS, {
     return sPage(<>{sBack('Departments', 'sdepts')}{sHead(name, `${opd} · ${ids.length} doctor${ids.length === 1 ? '' : 's'}`, sTag(on.length || isNewDept(S.stId) ? ['Running', 'success'] : ['Closed today', 'neutral']))}
       {sSec('Doctors', <div className="mt-list">{sepJoin(ids.map(i => { const st = duty(i); return <div className="st-kv"><span className="st-who"><span className="avatar">{person(i).ini}</span><b>{dname(i)} · {docOf(i)[0]}</b></span>
         <span className="dr-body">{st === 'on' ? `${ptToday(i)} patients today` : st === 'leave' ? 'On leave' : 'Not in today'}</span></div>; }))}</div>)}
-      {sSec('Today', sKV([['Patients seen', deptPts(S.stId)], ['OPDs running', `${onOpds.size} of ${opds.size}`],
+      {sSec('Today', sKV([['Patients seen', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'done').length], // F07: completed rows, as Reception shows them ['OPDs running', `${onOpds.size} of ${opds.size}`],
         leave ? ['Staff on leave', leave] : ['Not yet arrived', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'notarrived').length]]))}</>);
   },
 

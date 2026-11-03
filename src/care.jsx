@@ -10,6 +10,7 @@ import { drShort } from './doctor.jsx';
 import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
 import { med } from './meds.jsx';
 import { SYS_OS, openSys } from './more.jsx';
+import { FEE, FU_DAY, dayLabel, isoOf } from './data.js';
 import { counts, img, now, patients, people, person } from './staff.jsx';
 
 export const MAPS = 'https://www.google.com/maps/search/?api=1&query=City+Hospital+Maharajgunj+Kathmandu';
@@ -24,7 +25,7 @@ export const NOTIFS = [
 export const DETAILS = { 'Anisha Sharma': { dob: '14 / 03 / 1994', sex: 'Female', no: 'CH-2381' } };
 
 export const EXTRA_STATE_CARE = () => ({
-  followup: { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] }, // booked, as Care 01 and Ask 04 show it
+  followup: { day: dayLabel(FU_DAY), time: '10:30 AM', iso: isoOf(FU_DAY) }, // booked, as Care 01 and Ask 04 show it; F20: weekday from the date
   careEmpty: false, visitDay: 'booked', cancelled: null, moved: null,
   rsKey: 'fu', rsDay: null, rsTime: null, rsErr: null, rsTaken: [], rsNone: false, cancelSoon: false,
   cal: { appt: false, fu: false }, calFor: 'appt', calOff: false, notifOff: false,
@@ -32,6 +33,8 @@ export const EXTRA_STATE_CARE = () => ({
   notifs: NOTIFS.map(n => ({ ...n })), switchTo: 1,
 });
 extraState(EXTRA_STATE_CARE, ORDER.care);
+// F20: the moved follow-up in C04/K05 — Sun, Sep 13, since Sat, Sep 12 is closed.
+const MOVED_FU = { day: dayLabel(new Date(2026, 8, 13)), time: '11:00 AM', iso: [2026, 8, 13] };
 
 // ---------- pieces ----------
 export const unread = () => !S.healthEmpty && S.notifs.some(n => !n.read);
@@ -137,8 +140,10 @@ export const clinicCall = <a className="btn secondary l" href="tel:+97710000000"
 Object.assign(SCREENS, {
   care: () => {
     const a = S.appt, f = S.followup;
-    const today = <div className="inset stack8">{lbl('Today')}{visitCard(when(a.day, a.time), `${DOCTORS[a.doc].opd}, City Hospital`, 'appt:today')}</div>;
-    const coming = f ? <div className="inset stack8">{lbl('Coming up')}{fuCard('appt:fu')}</div> : null;
+    // R04/T04/V03: grouped by the visit's real date — only a visit today sits under Today; a later one joins Coming up.
+    const card = visitCard(when(a.day, a.time), `${DOCTORS[a.doc].opd}, City Hospital`, 'appt:today'), isToday = a.day === 0;
+    const today = <div className="inset stack8">{lbl(isToday ? 'Today' : 'Coming up')}{card}</div>;
+    const coming = f ? <div className="inset stack8">{lbl('Coming up')}{isToday ? null : card}{fuCard('appt:fu')}</div> : null;
     let body;
     if (S.visitDay === 'missed') body = <><div className="inset">{notice('warn', `We missed you at ${a.time}`, "Things come up. Book again when you're ready, or call the clinic to be seen today.",
       <>{btn('Book again', 'go:finddoctor', { size: 'l' })}{callBtn('l')}</>)}</div>{coming}</>;
@@ -153,7 +158,7 @@ Object.assign(SCREENS, {
       "We couldn't load your appointments. It's not something you did, and nothing has changed.",
       <>{btn('Try again', 'care-refresh', { size: 'l' })}{clinicCall}</>));
     else if (S.careEmpty && !f) body = centred(empty('icon-event-secondary-28.svg', 'No upcoming visits', 'When you book a visit, it will show up here.', btn('Book a visit', 'go:finddoctor', { size: 'l' })));
-    else body = <>{S.refreshing ? <div className="refresh" role="status"><img src={`${A}icon-spinner-24.svg`} width="24" height="24" alt="" />Updating…</div> : null}{today}{coming}
+    else body = <>{S.refreshing ? <div className="refresh" role="status"><img src={`${A}icon-spinner-24.svg`} width="24" height="24" alt="" />Updating…</div> : null}{isToday || !f ? today : null}{coming}
       <div><div className="inset">{lbl('Earlier')}</div>{list([listItem('lt-followup.svg', 'Past visits', "Kept in Health with your doctor's notes", 'health-go:hvisits')])}</div>
       <div className="inset"><button className="btn secondary" data-act="go:finddoctor"><img src={`${A}icon-add-24.svg`} width="24" height="24" alt="" />Book a visit</button></div></>;
     return frame('Care', body, { back: false, tab: 'Care' });
@@ -162,7 +167,7 @@ Object.assign(SCREENS, {
   cappt: () => frame('Appointment', <>
     <div className="inset">{fuCard()}</div>
     <div className="inset stack8">{lbl('Before you come')}<p className="body-m">Arrive 15 minutes early and check in at reception. Bring any medicines you're taking.</p></div>
-    {sect('Details', list([linkRow('lt-location.svg', 'OPD 2, City Hospital', 'Ground floor. Get directions', MAPS), row('lt-fee.svg', 'Fee', 'NPR 800, paid at reception'),
+    {sect('Details', list([linkRow('lt-location.svg', 'OPD 2, City Hospital', 'Ground floor. Get directions', MAPS), row('lt-fee.svg', 'Fee', `NPR ${FEE}, paid at reception`),
       S.cal.fu ? inCal : listItem('lt-calendar.svg', 'Add to calendar', 'So you get a reminder too', 'add-cal:fu')]), 8)}</>,
     { cta: <>{btn('Reschedule', 'resched:fu', { kind: 'secondary' })}{btn('Cancel visit', 'sheet:cancel', { kind: 'secondary' })}</> }), // red waits for the confirmation
 
@@ -383,7 +388,7 @@ Object.assign(ACTIONS, {
     }
     const from = key === 'fu' ? `${S.followup.day} slot` : a.day === 0 ? `slot today at ${a.time}` : `${dayName(a.day)} slot`;
     const stale = S.cal[key] ? (key === 'fu' ? S.followup.day : when(a.day, a.time).replace(/^T(oday|omorrow)/, 't$1')) : null;
-    if (key === 'fu') S.followup = { day: `${x.wd}, ${x.date}`, time: S.rsTime, iso: [2026, 8, 10 + x.i] };
+    if (key === 'fu') S.followup = { day: `${x.wd}, ${x.date}`, time: S.rsTime, iso: FOLLOW_DAYS[x.i][3] }; // F20
     else { takeSlot(a.doc, x.i, S.rsTime); S.appt = { ...a, day: x.i, time: S.rsTime }; S.visitDay = 'booked'; }
     S.cal[key] = false; S.moved = { key, from, stale };
     S.screen = 'cmoved'; render(); // replaces the picker, so Back returns to the appointment
@@ -448,8 +453,8 @@ FLOW.push(
   ['Care — your appointments', [
     ['C01', 'Care', 'Care tab', "The Care tab holds appointments. Today first, then what's coming up. Past visits point to Health rather than being listed twice.", () => ({ screen: 'care' })],
     ['C02', 'Appointment detail', 'Taps a visit', 'What to bring and where to go. Reschedule and Cancel are both neutral — red waits for the confirmation.', () => ({ screen: 'cappt', stack: ['care'] })],
-    ['C03', 'Reschedule', 'From 02 — Reschedule', 'The current time stays visible while choosing a new one. Taken times are shown as taken.', () => ({ screen: 'cresched', stack: ['care', 'cappt'], rsKey: 'fu', rsDay: 2, rsTime: '11:00 AM' })],
-    ['C04', 'Rescheduled', 'Moves the visit', 'Success tone, earned: the move is done, the old slot released, the new time sent by SMS.', () => ({ screen: 'cmoved', stack: ['care', 'cappt'], followup: { day: 'Fri, Sep 12', time: '11:00 AM', iso: [2026, 8, 12] }, moved: { key: 'fu', from: 'Thu, Sep 11 slot', stale: null } })],
+    ['C03', 'Reschedule', 'From 02 — Reschedule', 'The current time stays visible while choosing a new one. Taken times are shown as taken.', () => ({ screen: 'cresched', stack: ['care', 'cappt'], rsKey: 'fu', rsDay: 3, rsTime: '11:00 AM' })],
+    ['C04', 'Rescheduled', 'Moves the visit', 'Success tone, earned: the move is done, the old slot released, the new time sent by SMS.', () => ({ screen: 'cmoved', stack: ['care', 'cappt'], followup: MOVED_FU, moved: { key: 'fu', from: `${dayLabel(FU_DAY)} slot`, stale: null } })],
     ['C05', 'Cancel visit', 'From 02 — Cancel visit', 'The Bottom sheet, with the only red on the screen on the confirming button. Keep my visit — or tapping outside — is the safe choice.', () => ({ screen: 'cappt', stack: ['care'], sheet: 'cancel' })],
     ['C06', 'Cancelled', 'Confirms the cancel', "The patient's own choice, so Neutral with a Cancelled tag. The clinic cancelling (Booking B09) is Error: done to them, not by them.", () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', cal: false } })],
   ]],
@@ -489,7 +494,7 @@ FLOW.push(
     ['K02', 'Add event', 'Taps Add to calendar on B05 Confirmed (K01 in Figma)', "The phone's own sheet, not a silent insert and no broad calendar access. Titled 'Appointment — City Hospital': never the doctor or specialty. Alerts match the app's reminders. Also on Appointment detail, Rescheduled, and the Assistant's follow-up — all open the same sheet. Add also saves a real .ics file.", () => ({ ...BOOKED, sheet: 'cal', calFor: 'appt' })],
     ['K03', 'In your calendar', 'Taps Add — when the phone confirms the save', "iOS reports the save; Android's handoff doesn't, so there the button stays 'Add to calendar'. The app never claims what it can't know.", () => ({ ...BOOKED, cal: { appt: true, fu: false } })],
     ['K04', 'Calendar access off', 'Branch from 02 — iOS, access refused', 'Answered in a sheet at the moment of the tap. The visit is still in Care and reminders still come by SMS, so nothing is lost.', () => ({ ...BOOKED, sheet: 'calno', calOff: true })],
-    ['K05', 'Time changed', 'After a reschedule', "The calendar copy doesn't update itself, and the app can't edit it. It says so, and offers to add the new time.", () => ({ screen: 'cmoved', stack: ['care', 'cappt'], followup: { day: 'Fri, Sep 12', time: '11:00 AM', iso: [2026, 8, 12] }, moved: { key: 'fu', from: 'Thu, Sep 11 slot', stale: 'Thu, Sep 11' } })],
+    ['K05', 'Time changed', 'After a reschedule', "The calendar copy doesn't update itself, and the app can't edit it. It says so, and offers to add the new time.", () => ({ screen: 'cmoved', stack: ['care', 'cappt'], followup: MOVED_FU, moved: { key: 'fu', from: `${dayLabel(FU_DAY)} slot`, stale: dayLabel(FU_DAY) } })],
     ['K06', 'Cancelled', 'After a cancellation', "A stale event is how someone turns up for a visit that isn't happening. Worded 'if you added it', since Android can't tell us.", () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', cal: true } })],
   ]],
 );

@@ -8,6 +8,7 @@ import { emergency, notice, openCal } from './care.jsx';
 import { $phone, A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, extraState, go, mount, paint, render } from './core.jsx';
 import { RX, RX2, VISITS, centred, field, lbl, lead, medText, unlock } from './health.jsx';
 import { chip, img, now, patients, person, results } from './staff.jsx';
+import { FU_DAY, dayLabel, isoOf, week } from './data.js';
 
 export const EXTRA_STATE_ASK = () => ({
   askSeen: false, chat: [], askUnlocked: false, askInput: '', listening: false, offline: false,
@@ -21,7 +22,8 @@ export const CHIPS = [
   ['icon-document-action-18.svg', 'Summarise my last visit'],
   ['icon-calendar-action-18.svg', "What's coming up?"],
 ];
-export const FOLLOW_DAYS = [['Wed', 'Sep 10'], ['Thu', 'Sep 11'], ['Fri', 'Sep 12'], ['Sat', 'Sep 13', true], ['Sun', 'Sep 14'], ['Mon', 'Sep 15'], ['Tue', 'Sep 16']];
+// F20: weekday, date, closed, iso — from real dates, the week from Sep 10 (Saturday closed).
+export const FOLLOW_DAYS = week(new Date(2026, 8, 10)).map(x => [x.wd, x.date, x.closed, x.iso]);
 export const FOLLOW_TIMES = [['9:00 AM', true], ['10:30 AM'], ['11:00 AM'], ['3:30 PM'], ['4:00 PM', true], ['4:30 PM']];
 export const HEALTH_KEYS = ['lastvisit', 'visit12', 'which', 'rx', 'report', 'result', 'reviewing']; // these open through the lock
 export const FB_KEYS = ['coming', 'where', 'lastvisit', 'visit12', 'rx', 'prepare', 'report', 'result', 'reviewing', 'insurance', 'unknown']; // answers that can be rated
@@ -323,7 +325,7 @@ Object.assign(ACTIONS, {
   'ask-time': arg => { S.askTime = arg; render(); },
   'ask-booked': () => { // the patient books it; the Assistant never books on its own
     const [wd, date] = FOLLOW_DAYS[S.askDay];
-    S.followup = { day: `${wd}, ${date}`, time: S.askTime, iso: [2026, 8, 10 + S.askDay] };
+    S.followup = { day: `${wd}, ${date}`, time: S.askTime, iso: FOLLOW_DAYS[S.askDay][3] }; // F20
     if (S.stack.at(-1) === 'ask') S.chat.push({ q: 'Book follow-up', key: 'booked', fu: S.followup }); // also booked from Care, C10
     S.cal.fu = false;
     back(); // back to the conversation, which now records the booking
@@ -351,7 +353,7 @@ Object.assign(NUM, {
 
 export const T = (q, key, extra = {}) => ({ q, key, fb: 'hide', ...extra }); // Figma's A-screens predate the rating
 export const ASK = { screen: 'ask', askSeen: true };
-export const FU = { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] };
+export const FU = { day: dayLabel(FU_DAY), time: '10:30 AM', iso: isoOf(FU_DAY) }; // F20
 FLOW.push(
   ['Ask — starting', [
     ['A01', 'First open', 'First time the tab opens', "Says what it does and what it isn't. Existing users learn Messages is now Ask — and how to reach a person.", () => ({ screen: 'askfirst' })],

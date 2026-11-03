@@ -11,17 +11,10 @@ import { LABS, RX, VISITS, centred, chev, docCard, field, lbl, lead, list, medRo
 import { med, ring } from './meds.jsx';
 import { radioRow } from './more.jsx';
 import { cell, chip, counts, filtered, img, now, patients, pid, results, stHome } from './staff.jsx';
+import { DR_PATIENTS, TODAY } from './data.js';
 
-export const DR_PATIENTS = {
-  bt: { name: 'Bishal Tamang', ini: 'BT', info: 'Male · 58 · CH-1140', reason: 'Follow-up on blood pressure medication', short: 'Follow-up', time: '9:00 AM', hist: 'Jun 30, May 2' },
-  sm: { name: 'Sarita Maharjan', ini: 'SM', info: 'Female · 44 · CH-1873', reason: 'General checkup', short: 'General checkup', time: '9:30 AM', hist: 'Apr 9' },
-  di: { name: 'Dipesh Rai', ini: 'DR', info: 'Male · 23 · CH-2296', reason: 'Skin rash', short: 'Skin rash', time: '10:00 AM', hist: 'Jan 15' },
-  kg: { name: 'Kabita Gurung', ini: 'KG', info: 'Female · 51 · CH-2412', reason: 'Follow-up on her lipid panel', short: 'Follow-up', time: '11:00 AM', hist: 'Aug 25, May 30' },
-  rb: { name: 'Roshan Bhattarai', ini: 'RB', info: 'Male · 36 · CH-2154', reason: 'General checkup', short: 'General checkup', time: '2:00 PM', hist: 'Feb 18' },
-  nt: { name: 'Nabin Tamang', ini: 'NT', info: 'Male · 41 · CH-1922', reason: 'Cough and cold, for the past week', short: 'Cough and cold', time: '3:30 PM', hist: 'May 14, Feb 2' },
-  as: { name: 'Anisha Sharma', ini: 'AS', info: 'Female · 32 · CH-2381', reason: 'Fever for three days, with a headache', short: 'Fever for three days, with a headache', time: '4:30 PM', hist: 'Aug 12, Jul 3, Jun 20' },
-  sk: { name: 'Sunita Karki', ini: 'SK', info: 'Female · 27 · CH-2410', reason: 'General checkup', short: 'General checkup', time: '5:00 PM', hist: 'Mar 3' },
-};
+// Dr. Sharma's queue today is part of the hospital's one arrivals list (data.js, F07/R05/T06/V07).
+export { DR_PATIENTS };
 export const DR_HISTORY = { as: [['Aug 12, 2026', 'Dr. Ramesh Shrestha · Ear infection'], ['Jul 3, 2026', 'Dr. Anita Joshi · General medicine'], ['Jun 20, 2026', 'Dr. Anita Joshi · Walk-in']] };
 // The note and prescription as written — the exact wording the patient later reads in Health.
 export let DR_DRAFTS; // reads Health's visit and prescription (health.jsx), so it waits for every module
@@ -152,7 +145,7 @@ export const drOtherVisit = (id, v) => {
 };
 
 // A date field: type it, or pick it on the AD/BS wheels. Optional, and only dates after today (Aug 28) count.
-export const DR_TODAY = new Date(2026, 7, 28);
+export const DR_TODAY = TODAY; // the demo's one today (data.js)
 export const drDateErr = v => { if (!v) return ''; const p = parseDob(v); return !p ? 'Enter a real date, as DD / MM / YYYY.' : new Date(p.y, p.m, p.d) <= DR_TODAY ? 'Choose a date after today.' : ''; };
 export const drDate = (id, label, obj, k, pick, hint = '') => <div className="field-wrap"><label className="label" htmlFor={id}>{label}</label>
   <div className={`field ${obj[`${k}Err`] ? 'err' : ''}`}><input id={id} inputMode="numeric" placeholder="Select or type a date" value={obj[k] || ''}

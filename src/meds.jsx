@@ -118,7 +118,7 @@ Object.assign(SCREENS, {
   // The phone's lock screen, not an app screen.
   mtpush: () => (
     <a href="#" className="screen push" data-act="push-open" aria-label="Clinica notification: Paracetamol is almost out of stock. Opens the medicine.">
-      <div className="p-time"><p className="p-clock">9:41</p><p className="p-date">Saturday, 6 September</p></div>
+      <div className="p-time"><p className="p-clock">9:41</p><p className="p-date">{new Date(2026, 8, 6).toLocaleDateString('en-US', { weekday: 'long' })}, 6 September</p>{/* F20: weekday from the date */}</div>
       <div className="p-card">
         <div className="p-head"><span className="p-app"><img src={`${A}icon-medication-white-14.svg`} width="14" height="14" alt="" /></span><span>CLINICA</span><span className="p-now">now</span></div>
         <p className="p-title">Paracetamol is almost out of stock</p><p className="p-body">Only 6 tablets left. Restock before you run out.</p>

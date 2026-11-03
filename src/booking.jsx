@@ -7,30 +7,12 @@ import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, pain
 import { chev, field, lbl, lead, list } from './health.jsx';
 import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
+import { DAY_TIMES, DOCTORS, FEE, GM, TODAY, WALLETS, week } from './data.js';
 
-export const DAYS = [
-  { d: 'Today', wd: 'Thu', date: 'Aug 28', iso: [2026, 7, 28] },
-  { d: 'Fri', wd: 'Fri', date: 'Aug 29', iso: [2026, 7, 29] },
-  { d: 'Sat', wd: 'Sat', date: 'Aug 30', iso: [2026, 7, 30], closed: true },
-  { d: 'Sun', wd: 'Sun', date: 'Aug 31', iso: [2026, 7, 31] },
-  { d: 'Mon', wd: 'Mon', date: 'Sep 1', iso: [2026, 8, 1] },
-  { d: 'Tue', wd: 'Tue', date: 'Sep 2', iso: [2026, 8, 2] },
-  { d: 'Wed', wd: 'Wed', date: 'Sep 3', iso: [2026, 8, 3] },
-];
-export const DAY_TIMES = ['10:30 AM', '11:00 AM', '11:30 AM', '4:30 PM', '5:00 PM', '5:30 PM'];
-export const GM = 'General medicine';
-// busy: day index → taken times, or 'all' when the day is fully booked
-export const DOCTORS = {
-  ps: { name: 'Dr. Priya Sharma', ini: 'PS', spec: GM, sex: 'Female', opd: 'OPD 2', times: DAY_TIMES, busy: { 0: ['10:30 AM', '11:30 AM'], 1: ['11:00 AM'], 3: ['5:30 PM'] } },
-  rs: { name: 'Dr. Ramesh Shrestha', ini: 'RS', spec: GM, sex: 'Male', opd: 'OPD 2', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all', 4: 'all', 5: 'all' } }, // fully booked until Wed (B07)
-  aj: { name: 'Dr. Anita Joshi', ini: 'AJ', spec: GM, sex: 'Female', opd: 'OPD 2', times: ['9:00 AM', '11:00 AM', '11:30 AM', '4:30 PM', '5:00 PM', '5:30 PM'], busy: { 0: 'all', 1: ['11:30 AM'] } },
-  sk: { name: 'Dr. Suman KC', ini: 'SK', spec: 'Cardiology', sex: 'Male', opd: 'OPD 4', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all' } }, // Figma 260:10739: next slot Mon, Sep 1
-  // Other specialists: their profiles aren't designed yet, so their rows don't open.
-  bt: { name: 'Dr. Bikash Thapa', ini: 'BT', spec: 'Dermatology', sex: 'Male', opd: 'OPD 5', times: DAY_TIMES, busy: { 0: 'all', 1: 'all', 3: 'all' }, noProfile: true }, // as the staff app has him
-  sr: { name: 'Dr. Sunita Rai', ini: 'SR', spec: 'Dermatology', sex: 'Female', opd: 'OPD 7', times: DAY_TIMES, busy: {}, noProfile: true },
-  kg: { name: 'Dr. Kiran Gurung', ini: 'KG', spec: 'Paediatrics', sex: 'Male', opd: 'OPD 8', times: DAY_TIMES, busy: {}, noProfile: true },
-  ms: { name: 'Dr. Maya Shrestha', ini: 'MS', spec: 'Gynaecology', sex: 'Female', opd: 'OPD 9', times: ['10:00 AM', '10:30 AM', '2:00 PM'], busy: { 0: 'all' }, noProfile: true },
-};
+// F20: the booking week, labelled from real dates (Saturday closed).
+export const DAYS = week(TODAY).map((x, i) => ({ ...x, d: i === 0 ? 'Today' : x.wd }));
+// One doctor list for every app (data.js, W20).
+export { DAY_TIMES, DOCTORS, GM };
 export const SPECIALTIES = ['General medicine', 'Cardiology', 'Dermatology', 'Paediatrics', 'Gynaecology'];
 // A condition search explains itself: which specialty treats it, then those doctors. null = none at this clinic.
 export const CONDITIONS = [[/fever|cold|cough|flu|headache|stomach|diabet|sugar|blood pressure/, GM], [/skin|rash|acne|itch|eczema/, 'Dermatology'],
@@ -70,8 +52,8 @@ export const row = (icon, title, sub) => (
 export const rows = items => <div className="list">{sepJoin(items)}</div>;
 
 // Pay now (Figma 641:31182): an option beside pay-at-reception, which stays the default. Tapping the chosen wallet again deselects it.
-export const WALLETS = { esewa: ['eSewa', 'e'], khalti: ['Khalti', 'K'], fonepay: ['Fonepay', 'F'] };
-export const feeRow = () => row('lt-fee.svg', 'Fee', `NPR 800, paid ${S.payWith ? `with ${WALLETS[S.payWith][0]}` : 'at reception'}`);
+export { WALLETS };
+export const feeRow = () => row('lt-fee.svg', 'Fee', `NPR ${FEE}, paid ${S.payWith ? `with ${WALLETS[S.payWith][0]}` : 'at reception'}`);
 export const payBlock = () => <div className="pay-block">{label('Or pay now')}
   <div className="pay-tiles" role="radiogroup" aria-label="Or pay now">{Object.entries(WALLETS).map(([id, [name, mark]]) =>
     <button key={id} className="pay-tile" role="radio" aria-checked={S.payWith === id} data-act={`pay:${id}`}><span className={`pay-mark ${id}`} aria-hidden="true">{mark}</span>{name}</button>)}</div></div>;
@@ -184,7 +166,7 @@ Object.assign(SCREENS, {
                listItem('lt-followup.svg', 'Follow-up due', 'Dermatology, Sep 14', 'stub:Follow-up')])}
           </div></div> : null}
         {st === 'walkin' ? <div className="stack7"><div className="inset">{label('Your visit')}</div>
-          {rows([row('lt-doctor.svg', 'Doctor', 'Dr. Anita Joshi, General medicine'), row('lt-location.svg', 'Where', 'OPD 3, City Hospital'), row('lt-fee.svg', 'Fee', 'NPR 800, paid at reception')])}</div> : null}
+          {rows([row('lt-doctor.svg', 'Doctor', `${DOCTORS.aj.name}, ${DOCTORS.aj.spec}`), row('lt-location.svg', 'Where', `${DOCTORS.aj.opd}, City Hospital`), row('lt-fee.svg', 'Fee', `NPR ${FEE}, paid at reception`)])}</div> : null}
       </div>}
       {navBar('Home')}
     </div>);
@@ -230,7 +212,7 @@ Object.assign(SCREENS, {
         </div></div>
         <div className="inset"><div className="card neutral">
           <span className="lead-tile"><img src={`${A}lt-fee.svg`} width="20" height="20" alt="" /></span>
-          <span className="text"><span className="item-title">NPR 800</span><span className="body-s">Consultation fee, paid at reception</span></span>
+          <span className="text"><span className="item-title">NPR {FEE}</span><span className="body-s">Consultation fee, paid at reception</span></span>
         </div></div>
         <div className="inset stack8">
           {label('Choose a day')}
@@ -449,7 +431,7 @@ Object.assign(ACTIONS, {
     S.stack = []; S.screen = 'confirmed'; render(); // no back arrow
     if (S.payWith) { // booked: now hand off to the wallet, through the phone's own prompt (more.jsx)
       const w = WALLETS[S.payWith][0]; S.payWith = null;
-      openSys({ title: `Pay NPR 800 with ${w}?`, sub: `Consultation fee for your visit with ${DOCTORS[S.doc].name}.`, confirm: `Pay with ${w}`, href: '#' });
+      openSys({ title: `Pay NPR ${FEE} with ${w}?`, sub: `Consultation fee for your visit with ${DOCTORS[S.doc].name}.`, confirm: `Pay with ${w}`, href: '#' });
     }
   },
   pay: arg => { S.payWith = S.payWith === arg ? null : arg; paint(); },

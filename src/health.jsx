@@ -10,6 +10,7 @@ import { labOf } from './doctor.jsx';
 import { med, ring } from './meds.jsx';
 import { openSys } from './more.jsx';
 import { img, now, person, results } from './staff.jsx';
+import { DOCTORS } from './data.js';
 
 export const RX = [
   { name: 'Paracetamol 500 mg', for: 'For fever and headache', how: '1 tablet 3 times a day, after food', dur: 'For 5 days, until Sep 2',
@@ -30,12 +31,12 @@ export const LABS = {
 export const VISITS = {
   aug28: { title: 'Visit on Aug 28', doc: ['PS', 'Dr. Priya Sharma', 'Aug 28, 4:30 PM', 'General medicine, OPD 2'], rx: 'aug28',
     words: 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.' },
-  aug12: { title: 'Visit on Aug 12', doc: ['RS', 'Dr. Ramesh Shrestha', 'Aug 12, 11:00 AM', 'General medicine, OPD 3'], rx: 'aug12',
+  aug12: { title: 'Visit on Aug 12', doc: ['RS', 'Dr. Ramesh Shrestha', 'Aug 12, 11:00 AM', `General medicine, ${DOCTORS.rs.opd}`] /* W20: his OPD from the one doctor list */, rx: 'aug12',
     words: "An ear infection. Take all of the amoxicillin, even once it feels better. Come back if the pain gets worse or there's discharge." },
 };
 export const PRESCRIPTIONS = {
   aug28: { doc: ['PS', 'Dr. Priya Sharma', 'Prescribed Aug 28', 'General medicine, OPD 2'], meds: RX, note: 'Finish the whole course, even if you feel better sooner.' },
-  aug12: { doc: ['RS', 'Dr. Ramesh Shrestha', 'Prescribed Aug 12', 'General medicine, OPD 3'], meds: RX2, note: 'Take all of it, even once it feels better.', finished: 'Aug 19' },
+  aug12: { doc: ['RS', 'Dr. Ramesh Shrestha', 'Prescribed Aug 12', `General medicine, ${DOCTORS.rs.opd}`] /* W20: his OPD from the one doctor list */, meds: RX2, note: 'Take all of it, even once it feels better.', finished: 'Aug 19' },
 };
 
 extraState(() => ({
