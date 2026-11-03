@@ -918,9 +918,6 @@ a.chip { text-decoration: none; color: var(--text-primary); }
 .st-tr .nm { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary); }
 .st-tr .st-b { font-weight: 600; color: var(--text-primary); }
 .st-tr .st-err { color: var(--text-error); }
-.st-pg { height: 44px; display: flex; justify-content: space-between; align-items: center; }
-.st-pb { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border: 1px solid var(--border-secondary); border-radius: var(--radius-medium); background: var(--surface-page); font: 600 14px/18px "Open Sans"; color: var(--text-disabled); }
-.st-pill { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-small); background: var(--surface-action-subtle); font: 600 14px/18px "Open Sans"; color: var(--text-action); }
 /* Cards, rows and confirmations */
 .st-kv { height: 56px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 16px; font-size: 14px; line-height: 20px; color: var(--text-secondary); white-space: nowrap; }
 .st-kv b { font-weight: 600; color: var(--text-primary); }
@@ -963,6 +960,7 @@ button.st-d:hover { background: var(--surface-secondary); }
 .pay-mark.esewa { background: #60bb46; }
 .pay-mark.khalti { background: #5c2d91; }
 .pay-mark.fonepay { background: #ed1c24; }
+.pay-mark.reception { background: var(--surface-icon-neutral-bold); } /* Figma sync: lt-fee.svg is white, so it sits on a tile like the lead tiles (was white on white) */
 
 /* ================= Doctor apps — Figma 647:22381 (doctor.jsx, desk.jsx) ================= */
 .dq-id { font-size: 11px; line-height: 15px; color: var(--text-tertiary); }

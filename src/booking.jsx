@@ -3,7 +3,7 @@
 import { btn, empty, endScreen, family, heading, homeInd, listItem, masked, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
 import { T, acts, answer, ask, src } from './ask.jsx';
 import { CAL_NOTE, calBtn, inCal, notice, unread } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
 import { chev, field, lbl, lead, list } from './health.jsx';
 import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
@@ -29,8 +29,10 @@ export const freeTimes = (doc, day) => DOCTORS[doc].times.filter(t => !isTaken(d
 export const nextOpen = (doc, from = 0) => DAYS.findIndex((_, i) => i >= from && freeTimes(doc, i).length);
 export const dayName = i => `${DAYS[i].wd}, ${DAYS[i].date}`;
 export const rel = i => i === 0 ? 'today' : i === 1 ? 'tomorrow' : `on ${dayName(i)}`;
-export const when = (i, t) => i === 0 ? `Today, ${t}` : i === 1 ? `Tomorrow, ${t}` : `${dayName(i)}, ${t}`;
+export const when = (i, t) => i === 0 ? `${tr('Today')}, ${t}` : i === 1 ? `${tr('Tomorrow')}, ${t}` : `${dayName(i)}, ${t}`; // Figma sync: 'आज, 4:30 PM' in Nepali
 export const bookWhen = (i, t) => i === 0 ? `${t} today` : i === 1 ? `tomorrow, ${t}` : `${dayName(i)}, ${t}`; // 'Book 11:30 AM today', 'Book tomorrow, 9:00 AM'
+// Figma sync: Nepali puts the time first — 'आज 4:30 PM मा बुक गर्नुहोस्', not 'बुक गर्नुहोस् 4:30 PM today'.
+export const bookLabel = (i, t) => ne() ? `${when(i, t).replace(/^(आज|भोलि),/, '$1')} मा ${tr('Book')}` : `Book ${bookWhen(i, t)}`;
 export const surname = n => n.split(' ').pop();
 export const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -60,15 +62,15 @@ const howText = how => how === 'reception' ? 'to pay at reception' : how ? `to p
 export const feeRow = (failed = false) => row('lt-fee.svg', tr('Fee'), `NPR ${FEE}, ${howText(S.payWith)}${failed ? `. ${tr('You have not been charged.')}` : ''}`);
 export const payBlock = () => <div className="pay-block">{label(tr("How you'll pay"))}
   <div className="pay-tiles" role="radiogroup" aria-label={tr("How you'll pay")}>
-    <button className="pay-tile" role="radio" aria-checked={S.payWith === 'reception'} data-act="pay:reception"><img src={`${A}lt-fee.svg`} width="24" height="24" alt="" />{tr('Pay at reception')}</button>
+    <button className="pay-tile" role="radio" aria-checked={S.payWith === 'reception'} data-act="pay:reception"><span className="pay-mark reception" aria-hidden="true"><img src={`${A}lt-fee.svg`} width="16" height="16" alt="" /></span>{tr('Pay at reception')}</button>
     {Object.entries(WALLETS).map(([id, [name, mark]]) =>
     <button key={id} className="pay-tile" role="radio" aria-checked={S.payWith === id} data-act={`pay:${id}`}><span className={`pay-mark ${id}`} aria-hidden="true">{mark}</span>{name}</button>)}</div></div>;
 // F09/R13/T05/V06/W02: a booked visit's fee is one of Paid · receipt / Not paid · Pay now / Pay at reception. A visit with no pay record pays at reception.
 export const payState = a => { const p = a.pay || { how: 'reception' }, w = WALLETS[p.how]?.[0];
-  return p.paid ? ['Paid', `NPR ${FEE} with ${w} · Receipt ${p.ref}`] : w ? ['Not paid', `NPR ${FEE} with ${w}. Your visit is still booked.`] : ['Pay at reception', `NPR ${FEE}, when you check in`]; };
+  return p.paid ? ['Paid', `NPR ${FEE} with ${w} · Receipt ${p.ref}`] : w ? ['Not paid', `NPR ${FEE} with ${w}. Your visit is still booked.`] : ['Pay at reception', `NPR ${FEE}, ${tr('when you check in')}`]; }; // Figma sync: Nepali
 export const payCard = a => { const [t, sub] = payState(a), due = t === 'Not paid';
   return <div className="card neutral"><span className="lead-tile"><img src={`${A}lt-fee.svg`} width="20" height="20" alt="" /></span>
-    <span className="text"><span className="item-title">{t}</span><span className="body-s">{sub}</span></span>{due ? btn(tr('Pay now'), 'pay-now', { kind: 'secondary', size: 's' }) : null}</div>; };
+    <span className="text"><span className="item-title">{tr(t)}</span><span className="body-s">{sub}</span></span>{due ? btn(tr('Pay now'), 'pay-now', { kind: 'secondary', size: 's' }) : null}</div>; };
 // The wallet hand-off, through the phone's own prompt (more.jsx). Mocked: "Pay with X" marks it paid with a made-up receipt; Cancel leaves it Not paid.
 export function payHandOff(a) {
   const w = WALLETS[a.pay.how][0]; S.payFor = a;
@@ -78,7 +80,7 @@ export function payHandOff(a) {
 export const fuClash = () => { const a = S.appt;
   return S.fuOf && !S.careEmpty && a.doc === S.doc ? notice('warn', `You already have a visit with Dr. ${surname(DOCTORS[a.doc].name)}`,
     `${when(a.day, a.time)}. You can talk about this report then, so you may not need another visit.`) : null; };
-export const callBtn = size => <a className={`btn secondary ${size}`} href="tel:+97710000000"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />Call the clinic</a>;
+export const callBtn = size => <a className={`btn secondary ${size}`} href="tel:+97710000000"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />{tr('Call the clinic')}</a>;
 
 // Item, Content/Appointment. A chevron means the whole card is interactive.
 export function apptCard(a, link = false) {
@@ -130,7 +132,7 @@ export function homeVisit() {
   }[S.visitDay];
   // W02: a wallet booking shows its fee state on Home (Paid / Not paid · Pay now); pay-at-reception visits keep Home as designed.
   if (!v) return <div className="inset stack8">{label('Your next appointment')}{apptCard(a, true)}{WALLETS[a.pay?.how] ? payCard(a) : null}</div>;
-  return <div className="inset stack8">{label("Today's visit")}<button className={`card notice ${v[0]}`} data-act={v[3]}><div className="text"><p className="h-s">{v[1]}</p><p className="body-s">{v[2]}</p></div></button></div>;
+  return <div className="inset stack8">{label("Today's visit")}<button className={`card notice ${v[0]}`} data-act={v[3]}><div className="text"><p className="h-s">{tr(v[1])}</p><p className="body-s">{v[2]}</p></div></button></div>; // Figma sync: 'You're checked in', 'Visit complete' in Nepali
 }
 
 // T22: on a shared number, a person with a Health PIN has Home's appointments and medicines locked too, unless they turned it off (Health lock).
@@ -163,8 +165,8 @@ Object.assign(SCREENS, {
         {btn('Book another time', 'rebook', { size: 'l' })}{callBtn('l')}
       </div> :
       <div className="card notice">
-        <div className="text"><p className="h-s">You're checked in</p>
-          <p className="body-s">Walk-ins are seen between booked patients, so waits vary. Reception will call your name.</p></div>
+        <div className="text"><p className="h-s">{tr("You're checked in")}</p>{/* Figma sync: Nepali */}
+          <p className="body-s">{tr('Walk-ins are seen between booked patients, so waits vary. Reception will call your name.')}</p></div>
         {tag('Waiting for Dr. Anita Joshi', 'info')}
       </div>;
     return (
@@ -239,7 +241,7 @@ Object.assign(SCREENS, {
         </div></div>
         <div className="inset"><div className="card neutral">
           <span className="lead-tile"><img src={`${A}lt-fee.svg`} width="20" height="20" alt="" /></span>
-          <span className="text"><span className="item-title">NPR {FEE}</span><span className="body-s">{tr('Consultation fee')}. Pay at reception, or with eSewa, Khalti or Fonepay.</span></span>{/* F09/T05/W01: no "paid at reception" when a wallet is possible */}
+          <span className="text"><span className="item-title">NPR {FEE}</span><span className="body-s">{tr('Consultation fee')}. {tr('Pay at reception, or with eSewa, Khalti or Fonepay.')}</span></span>{/* F09/T05/W01: no "paid at reception" when a wallet is possible */}
         </div></div>
         {S.fuOf ? <div className="inset">{fuClash()}</div> : null}
         <div className="inset stack8">
@@ -268,7 +270,7 @@ Object.assign(SCREENS, {
                    : 'There are no openings this week. Call the clinic to ask about the next one.',
           <>{nxt >= 0 ? btn(`See ${dayName(nxt)}`, `day:${nxt}`, { size: 'l' }) : null}{callBtn('l')}</>)}
       </div>
-      {free.length ? <div className="cta bordered">{btn(canBook ? `${tr('Book')} ${bookWhen(S.day, S.time)}` : tr('Choose a time'), 'book', { disabled: !canBook })}</div> : null}
+      {free.length ? <div className="cta bordered">{btn(canBook ? bookLabel(S.day, S.time) : tr('Choose a time'), 'book', { disabled: !canBook })}</div> : null}
       {homeInd()}
     </div>);
   },
@@ -353,10 +355,10 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="body center" style={{ justifyContent: 'center', gap: 20, padding: '8px 0 16px' }}>
         <div className="notif-tile"><img src={`${A}icon-notifications-48.svg`} width="48" height="48" alt="" /></div>
-        <div className="inset"><div className="heading" style={{ textAlign: 'center' }}><h1 className="h-xl">Know if Dr. {surname(d.name)} is running late</h1>{/* W13 */}
-          <p className="lede">Your visit is {rel(a.day)} at {a.time}. We'll only tell you about your own appointments — reminders, delays and cancellations. No marketing, ever.</p></div></div>
+        <div className="inset"><div className="heading" style={{ textAlign: 'center' }}><h1 className="h-xl">{ne() ? `Dr. ${surname(d.name)} ढिला हुनुभयो भने थाहा पाउनुहोस्` : `Know if Dr. ${surname(d.name)} is running late`}</h1>{/* W13; Figma sync: B06 in Nepali */}
+          <p className="lede">{ne() ? `तपाईंको भेट ${when(a.day, a.time).replace(/^(आज|भोलि),/, '$1')} मा छ।` : `Your visit is ${rel(a.day)} at ${a.time}.`} {tr("We'll only tell you about your own appointments — reminders, delays and cancellations. No marketing, ever.")}</p></div></div>
         <div className="inset" style={{ alignSelf: 'stretch' }}>{apptCard(a)}</div>
-        <div className="inset"><p className="body-s tertiary" style={{ textAlign: 'center' }}>Turn this off and we'll still send updates by SMS.</p></div>
+        <div className="inset"><p className="body-s tertiary" style={{ textAlign: 'center' }}>{tr("Turn this off and we'll still send updates by SMS.")}</p></div>
       </div>
       <div className="cta">{btn('Allow notifications', 'allow-notif')}{btn('Not now', 'not-now', { kind: 'secondary' })}</div>
       {homeInd()}
@@ -381,13 +383,13 @@ export function docList() {
   docCount = cond && !cond[1] ? `No ${cond?.[2]} doctors at City Hospital` : '';
   if (cond && !cond[1]) return empty('icon-search-secondary-28.svg', `No ${cond[2]} doctors at City Hospital`,
     `For ${cond[2] === 'eye' ? 'an eye' : 'a dental'} problem, ask reception about a referral. Or search for a doctor's name or another specialty.`,
-    <a className="btn secondary l" href="tel:+97710000000">Call the clinic</a>);
+    <a className="btn secondary l" href="tel:+97710000000">{tr('Call the clinic')}</a>);
   const spec = cond ? cond[1] : S.specialty;
   const docs = Object.keys(DOCTORS).filter(id => DOCTORS[id].spec === spec && filtMatch(id) && (cond || !q || `${DOCTORS[id].name} ${DOCTORS[id].spec}`.toLowerCase().includes(q)));
   if (!docs.length) docCount = 'No doctors match';
   if (!docs.length) return empty('icon-search-secondary-28.svg', q ? `No doctors match “${S.query.trim()}”` : `No ${spec.toLowerCase()} doctors match`,
     filtersOn() ? 'Try clearing the filters, or call the clinic to ask who can see you.' : 'Try another specialty, or call the clinic to ask who can see you.',
-    <>{filtersOn() ? btn('Clear filters', 'filter-clear', { size: 'l' }) : null}<a className="btn secondary l" href="tel:+97710000000">Call the clinic</a></>);
+    <>{filtersOn() ? btn('Clear filters', 'filter-clear', { size: 'l' }) : null}<a className="btn secondary l" href="tel:+97710000000">{tr('Call the clinic')}</a></>);
   const count = docCount = filtersOn() ? plural(docs.length, 'doctor') : spec === GM && !cond ? `${plural(docs.length, 'doctor')} at City Hospital` : `${plural(docs.length, 'doctor')} in ${spec}`;
   return <>{cond ? <div className="inset"><p className="search-hint">{S.query.trim()[0].toUpperCase() + S.query.trim().slice(1)} is usually seen in {spec}.</p></div> : null}
     {filtersOn() ? <div className="inset filt-row"><p>{[S.filt.today && 'Available today', S.filt.sex !== 'Any' && `${S.filt.sex} doctor`].filter(Boolean).join(' · ')}</p>
@@ -467,7 +469,8 @@ Object.assign(ACTIONS, {
     S.bookedOnce = !!mine; // W14: a retry that finds the booking says so
     if (!mine && fail === 'noreply') { S.failNext = ''; bookedDone(); return toFailed('noreply'); } // it went through, but no answer came back
     bookedDone(); S.reason = ''; S.payWith = null; S.fuOf = null;
-    toast(`Appointment booked with ${DOCTORS[S.booked.doc].name}, ${when(S.booked.day, S.booked.time)}.`); // W03: success goes through the one live region
+    toast(ne() ? `${tr('Appointment booked')}: ${DOCTORS[S.booked.doc].name}, ${when(S.booked.day, S.booked.time)}.` // Figma sync: when() is Nepali now, so the toast is too
+      : `Appointment booked with ${DOCTORS[S.booked.doc].name}, ${when(S.booked.day, S.booked.time)}.`); // W03: success goes through the one live region
     S.stack = []; S.screen = 'confirmed'; render(); // no back arrow
     if (WALLETS[S.booked.pay.how] && !S.booked.pay.paid) payHandOff(S.booked); // booked: now hand off to the wallet, through the phone's own prompt (more.jsx)
   },
@@ -477,7 +480,7 @@ Object.assign(ACTIONS, {
   'pay-ok': () => {
     const a = S.payFor, p = a.pay, w = WALLETS[p.how][0];
     Object.assign(p, { paid: true, ref: `${w.toUpperCase()}-${48213 + S.payments.length}` });
-    S.payments.unshift({ ref: p.ref, how: w, doc: DOCTORS[a.doc].name, when: when(a.day, a.time), for: a.for || S.fullName });
+    S.payments.unshift({ ref: p.ref, how: w, doc: DOCTORS[a.doc].name, day: a.day, time: a.time, for: a.for || S.fullName }); // Figma sync: keep day/time, not a phrase in the language of the moment
     S.sheet = null; toast(`Paid NPR ${FEE} with ${w}. Receipt ${p.ref}.`); render();
   },
   'book-for': arg => { S.bookFor = arg; S.sheet = null; render(); }, // choosing closes the sheet: a single choice needs no Done

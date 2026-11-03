@@ -718,6 +718,24 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(!(await P('text=View all doctors')) && (await p.$$('#phone .k-nav a, #phone .k-nav span')).length === 2, 'T23: trustee sees Dashboard and Departments only');
   await p.click('#phone .k-nav >> text=Departments'); assert(!(await P('text=Add department')), 'T23: no Add department');
   await p.click('#phone [data-act="st-dept:card"]'); assert(await has('Cover:') && !(await P('#st-cover')), 'T23: cover shown, not changeable');
+  // ---- Phase 7 (Figma sync bugs) ----
+  await J('NM03'); assert(await P('text=Friday, 28 August') && !(await P('text=Thursday')), 'Phase 7: lock screen weekday from TODAY (Friday)');
+  assert(await P('text=Time for your medicine') && !(await p.textContent('#phone')).match(/Paracetamol|Metformin/), 'Phase 7: lock screen medicine alert names no medicine');
+  await p.click('#phone >> text=Time for your medicine'); assert(await P('text=Your health records are locked'), 'Phase 7: it opens through the Health lock');
+  await J('MT07'); assert(await P('text=Time for your Metformin'), 'Phase 7: the in-app centre may name the medicine');
+  await J('B04b'); assert(await p.evaluate(() => { const i = document.querySelector('.pay-mark.reception'); return !!i && getComputedStyle(i).backgroundColor !== getComputedStyle(i.closest('.pay-tile')).backgroundColor; }), 'Phase 7: Pay at reception icon sits on a tile, not white on white');
+  await J('SY7'); assert(await P('.card >> text=Not paid') && await P('text=NPR 800 with eSewa. Your visit is still booked.') && !(await P('.card >> text=Pay at reception')), 'Phase 7: SY7 shows an eSewa booking behind the prompt');
+  await J('R09'); assert(!(await P('text=Previous')) && !(await P('.st-pg')), 'Phase 7: no pager on a one-page table (R09)');
+  await J('SB03'); assert((await p.textContent('#note')).startsWith('SB03'), 'Phase 7: SB03 shows its own panel entry, not B05');
+  await J('D02'); assert((await p.textContent('#note')).startsWith('D02'), "Phase 7: D02 Today's queue is reachable");
+  const NE = async (n, ...t) => { await J(n); await p.evaluate(() => { S.lang = 'ne'; render(); }); for (const x of t) if (!(await P(`text=${x}`))) return x; return ''; };
+  assert(!(await NE('B06', 'सूचना अनुमति दिनुहोस्', 'अहिले होइन', 'आज, 4:30 PM', 'यो बन्द गरे पनि हामी SMS बाट खबर पठाइरहन्छौं।')), 'Phase 7: B06 in Nepali');
+  assert(!(await NE('B03', 'आज 4:30 PM मा बुक गर्नुहोस्', 'रिसेप्सनमा, वा eSewa, Khalti वा Fonepay बाट तिर्नुहोस्।')), 'Phase 7: Book button and fee line in Nepali');
+  assert(!(await NE('B05', 'रिसेप्सनमा तिर्ने', 'सकियो')), 'Phase 7: Pay at reception and Done in Nepali');
+  assert(!(await NE('B10', 'तपाईं चेक इन हुनुभयो', 'तपाईंको भेट', 'कहाँ')), "Phase 7: walk-in card in Nepali");
+  assert(!(await NE('H06', 'फार्मासिस्टलाई देखाउनुहोस्')) && !(await NE('H07', 'सकियो')) && !(await NE('H09', 'रिपोर्ट डाउनलोड गर्नुहोस्')), 'Phase 7: Health actions in Nepali');
+  assert(!(await NE('H15', 'बरु PIN प्रयोग गर्नुहोस्', 'औंठाछाप सेन्सर छुनुहोस्')) && !(await NE('H17', 'PIN बिर्सनुभयो?')), 'Phase 7: fingerprint sheet and PIN screen in Nepali');
+  assert(!(await NE('B07', 'क्लिनिकमा फोन गर्नुहोस्')) && !(await NE('H01', 'Clinica PIN ले अनलक नगरेसम्म')), 'Phase 7: Call the clinic and the Health lock body in Nepali');
   console.log('page errors:', errs);
   await b.close();
 })().catch(e => { console.error(e.message); process.exit(1); });

@@ -5,7 +5,7 @@ import { Fragment, createElement } from 'react';
 import { Phone, btn, empty, heading, homeInd, start, statusBar, support } from './app.jsx';
 import { DOCTORS, bar, iconBtn, label, navBar, row, rows, tag, when } from './booking.jsx';
 import { emergency, notice, openCal } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, extraState, go, mount, paint, render } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, extraState, go, mount, paint, render, tr } from './core.jsx';
 import { RX, RX2, VISITS, centred, field, lbl, lead, medText, unlock } from './health.jsx';
 import { chip, img, now, patients, person, results } from './staff.jsx';
 import { FU_DAY, dayLabel, isoOf, week } from './data.js';
@@ -31,11 +31,11 @@ export const FB_KEYS = ['coming', 'where', 'lastvisit', 'visit12', 'rx', 'prepar
 // ---------- pieces ----------
 export const src = (icon, text) => <p className="source"><img src={`${A}${icon}`} width="16" height="16" alt="" />{text}</p>;
 export const acts = (...b) => createElement('div', { className: 'ans-acts' }, ...b);
-export const obtn = (label, act) => <button className="btn secondary l hug" data-act={act}>{label}</button>;
-export const ocall = label => <a className="btn secondary l hug" href="tel:+97710000000">{label}</a>;
+export const obtn = (label, act) => <button className="btn secondary l hug" data-act={act}>{tr(label)}</button>; // Figma sync: action labels follow the language
+export const ocall = label => <a className="btn secondary l hug" href="tel:+97710000000">{tr(label)}</a>;
 export const say = t => <p className="ans-p">{t}</p>;
 export const chipRow = items => <div className="chips">{items.map(([i, t, a]) => { const ic = i ? <img src={`${A}${i}`} width="18" height="18" alt="" /> : null;
-  return a.startsWith('tel:') ? <a key={t} className="chip" href={a}>{ic}{t}</a> : <button key={t} className="chip" data-act={a}>{ic}{t}</button>; })}</div>;
+  return a.startsWith('tel:') ? <a key={t} className="chip" href={a}>{ic}{tr(t)}</a> : <button key={t} className="chip" data-act={a}>{ic}{tr(t)}</button>; })}</div>;
 export const words = (who, text) => <div className="words"><span className="bar"></span><div><p className="w-who">{who} wrote</p><p className="w-text">{text}</p></div></div>;
 export const noteCard = (icon, title, body, cls = '', extra = null) => <div className={`card notice-row ${cls}`}>{icon ? lead(icon) : null}
   <div className="nr-t"><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div></div>;

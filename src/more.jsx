@@ -10,7 +10,7 @@ import { MAPS, NOTIFS, emergency, setting } from './care.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, fresh, go, later, render, reset } from './core.jsx';
 import { errLine, keypad, list, openHealth, pinDots, unlock } from './health.jsx';
 import { MED_NOTIFS, ring } from './meds.jsx';
-import { FEE, FU_DAY, dayLabel } from './data.js';
+import { FEE, FU_DAY, TODAY, dayLabel } from './data.js';
 import { clock, filtered, img, now, patients, people, person, results } from './staff.jsx';
 
 export const radioRow = (on, label, act) => <button className="radio-row" role="radio" aria-checked={on} data-act={act}><span className="ring"></span>{label}</button>;
@@ -56,6 +56,8 @@ Object.assign(OVERLAY, {
 // A notification opened from the lock screen: the most public surface, so no names of tests, medicines or doctors.
 export const LOCK_NOTIFS = [
   { t: 'A lab report is ready', b: 'Open Clinica to see it.', when: 'now', act: 'lock-open:report' },
+  // Figma sync: a medicine alert as the lock screen shows it — no medicine named (the in-app centre, MT07, may name it, as with labs).
+  { t: 'Time for your medicine', b: 'Open Clinica to log it.', when: '5m ago', act: 'lock-open:med' },
   { t: 'Your 4:30 PM visit is running late', b: "Your slot is kept. We'll message you when it's time.", when: '10m ago', act: 'lock-open:late' },
 ];
 // The Notification centre, with more kinds of update. The follow-up says only that one is due — not what for.
@@ -77,7 +79,7 @@ Object.assign(SCREENS, {
   lockscreen: () => (
     <div className="screen lock">
       <h1 className="vh">Lock screen</h1>{/* W13 */}<img src={`${A}lt-lock.svg`} width="20" height="20" alt="Locked" />
-      <p className="l-clock">9:41</p><p className="l-date">Thursday, 28 August</p>
+      <p className="l-clock">9:41</p><p className="l-date">{`${TODAY.toLocaleDateString('en-GB', { weekday: 'long' })}, ${TODAY.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`}</p>{/* Figma sync: weekday from TODAY (was a hard-coded Thursday; Aug 28, 2026 is a Friday) */}
       <div style={{ height: 32 }}></div>
       {LOCK_NOTIFS.map(n => <a key={n.act} href="#" className="l-card" data-act={n.act}><span className="l-app"><b>CLINICA</b><span>{n.when}</span></span>
         <span className="l-t">{n.t}</span><span className="l-b">{n.b}</span></a>)}
@@ -95,6 +97,7 @@ Object.assign(SCREENS, {
 Object.assign(ACTIONS, {
   'lock-open': arg => { // opens the app where the update is about
     if (arg === 'report') { S.report = 'hba1c'; return openHealth('hreport'); } // through the Health lock
+    if (arg === 'med') { S.medI = 1; return openHealth('mtmed'); } // Metformin, MED_NOTIFS' 'Time for your Metformin'
     S.visitDay = 'late'; toHome();
   },
 });
@@ -253,7 +256,7 @@ FLOW.push(
     ['SY4', 'Phone settings', 'Open phone settings / Turn them on', 'Notifications and calendar access are the phone\'s to change, so it opens its settings.', () => ({ screen: 'pfnotif', stack: ['pf'], notifOff: true, sheet: 'sys', sys: SYS_OS['Phone settings']() })],
     ['SY5', 'Download', 'Download report', "Saved to the phone's Files, with a way to open it. (Here the PDF is real.)", () => ({ screen: 'hreport', stack: ['health', 'hlabs'], unlocked: true, sheet: 'sys', sys: { title: 'Thyroid panel report.pdf', sub: "Saved to your phone's Files.", confirm: 'Open file', href: '#' } })],
     ['SY6', 'Open calendar', 'Open calendar, after a cancellation', 'Opens the calendar at the old visit, so it can be deleted.', () => ({ screen: 'care', followup: null, cancelled: { date: 'Sep 11', day: dayLabel(FU_DAY), cal: true }, sheet: 'sys', sys: SYS_OS.Calendar() })],
-    ['SY7', 'Pay with a wallet', 'Confirm booking, with eSewa, Khalti or Fonepay chosen', `Once the visit is booked, the phone's own prompt hands off to the wallet to pay the NPR ${FEE} fee.`, () => ({ screen: 'confirmed', booked: { doc: 'ps', day: 0, time: '4:30 PM', for: 'Anisha Sharma' }, sheet: 'sys', sys: { title: `Pay NPR ${FEE} with eSewa?`, sub: 'Consultation fee for your visit with Dr. Priya Sharma.', confirm: 'Pay with eSewa', href: '#' } })],
+    ['SY7', 'Pay with a wallet', 'Confirm booking, with eSewa, Khalti or Fonepay chosen', `Once the visit is booked, the phone's own prompt hands off to the wallet to pay the NPR ${FEE} fee.`, () => ({ screen: 'confirmed', booked: { doc: 'ps', day: 0, time: '4:30 PM', for: 'Anisha Sharma', pay: { how: 'esewa', paid: false, ref: null } }, sheet: 'sys', sys: { title: `Pay NPR ${FEE} with eSewa?`, sub: 'Consultation fee for your visit with Dr. Priya Sharma.', confirm: 'Pay with eSewa', href: '#' } })], // Figma sync: booked with eSewa, so the card behind says eSewa, not Pay at reception
   ]],
 );
 export const SYS_NUM = p => ({ 'City Hospital reception': 'SY1', Ambulance: 'SY2', 'Open Maps for directions to': 'SY3' })[p.title]

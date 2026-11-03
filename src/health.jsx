@@ -123,12 +123,12 @@ export const bioSheet = () => {
   return <>
   <div className="scrim" data-act="bio-cancel"></div>
   <div className="bio-sheet" role="dialog" aria-modal="true" aria-labelledby="bio-t">
-    <p className="cs-t" id="bio-t">Unlock your health records</p>
+    <p className="cs-t" id="bio-t">{tr('Unlock your health records')}</p>{/* Figma sync: the fingerprint sheet in Nepali */}
     <p className="body-s">Clinica</p>
-    <button className={`sensor ${fail ? 'err' : ''}`} data-act="bio-touch" aria-label="Fingerprint sensor">
+    <button className={`sensor ${fail ? 'err' : ''}`} data-act="bio-touch" aria-label={tr('Fingerprint sensor')}>
       <img src={`${A}icon-fingerprint-40${fail ? '-error' : ''}.svg`} width="40" height="40" alt="" /></button>
-    <p className={fail ? 'bio-err' : 'body-s'} role="status">{fail ? 'Not recognised. Try again.' : 'Touch the fingerprint sensor'}</p>
-    <button className="btn secondary" data-act="bio-pin">Use PIN instead</button>
+    <p className={fail ? 'bio-err' : 'body-s'} role="status">{tr(fail ? 'Not recognised. Try again.' : 'Touch the fingerprint sensor')}</p>
+    <button className="btn secondary" data-act="bio-pin">{tr('Use PIN instead')}</button>
   </div><div className="sheet-home"></div></>;
 };
 
@@ -264,7 +264,7 @@ Object.assign(SCREENS, {
         <div className="inset stack8">{lbl("Doctor's note")}<p className="note-body">{r.note}</p></div>
       </div>
       <div className="cta">{r.finished // a finished course isn't handed over at a counter
-        ? <p className="body-s">This course finished on {r.finished}.</p> : <button className="btn secondary" data-act="go:hpharm">Show to pharmacist</button>}</div>
+        ? <p className="body-s">This course finished on {r.finished}.</p> : <button className="btn secondary" data-act="go:hpharm">{tr('Show to pharmacist')}</button>}</div>
       {homeInd()}
     </div>);
   },
@@ -278,7 +278,7 @@ Object.assign(SCREENS, {
         <div className="rx-list">{RX.map(m => <div key={m.name} className="rx-line"><p className="rx-n">{m.name}</p><p className="rx-d">{m.form}</p><p className="rx-q">{m.disp}</p></div>)}</div>
         <div className="stack6"><p className="rx-ref">Prescription no. RX-0828-4821</p><p className="body-s">This screen stays on while it's open.</p></div>
       </div>
-      <div className="cta"><button className="btn secondary" data-act="back">Done</button></div>
+      <div className="cta"><button className="btn secondary" data-act="back">{tr('Done')}</button></div>
       {homeInd()}
     </div>),
 
@@ -312,7 +312,7 @@ Object.assign(SCREENS, {
         <div className="inset stack8">{lbl('Report')}
           <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{l.title} report</span><span className="body-s">PDF, {l.pages} page{l.pages > 1 ? 's' : ''}</span></span>{chev}</button></div>
       </div>
-      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />Download report</button></div>
+      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />{tr('Download report')}</button></div>
       {homeInd()}
     </div>);
   },
@@ -331,7 +331,7 @@ Object.assign(SCREENS, {
         </div>
         <p className="body-s">Page 1 of 1</p>
       </div>
-      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />Download report</button></div>
+      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />{tr('Download report')}</button></div>
       {homeInd()}
     </div>);
   },
@@ -351,7 +351,7 @@ Object.assign(SCREENS, {
   pin: () => pinScreen(...(managedBy() ? ['Enter your PIN', `Or ${managedBy().split(' ')[0]}'s own Clinica PIN — she manages this profile.`] : { pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
       hreport: ['Enter your PIN', 'To open your lab report.'], home: ['Enter your PIN', 'To see your appointments and medicines.'] /* T22 */ }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
     <>{S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
-      <button className="btn secondary l hug" data-act="forgot">Forgot your PIN?</button></>),
+      <button className="btn secondary l hug" data-act="forgot">{tr('Forgot your PIN?')}</button></>),
   pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null),
   pinnewconfirm: () => pinScreen('Enter it again', "So we know it's right."),
 

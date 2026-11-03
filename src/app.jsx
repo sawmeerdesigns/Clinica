@@ -186,7 +186,7 @@ Object.assign(SCREENS, {
       <div className="body">
         {heading('Too many tries', 'For your safety, sign-in is paused for this number. Wait, or ask reception to help you sign in.')}
         <div className="inset">{support(<>You can try again in <span id="lock">{mmss(S.lock)}</span>.</>, 'warn', 'icon-warning-info.svg')}</div>
-        <div className="inset"><a className="btn secondary" href="tel:+97710000000">Call the clinic</a></div>
+        <div className="inset"><a className="btn secondary" href="tel:+97710000000">{tr('Call the clinic')}</a></div>
       </div>
       {homeInd()}
     </div>),

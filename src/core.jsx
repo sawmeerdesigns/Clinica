@@ -181,5 +181,17 @@ const NE = {
   Continue: 'जारी राख्नुहोस्', 'Get started': 'सुरु गर्नुहोस्', Skip: 'छोड्नुहोस्', Next: 'अर्को', 'Check my details': 'मेरो विवरण जाँच्नुहोस्',
   'We may already know you': 'हामी तपाईंलाई पहिले नै चिन्न सक्छौं', 'What happens next': 'अब के हुन्छ',
   "We'll text a 6-digit code. Use the number your clinic has on file, so we can find your records.": 'हामी ६ अङ्कको कोड SMS गर्छौं। क्लिनिकमा दर्ता भएको नम्बर प्रयोग गर्नुहोस्, ताकि तपाईंका रेकर्ड भेटियोस्।',
+  // Figma sync (Phase 7): strings that stayed English in Nepali — time phrases, B06, the walk-in card, the Health lock and the fingerprint sheet
+  Tomorrow: 'भोलि', Where: 'कहाँ', 'Your visit': 'तपाईंको भेट', 'when you check in': 'चेक इन गर्दा',
+  'Pay at reception, or with eSewa, Khalti or Fonepay.': 'रिसेप्सनमा, वा eSewa, Khalti वा Fonepay बाट तिर्नुहोस्।',
+  'Allow notifications': 'सूचना अनुमति दिनुहोस्', 'Not now': 'अहिले होइन', "Turn this off and we'll still send updates by SMS.": 'यो बन्द गरे पनि हामी SMS बाट खबर पठाइरहन्छौं।',
+  "We'll only tell you about your own appointments — reminders, delays and cancellations. No marketing, ever.": 'हामी तपाईंलाई आफ्नै अपोइन्टमेन्टबारे मात्र खबर गर्छौं — सम्झना, ढिलाइ र रद्द। विज्ञापन कहिल्यै होइन।',
+  'Walk-ins are seen between booked patients, so waits vary. Reception will call your name.': 'वाक-इन बिरामीलाई बुक भएका बिरामीहरूको बीचमा हेरिन्छ, त्यसैले पर्खने समय फरक पर्छ। रिसेप्सनले तपाईंको नाम बोलाउनेछ।',
+  'This phone may be shared, so your visits and prescriptions stay locked until you unlock them with your Clinica PIN.': 'यो फोन अरूले पनि चलाउन सक्छन्, त्यसैले Clinica PIN ले अनलक नगरेसम्म तपाईंका भेट र प्रेस्क्रिप्सन लक रहन्छन्।',
+  'Unlock to see your new lab report. This phone may be shared, so your records stay locked until you enter your Clinica PIN.': 'नयाँ ल्याब रिपोर्ट हेर्न अनलक गर्नुहोस्। यो फोन अरूले पनि चलाउन सक्छन्, त्यसैले Clinica PIN नहालेसम्म तपाईंका रेकर्ड लक रहन्छन्।',
+  'Locked because you left Clinica. On a shared phone, your records lock when you leave the app, or after 5 minutes without use.': 'तपाईंले Clinica छोड्नुभएकाले लक भयो। साझा फोनमा, एप छोड्दा वा ५ मिनेट प्रयोग नगर्दा तपाईंका रेकर्ड लक हुन्छन्।',
+  "It's quicker than your PIN. But anyone whose fingerprint is saved on this phone could open your records too.": 'यो PIN भन्दा छिटो हुन्छ। तर यो फोनमा औंठाछाप सेभ भएका जो कोहीले पनि तपाईंका रेकर्ड खोल्न सक्छन्।',
+  'Touch the fingerprint sensor': 'औंठाछाप सेन्सर छुनुहोस्', 'Not recognised. Try again.': 'चिनिएन। फेरि प्रयास गर्नुहोस्।', 'Fingerprint sensor': 'औंठाछाप सेन्सर',
 };
-export const tr = s => (S.lang === 'ne' && S.app === 'patient' && NE[s]) || s; // patient app only
+export const ne = () => S.lang === 'ne' && S.app === 'patient'; // patient app only; for lines whose Nepali word order differs (Figma sync)
+export const tr = s => (ne() && NE[s]) || s;

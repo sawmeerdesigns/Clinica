@@ -140,7 +140,7 @@ Object.assign(OVERLAY, {
 // ---------- screens ----------
 export const emergency = () => notice('', 'In an emergency', "Call 102 for an ambulance, or go straight to an emergency department. Don't wait for the app.",
   <a className="btn secondary l" href="tel:102"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />Call 102</a>);
-export const clinicCall = <a className="btn secondary l" href="tel:+97710000000">Call the clinic</a>;
+export const clinicCall = () => <a className="btn secondary l" href="tel:+97710000000">{tr('Call the clinic')}</a>; // a function, so tr() reads the current language
 
 Object.assign(SCREENS, {
   care: () => {
@@ -161,7 +161,7 @@ Object.assign(SCREENS, {
         btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{S.careEmpty ? coming : today}</>; // R13: today's own visit is gone
     else if (S.careErr) body = centred(empty('icon-info-secondary-28.svg', 'Something went wrong', // not the patient's fault, and nothing has changed
       "We couldn't load your appointments. It's not something you did, and nothing has changed.",
-      <>{btn('Try again', 'care-refresh', { size: 'l' })}{clinicCall}</>));
+      <>{btn('Try again', 'care-refresh', { size: 'l' })}{clinicCall()}</>));
     else if (S.careEmpty && !f) body = centred(empty('icon-event-secondary-28.svg', 'No upcoming visits', 'When you book a visit, it will show up here.', btn('Book a visit', 'go:finddoctor', { size: 'l' })));
     else body = <>{S.refreshing ? <div className="refresh" role="status"><img src={`${A}icon-spinner-24.svg`} width="24" height="24" alt="" />Updating…</div> : null}{isToday || !f ? today : null}{coming}
       <div><div className="inset">{lbl('Earlier')}</div>{list([listItem('lt-followup.svg', 'Past visits', "Kept in Health with your doctor's notes", 'health-go:hvisits')])}</div>
@@ -183,7 +183,7 @@ Object.assign(SCREENS, {
     const now = sect('Currently', list([row('lt-calendar.svg', o.now, o.who)]), 0);
     if (S.rsNone || o.days.every(x => x.off)) return frame('Reschedule', <>{now}{empty('icon-event-secondary-28.svg', 'No other times this week',
       `${S.rsKey === 'fu' ? `Your ${S.followup.day} visit` : `Your visit ${rel(S.appt.day)}`} is still booked. Call the clinic to ask about next week.`,
-      <>{btn('Keep my visit', 'back', { size: 'l' })}{clinicCall}</>)}</>);
+      <>{btn('Keep my visit', 'back', { size: 'l' })}{clinicCall()}</>)}</>);
     return frame('Reschedule', <>
       {S.rsErr ? <div className="inset" role="alert">{notice('error', `${S.rsErr.t} on ${S.rsErr.wd} was just taken`, `${still} Choose another time.`)}</div> : null}
       {now}
@@ -312,7 +312,7 @@ Object.assign(SCREENS, {
     <div className="inset"><p className="body-s">Your Clinica PIN isn't your phone's PIN. On a shared phone, it's the one thing only you know.</p></div></>),
 
   // T05/W02: fees paid in the app, each with its receipt. The wallet is mocked, so the receipt references are made up.
-  pfpay: () => frame('Payments', S.payments.length ? sect('Paid in the app', list(S.payments.map(x => row('lt-fee.svg', `NPR ${FEE} with ${x.how} · Receipt ${x.ref}`, `${x.doc}, ${x.when}${x.for !== S.fullName ? ` · for ${x.for}` : ''}`))))
+  pfpay: () => frame('Payments', S.payments.length ? sect('Paid in the app', list(S.payments.map(x => row('lt-fee.svg', `NPR ${FEE} with ${x.how} · Receipt ${x.ref}`, `${x.doc}, ${when(x.day, x.time)}${x.for !== S.fullName ? ` · for ${x.for}` : ''}`))))
     : centred(empty('icon-info-secondary-28.svg', 'No payments yet', 'Fees you pay in the app show here, with their receipt. Fees paid at reception are on the receipt they give you.'))),
 
   pfclinic: () => frame('City Hospital', <>
@@ -357,7 +357,7 @@ Object.assign(SCREENS, {
   pfpin: () => {
     const r = RECORDS[S.switchTo], first = r.name.split(' ')[0];
     return pinScreen(`Enter ${first}'s PIN`, `To switch to ${r.name}'s records.`,
-      <>{S.pinErr ? errLine("That PIN didn't match. Try again.") : null}<button className="btn secondary l hug" data-act="pf-forgot">Forgot your PIN?</button></>);
+      <>{S.pinErr ? errLine("That PIN didn't match. Try again.") : null}<button className="btn secondary l hug" data-act="pf-forgot">{tr('Forgot your PIN?')}</button></>);
   },
 });
 
@@ -477,7 +477,7 @@ Object.assign(NUM, {
   pflock: s => s.pinChanged ? 'PM04' : s.noSensor ? 'HM13' : s.finger !== 'on' ? 'PM10' : 'P05',
   pfclinic: () => 'P06', pfswitch: () => 'P07', pfpay: () => 'P12', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
 });
-later(() => { NUM.confirmed = s => s.cal.appt ? 'K03' : 'B05'; }, ORDER.care); // over booking.jsx's
+later(() => { NUM.confirmed = s => s.cal.appt ? 'K03' : s.booked?.for && s.booked.for !== s.fullName ? 'SB03' : 'B05'; }, ORDER.care); // over booking.jsx's; Figma sync: booked for someone else is SB03, not B05
 
 export const PF = ['pf'], BOOKED = { screen: 'confirmed', taken: { 'ps|0': ['4:30 PM'] } };
 FLOW.push(

@@ -264,8 +264,8 @@ export const sOk = (t, deny) => <p className={`st-ok ${deny ? 'n' : ''}`}>{img(d
 export const sEmpty = (icon, t, b) => <div className="st-empty">{img(icon, 32)}<p className="st-et">{t}</p><p className="dr-body">{b}</p></div>;
 export const cb = on => <span className={`cb ${on ? 'on' : ''}`} aria-hidden="true">{on ? img('icon-check-white-14', 14) : null}</span>;
 export const cbBtn = (on, act, label) => <button className="cb-btn" role="checkbox" aria-checked={on} aria-label={label} data-act={act}>{cb(on)}</button>;
-export const sPager = <nav className="st-pg" aria-label="Pages"><button className="st-pb" disabled>{img('icon-arrow-back-disabled-16', 16)}Previous</button>
-  <span className="st-pill" aria-current="page">1</span><button className="st-pb" disabled>Next{img('icon-arrow-forward-disabled-16', 16)}</button></nav>;
+// Figma sync: no pager. Every table shows all its rows (R09: 33 visits), so Figma's 'Previous / 1 / Next' only ever had one page.
+// ponytail: add a real pager (page size, Previous/Next acts) when a table outgrows one screen.
 
 // Filter chips open their own panel, 4px below; a click anywhere else closes it.
 export const chip = (key, label, on, panel) => <div className="st-dd-wrap"><button className={`st-chip ${on ? 'on' : ''}`} data-act={`st-menu:${key}`} aria-haspopup="true" aria-expanded={S.stMenu === key}>{label}
@@ -356,7 +356,7 @@ Object.assign(SCREENS, {
         {chip('sort', S.stSort ? `Sort: ${S.stSort === 'pt-asc' ? 'Lowest' : 'Highest'} patients` : 'Sort: Patients today', S.stSort, () => radios([['pt-desc', 'Highest to lowest patients'], ['pt-asc', 'Lowest to highest patients']]))}</div>
       {sTable([['Doctor', 320], ['Department', 260], ['Patients today', 180, S.stSort ? (S.stSort === 'pt-asc' ? 'ascending' : 'descending') : 'none'], ['Status']], list,
         d => <>{nmCell(d, 320, 'st-doc')}{cell(`${d.dept} · ${docOf(d.id)[0]}`, 260)}{cell(ptToday(d.id), 180)}<span className="sp"></span>{sTag(DUTY[duty(d.id)])}</>, 'st-doc', 'Doctors')}
-      {sPager}</>, 'st-acts');
+      </>, 'st-acts');
   },
 
   sdoc: () => {
@@ -405,7 +405,7 @@ Object.assign(SCREENS, {
         {chip('date', range, a, sCal)}</div>
       {sTable([['Patient ID', 110], [sortBtn, 260, { 'name-asc': 'ascending', 'name-desc': 'descending' }[S.stSort] || 'none'], ['Doctor', 240], ['Department', 220], ['Visited date']], list,
         v => <>{cell(v.pid || '—', 110)}{nmCell(v, 260, 'st-pat')}{cell(v.doc, 240)}{cell(v.dept, 220)}<span className="sp"></span>{sTag([v.when, 'neutral'])}</>, 'st-pat', 'Patient visits')}
-      {sPager}</>);
+      </>);
   },
 
   spat: () => {
@@ -451,7 +451,7 @@ Object.assign(SCREENS, {
     return sPage(<>{sBack('Settings', 'sset')}{sHead('Assign roles', 'What each person can access in Clinica', sSearch('Search staff'))}
       {S.stSel.length ? <div className="st-bulk"><span aria-live="polite">{S.stSel.length} selected</span><button className="btn primary st-m" data-act="st-bulk">Assign role to selected</button></div> : null}
       {sTable([['Name', 300], ['Access', 300], ['Job title · department', 300]], list, p => <>{nmCell(p, 300, 'st-role')}{cell(accessText(p), 300)}{cell(`${p.title} · ${p.dept}`, 300)}<span className="sp"></span></>, 'st-role', 'Staff access')}
-      {sPager}</>);
+      </>);
   },
 
   srole: () => {
@@ -562,7 +562,7 @@ Object.assign(SCREENS, {
       {/* W09: this column is the job title; the access role is on the record and in Assign roles */}
       {sTable([[<>Name{img('icon-chevron-down-tertiary-14', 14)}</>, 300], ['Job title', 220], ['Department', 220], ['Status']], list,
         p => <>{nmCell(p, 300, 'st-person')}{cell(p.title, 220)}{cell(p.dept, 220)}<span className="sp"></span>{sTag(STATUS_TAG[status(p)])}</>, 'st-person', 'Staff')}
-      {sPager}</>, 'st-acts');
+      </>, 'st-acts');
   },
 
   sperson: () => {
@@ -669,7 +669,7 @@ Object.assign(SCREENS, {
       {sTable([['Name', 280], ['Working days', 140], ['Present', 140, k === 'present' ? `${dir}ending` : 'none'], ['On leave', 140], ['Absent', 140, k === 'absent' ? `${dir}ending` : 'none']], list, p => { const a = monthAtt(p.id);
         return <>{nmCell(p, 280, 'st-att')}{cell(a.total, 140)}{cell(a.present, 140, 'st-b')}{cell(a.leave, 140)}{cell(a.absent, 140, a.absent ? 'st-err' : '')}</>; }, 'st-att', 'Attendance')}
       <p className="dr-body tertiary">Working days only. On leave = days covered by an approved request; Absent = days missed with no request.</p>
-      {sPager}</>);
+      </>);
   },
 
   // F17/R17/T17/V12: one label per figure ("Absent"), counted for the month shown only; each leave day links to its request.
