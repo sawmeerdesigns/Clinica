@@ -101,11 +101,13 @@ export const toast = (msg, action = null, ms = 5000) => { // action: [label, 'da
 };
 export const toastClear = () => { clearTimeout(toastT); S.toast = null; };
 
-// F15/R12: Nepali for the patient app's own words: titles, tabs, labels, buttons and short lines. Names, dates, times and amounts stay as
-// they are, and so do long clinical text (doctors' notes, report wording) and the legal pages, which stay English for now.
+// F15/R12: Nepali for the patient app's own words: titles, tabs, labels, buttons and short lines. Names, IDs, amounts and digits stay as they are.
+// Phase 8: everything else follows too — clinical text written for patients (report explanations, medicine instructions, what the doctor
+// said) and the legal pages. What someone typed (a doctor's own note, a patient's reason) and medicine names stay as written.
+// Each module adds its own lines with Object.assign(NE, { ... }), next to the screens that use them.
 // Shared helpers (btn, heading, listItem, row, notice, setting, bar…) pass their text through tr(), so a string here changes everywhere
 // it's used. Only the patient app translates; the care team's apps share these helpers but stay English.
-const NE = {
+export const NE = {
   'Choose how to pay to confirm.': 'पुष्टि गर्न कसरी तिर्ने छान्नुहोस्।', 'For example: fever for three days': 'जस्तै: तीन दिनदेखि ज्वरो', // Figma sync: B04
   'Find doctor': 'डाक्टर खोज्नुहोस्', 'Doctor, specialty or condition': 'डाक्टर, विशेषज्ञता वा समस्या', 'Search doctors': 'डाक्टर खोज्नुहोस्', 'Specialty': 'विशेषज्ञता',
   'General medicine': 'सामान्य चिकित्सा', Cardiology: 'मुटु रोग', Dermatology: 'छाला रोग', Paediatrics: 'बाल रोग', Gynaecology: 'स्त्री रोग',
@@ -130,7 +132,7 @@ const NE = {
   'Book another time': 'अर्को समय बुक गर्नुहोस्', 'Before you come': 'आउनुअघि', Details: 'विवरण', 'So you get a reminder too': 'ताकि तपाईंलाई पनि सम्झना आओस्',
   'No upcoming visits': 'आउँदा भेटहरू छैनन्', 'When you book a visit, it will show up here.': 'भेट बुक गरेपछि यहाँ देखिनेछ।', 'While you wait': 'पर्खँदा',
   'On your way out': 'फर्कँदा', 'Next step': 'अर्को कदम', 'Go to Health': 'स्वास्थ्यमा जानुहोस्', 'Call the clinic': 'क्लिनिकमा फोन गर्नुहोस्', 'In progress': 'जाँच हुँदैछ',
-  'Your turn': 'तपाईंको पालो', 'Book follow-up': 'फलो-अप बुक गर्नुहोस्', 'No follow-up needed': 'फलो-अप आवश्यक छैन', 'Follow-up in 2 weeks': '२ हप्तामा फलो-अप',
+  'Your turn': 'तपाईंको पालो', 'Book follow-up': 'फलो-अप बुक गर्नुहोस्', 'No follow-up needed': 'फलो-अप आवश्यक छैन', 'Follow-up in 2 weeks': '2 हप्तामा फलो-अप',
   "If you can't go now": 'अहिले जान सक्नुहुन्न भने', Paid: 'तिरिसकियो', 'Not paid': 'तिरिएको छैन', 'In your calendar': 'तपाईंको क्यालेन्डरमा',
   // Health and the Health lock
   'Your health records are locked': 'तपाईंको स्वास्थ्य रेकर्ड लक छ', Unlock: 'अनलक गर्नुहोस्', 'Enter your PIN': 'आफ्नो PIN हाल्नुहोस्',
@@ -145,7 +147,7 @@ const NE = {
   'Use PIN instead': 'बरु PIN प्रयोग गर्नुहोस्', 'Too many tries': 'धेरै पटक प्रयास भयो', 'Reset with an SMS code': 'SMS कोडबाट रिसेट गर्नुहोस्',
   'Reset at reception': 'रिसेप्सनमा रिसेट गर्नुहोस्', 'Choose a new PIN': 'नयाँ PIN छान्नुहोस्', 'Enter your current PIN': 'हालको PIN हाल्नुहोस्',
   'Health lock': 'स्वास्थ्य लक', 'Lock and unlock': 'लक र अनलक', 'Locks automatically': 'आफैं लक हुन्छ',
-  'When you leave Clinica, or after 5 idle minutes': 'Clinica छोड्दा, वा ५ मिनेट प्रयोग नगर्दा', 'Change PIN': 'PIN बदल्नुहोस्', 'Choose a new 4-digit PIN': '४ अङ्कको नयाँ PIN छान्नुहोस्',
+  'When you leave Clinica, or after 5 idle minutes': 'Clinica छोड्दा, वा 5 मिनेट प्रयोग नगर्दा', 'Change PIN': 'PIN बदल्नुहोस्', 'Choose a new 4-digit PIN': '4 अङ्कको नयाँ PIN छान्नुहोस्',
   'Use fingerprint': 'औंठाछाप प्रयोग गर्नुहोस्', 'Off. Your PIN opens your records.': 'बन्द। तपाईंको PIN ले रेकर्ड खोल्छ।', 'On this shared phone': 'यो साझा फोनमा',
   'Also lock appointments and medicines': 'अपोइन्टमेन्ट र औषधिहरू पनि लक गर्नुहोस्', 'Home shows them after your PIN': 'PIN हालेपछि गृहपृष्ठमा देखिन्छन्',
   'Off. Anyone with this phone sees them on Home': 'बन्द। यो फोन चलाउने जो कोहीले गृहपृष्ठमा देख्छन्', 'If you forget': 'बिर्सनुभयो भने', 'Reset your PIN': 'PIN रिसेट गर्नुहोस्',
@@ -167,13 +169,13 @@ const NE = {
   'Delays and cancellations': 'ढिलाइ र रद्द', 'Follow-up reminders': 'फलो-अपको सम्झना', 'Lab reports ready': 'ल्याब रिपोर्ट तयार', Contact: 'सम्पर्क', Address: 'ठेगाना',
   'Opening hours': 'खुल्ने समय', 'Call reception': 'रिसेप्सनमा फोन गर्नुहोस्', Reception: 'रिसेप्सन', 'Sign out of Clinica?': 'Clinica बाट साइन आउट गर्ने?',
   'Stay signed in': 'साइन इन नै रहनुहोस्', 'Close your Clinica account?': 'Clinica खाता बन्द गर्ने?', 'Keep my account': 'मेरो खाता राख्नुहोस्', 'In an emergency': 'आपतकालमा',
-  'Call 102': '१०२ मा फोन गर्नुहोस्', "Who's using the app?": 'एप कसले चलाउँदै हुनुहुन्छ?', People: 'मानिसहरू', 'You, right now': 'अहिले तपाईं', 'Someone else': 'अरू कोही',
+  'Call 102': '102 मा फोन गर्नुहोस्', "Who's using the app?": 'एप कसले चलाउँदै हुनुहुन्छ?', People: 'मानिसहरू', 'You, right now': 'अहिले तपाईं', 'Someone else': 'अरू कोही',
   'Create a new profile': 'नयाँ प्रोफाइल बनाउनुहोस्', 'Sign in with their own record': 'उहाँको आफ्नै रेकर्डबाट साइन इन', 'Privacy policy': 'गोपनीयता नीति',
   'Terms of use': 'प्रयोगका सर्तहरू', Version: 'संस्करण', 'Kept by City Hospital': 'सिटी हस्पिटलले राखेको', 'Patient number': 'बिरामी नम्बर',
   // Sign-in and Create profile
   'Your mobile number': 'तपाईंको मोबाइल नम्बर', 'Mobile number': 'मोबाइल नम्बर', 'Only used to sign you in and send visit updates.': 'साइन इन गर्न र भेटको खबर पठाउन मात्र प्रयोग हुन्छ।',
   'Send code': 'कोड पठाउनुहोस्', 'Enter the code': 'कोड हाल्नुहोस्', 'Wrong number?': 'नम्बर गलत भयो?', 'Go back to change it.': 'बदल्न पछाडि जानुहोस्।', Verify: 'पुष्टि गर्नुहोस्',
-  'Send a new code': 'नयाँ कोड पठाउनुहोस्', 'Nepali mobile numbers are 10 digits, starting with 9.': 'नेपाली मोबाइल नम्बर ९ बाट सुरु हुने १० अङ्कको हुन्छ।',
+  'Send a new code': 'नयाँ कोड पठाउनुहोस्', 'Nepali mobile numbers are 10 digits, starting with 9.': 'नेपाली मोबाइल नम्बर 9 बाट सुरु हुने 10 अङ्कको हुन्छ।',
   'Create your profile': 'आफ्नो प्रोफाइल बनाउनुहोस्', 'The clinic uses this to find you at reception.': 'रिसेप्सनमा तपाईंलाई खोज्न क्लिनिकले यो प्रयोग गर्छ।',
   'Full name': 'पूरा नाम', 'Your full name': 'तपाईंको पूरा नाम', 'Date of birth': 'जन्म मिति', 'AD or BS — choose in the date picker.': 'AD वा BS — मिति छान्ने ठाउँमा रोज्नुहोस्।',
   Sex: 'लिङ्ग', Female: 'महिला', Male: 'पुरुष', Other: 'अन्य', 'Pronouns (optional)': 'सम्बोधन (ऐच्छिक)', 'Prefer not to say': 'भन्न चाहन्नँ', 'Create profile': 'प्रोफाइल बनाउनुहोस्',
@@ -181,7 +183,7 @@ const NE = {
   Year: 'वर्ष', Month: 'महिना', Day: 'गते', Cancel: 'रद्द गर्नुहोस्', 'Please sign in again': 'कृपया फेरि साइन इन गर्नुहोस्', 'Use a different number': 'अर्को नम्बर प्रयोग गर्नुहोस्',
   Continue: 'जारी राख्नुहोस्', 'Get started': 'सुरु गर्नुहोस्', Skip: 'छोड्नुहोस्', Next: 'अर्को', 'Check my details': 'मेरो विवरण जाँच्नुहोस्',
   'We may already know you': 'हामी तपाईंलाई पहिले नै चिन्न सक्छौं', 'What happens next': 'अब के हुन्छ',
-  "We'll text a 6-digit code. Use the number your clinic has on file, so we can find your records.": 'हामी ६ अङ्कको कोड SMS गर्छौं। क्लिनिकमा दर्ता भएको नम्बर प्रयोग गर्नुहोस्, ताकि तपाईंका रेकर्ड भेटियोस्।',
+  "We'll text a 6-digit code. Use the number your clinic has on file, so we can find your records.": 'हामी 6 अङ्कको कोड SMS गर्छौं। क्लिनिकमा दर्ता भएको नम्बर प्रयोग गर्नुहोस्, ताकि तपाईंका रेकर्ड भेटियोस्।',
   // Figma sync (Phase 7): strings that stayed English in Nepali — time phrases, B06, the walk-in card, the Health lock and the fingerprint sheet
   Tomorrow: 'भोलि', Where: 'कहाँ', 'Your visit': 'तपाईंको भेट', 'when you check in': 'चेक इन गर्दा',
   'Pay at reception, or with eSewa, Khalti or Fonepay.': 'रिसेप्सनमा, वा eSewa, Khalti वा Fonepay बाट तिर्नुहोस्।',
@@ -190,9 +192,21 @@ const NE = {
   'Walk-ins are seen between booked patients, so waits vary. Reception will call your name.': 'वाक-इन बिरामीलाई बुक भएका बिरामीहरूको बीचमा हेरिन्छ, त्यसैले पर्खने समय फरक पर्छ। रिसेप्सनले तपाईंको नाम बोलाउनेछ।',
   'This phone may be shared, so your visits and prescriptions stay locked until you unlock them with your Clinica PIN.': 'यो फोन अरूले पनि चलाउन सक्छन्, त्यसैले Clinica PIN ले अनलक नगरेसम्म तपाईंका भेट र प्रेस्क्रिप्सन लक रहन्छन्।',
   'Unlock to see your new lab report. This phone may be shared, so your records stay locked until you enter your Clinica PIN.': 'नयाँ ल्याब रिपोर्ट हेर्न अनलक गर्नुहोस्। यो फोन अरूले पनि चलाउन सक्छन्, त्यसैले Clinica PIN नहालेसम्म तपाईंका रेकर्ड लक रहन्छन्।',
-  'Locked because you left Clinica. On a shared phone, your records lock when you leave the app, or after 5 minutes without use.': 'तपाईंले Clinica छोड्नुभएकाले लक भयो। साझा फोनमा, एप छोड्दा वा ५ मिनेट प्रयोग नगर्दा तपाईंका रेकर्ड लक हुन्छन्।',
+  'Locked because you left Clinica. On a shared phone, your records lock when you leave the app, or after 5 minutes without use.': 'तपाईंले Clinica छोड्नुभएकाले लक भयो। साझा फोनमा, एप छोड्दा वा 5 मिनेट प्रयोग नगर्दा तपाईंका रेकर्ड लक हुन्छन्।',
   "It's quicker than your PIN. But anyone whose fingerprint is saved on this phone could open your records too.": 'यो PIN भन्दा छिटो हुन्छ। तर यो फोनमा औंठाछाप सेभ भएका जो कोहीले पनि तपाईंका रेकर्ड खोल्न सक्छन्।',
   'Touch the fingerprint sensor': 'औंठाछाप सेन्सर छुनुहोस्', 'Not recognised. Try again.': 'चिनिएन। फेरि प्रयास गर्नुहोस्।', 'Fingerprint sensor': 'औंठाछाप सेन्सर',
 };
 export const ne = () => S.lang === 'ne' && S.app === 'patient'; // patient app only; for lines whose Nepali word order differs (Figma sync)
-export const tr = s => (ne() && NE[s]) || s;
+// Phase 8: a date or time on its own ('Fri, Sep 11, 10:30 AM', 'August 2026', '1 Chaitra 2050 BS') gets Nepali month, weekday and
+// time-of-day words; its digits stay Latin. nd() does the same inside a sentence.
+const DW = { January: 'जनवरी', February: 'फेब्रुअरी', March: 'मार्च', April: 'अप्रिल', June: 'जुन', July: 'जुलाई', August: 'अगस्ट', September: 'सेप्टेम्बर',
+  October: 'अक्टोबर', November: 'नोभेम्बर', December: 'डिसेम्बर', Jan: 'जनवरी', Feb: 'फेब्रुअरी', Mar: 'मार्च', Apr: 'अप्रिल', May: 'मे', Jun: 'जुन', Jul: 'जुलाई',
+  Aug: 'अगस्ट', Sep: 'सेप्टेम्बर', Oct: 'अक्टोबर', Nov: 'नोभेम्बर', Dec: 'डिसेम्बर', Sunday: 'आइतबार', Monday: 'सोमबार', Tuesday: 'मङ्गलबार',
+  Wednesday: 'बुधबार', Thursday: 'बिहीबार', Friday: 'शुक्रबार', Saturday: 'शनिबार', Sun: 'आइत', Mon: 'सोम', Tue: 'मङ्गल', Wed: 'बुध', Thu: 'बिही', Fri: 'शुक्र',
+  Sat: 'शनि', Today: 'आज', Tomorrow: 'भोलि', Yesterday: 'हिजो', Baisakh: 'बैशाख', Jestha: 'जेठ', Asar: 'असार', Shrawan: 'साउन', Bhadra: 'भदौ', Ashwin: 'असोज',
+  Kartik: 'कात्तिक', Mangsir: 'मंसिर', Poush: 'पुस', Magh: 'माघ', Falgun: 'फागुन', Chaitra: 'चैत', BS: 'वि.सं.', AD: 'ई.सं.' };
+const DWRE = new RegExp(`\\b(${Object.keys(DW).sort((a, b) => b.length - a.length).join('|')})\\b`, 'g');
+const DATEISH = new RegExp(`^(?:[\\d\\s:,·–—-]|AM|PM|${Object.keys(DW).join('|')})+$`);
+export const nd = s => !ne() ? s : String(s) // '4:30 PM' → 'दिउँसो 4:30'
+  .replace(/(\d{1,2})(:\d{2})? ?(AM|PM)\b/g, (_, h, m = '', ap) => `${ap === 'AM' ? 'बिहान' : +h % 12 < 5 ? 'दिउँसो' : 'बेलुका'} ${h}${m}`).replace(DWRE, w => DW[w]);
+export const tr = s => !ne() ? s : NE[s] || (typeof s === 'string' && DATEISH.test(s) ? nd(s) : s);

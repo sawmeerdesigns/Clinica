@@ -6,7 +6,7 @@ import { AD_SHORT, btn, empty, homeInd, listItem, maskDob, pad, parseDob, range,
 import { acts, ask, src, words } from './ask.jsx';
 import { DOCTORS, backTo, bar, iconBtn, initials, label, rel, row, rows, sk, tag, when } from './booking.jsx';
 import { csheet, notice, setting, signoutSheet } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, onPhone, paint, render, sepJoin, toast, toastClear } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, ne, onPhone, paint, render, sepJoin, toast, toastClear, tr } from './core.jsx';
 import { LABS, RX, VISITS, centred, chev, docCard, field, lbl, lead, list, medRow } from './health.jsx';
 import { med, ring } from './meds.jsx';
 import { radioRow } from './more.jsx';
@@ -73,6 +73,21 @@ export function labOf(k) {
   const l = LABS[k], r = S.released?.[k];
   return r ? { ...l, reviewing: false, tag: r.follow ? ['Needs follow-up', 'warn'] : ['Ready', 'success'], words: r.words, by: 'Reviewed by Dr. Priya Sharma on Aug 28',
     date: 'Aug 28, 2026', pages: 1, follow: r.follow } : l;
+}
+// Phase 8: the same test done more than once (Anisha's HbA1c, Jun 20 and Aug 24): released results with a value, oldest first.
+export const labSeries = k => { const t = LABS[k]?.title;
+  return Object.keys(LABS).filter(x => LABS[x].title === t && LABS[x].value && !labOf(x).reviewing).sort((a, b) => new Date(LABS[a].date) - new Date(LABS[b].date)); };
+// Phase 8: previous → latest, with dates and direction in words, so it never relies on the line or its colour. Doctor, desk and patient share it.
+export function labTrend(k) {
+  const s = labSeries(k); if (s.length < 2) return null;
+  const v = s.map(x => parseFloat(LABS[x].value)), lo = Math.min(...v), hi = Math.max(...v), [a, b] = s.slice(-2).map(x => LABS[x]);
+  const d = parseFloat(b.value) - parseFloat(a.value), dir = d > 0 ? 'Higher in the latest test' : d < 0 ? 'Lower in the latest test' : 'No change in the latest test';
+  const day = l => tr(l.date.split(',')[0]), pts = v.map((y, i) => [4 + i * 112 / (v.length - 1), hi === lo ? 16 : 28 - (y - lo) / (hi - lo) * 24]);
+  return <div className="stack8">{lbl('Over time')}<div className="card neutral">
+    <svg width="120" height="32" viewBox="0 0 120 32" aria-hidden="true" style={{ flex: 'none' }}><polyline points={pts.join(' ')} fill="none" stroke="var(--border-strong)" strokeWidth="2" />
+      {pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3.5" fill={i === pts.length - 1 ? 'var(--text-action)' : 'var(--text-secondary)'} />)}</svg>
+    <div className="text"><p className="h-s">{a.value} → {b.value} {d > 0 ? '↑' : d < 0 ? '↓' : '='}</p>
+      <p className="body-s">{ne() ? `${day(a)} → ${day(b)} · ${tr(dir)}` : `${day(a)} → ${day(b)} · ${dir}`}</p></div></div></div>;
 }
 
 // ---------- pieces ----------
@@ -149,10 +164,10 @@ export const drVisitList = id => {
         {tag(v.own ? 'Seen by you' : 'Other doctor', `${v.own ? 'success' : 'info'} s12`)}</span>{chev}</button>))}</div>
     {drLabs(id).length ? <><p className="dr-label">Lab results</p><div className="mt-list">{sepJoin(drLabs(id).map(l => // T25: her lab results, each opening the report
       <button className="list-item" data-act={`d-lab:${l.k}`}>{lead('lt-lab.svg')}<span className="text"><span className="item-title">{l.title}</span><span className="body-s">{l.sub}</span>
+        {labSeries(l.k).length > 1 ? <span className="body-s">{`${labSeries(l.k).map(x => LABS[x].value).join(' → ')}, ${labSeries(l.k).map(x => LABS[x].date.split(',')[0]).join(' → ')}`}</span> : null}{/* Phase 8: the trend, in the list too */}
         {tag(l.pending ? 'Needs your review' : 'Reviewed', `${l.pending ? 'warn' : 'neutral'} s12`)}</span>{chev}</button>))}</div></> : null}</>;
 };
 // T25: a patient's lab results for the doctor: Anisha's from Health (labOf follows a release), anyone else's from the reports waiting here.
-// ponytail: no test repeats in the demo data, so there's no trend line yet; add one when a patient has the same test twice.
 export const drLabs = id => (id === 'as' ? Object.keys(LABS).map(k => ({ k, ...labOf(k) }))
   : Object.entries(DR_REPORTS).filter(([, r]) => r.pid === id).map(([k, r]) => ({ k, title: r.test, sub: `${r.date}, City Hospital lab`, words: S.released[k]?.words,
     by: S.released[k] ? 'Reviewed by Dr. Priya Sharma on Aug 28' : '' })))
@@ -160,7 +175,9 @@ export const drLabs = id => (id === 'as' ? Object.keys(LABS).map(k => ({ k, ...l
 // T25: one result, read-only: its values when the lab sent them here, who reviewed it, and what the patient was told.
 export const drLabView = (id, k) => { const l = drLabs(id).find(x => x.k === k), r = DR_REPORTS[k];
   return <><p className="dr-body">{l.sub}{l.by ? ` · ${l.by}` : ''}</p>
-    {r ? <div className="stack6"><p className="dr-label">Result</p>{drValues(r.rows)}</div> : <p className="dr-body tertiary">The values are in the lab's report file.</p>}
+    {r ? <div className="stack6"><p className="dr-label">Result</p>{drValues(r.rows)}</div> : l.value ? <div className="stack6"><p className="dr-label">Result</p><p className="dr-body"><b>{l.value}</b></p></div>
+      : <p className="dr-body tertiary">The values are in the lab's report file.</p>}
+    {labTrend(k)}{/* Phase 8 */}
     {l.words ? <div className="stack8">{lbl('What the patient was told')}<p className="note-body">{l.words}</p></div> : null}</>; };
 export const drShort = dmy => { const p = parseDob(dmy); return p ? `${AD_SHORT[p.m]} ${p.d}` : ''; }; // '18 / 09 / 2026' → 'Sep 18'
 export const drFollowLine = (f, date) => f === '2w' ? ['Follow-up in 2 weeks', `Around ${dayLabel(FU_DAY)}.`] : date ? [`Follow-up on ${drShort(date)}`, ''] : ['Follow-up needed', ''];

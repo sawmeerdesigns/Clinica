@@ -230,7 +230,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.bnav >> text=Home').catch(() => {}); await p.evaluate(() => jumpTo('B01')); await p.click('.bnav >> text=Profile');
   assert(await p.isVisible('#phone >> text=Patient at City Hospital') && await p.isVisible('#phone >> text=Close account'), 'Profile tab (P01)');
   await p.click('#phone >> text=Your details'); assert(await p.isVisible('#phone >> text=14 Mar 1994, or 1 Chaitra 2050 BS'), 'details in AD and BS (P02)'); await p.click('[aria-label=Back]');
-  await p.click('#phone >> text=Language'); await p.click('.tile[data-v="ne"]'); await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=नेपाली'), 'language follows (P03)');
+  await p.click('#phone >> text=Language'); await p.click('.tile[data-v="ne"]'); await p.click('[aria-label=पछाडि]'); assert(await p.isVisible('#phone >> text=नेपाली'), 'language follows (P03)'); // Phase 8: Back's label is Nepali too
   // Phase 6 (F15/R12): the rest of the patient app's chrome follows the language, then this flow goes back to English.
   assert(await p.isVisible('.bnav >> text=प्रोफाइल') && await p.isVisible('.bnav >> text=हेरचाह') && await p.isVisible('#phone >> text=तपाईंको विवरण') && await p.isVisible('#phone >> text=स्वास्थ्य लक'), 'F15/R12: Profile and the tab bar in Nepali');
   await p.click('#phone >> text=भाषा'); await p.click('.tile[data-v="en"]'); await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=Your details'), 'back to English');
@@ -729,13 +729,37 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('SB03'); assert((await p.textContent('#note')).startsWith('SB03'), 'Phase 7: SB03 shows its own panel entry, not B05');
   await J('D02'); assert((await p.textContent('#note')).startsWith('D02'), "Phase 7: D02 Today's queue is reachable");
   const NE = async (n, ...t) => { await J(n); await p.evaluate(() => { S.lang = 'ne'; render(); }); for (const x of t) if (!(await P(`text=${x}`))) return x; return ''; };
-  assert(!(await NE('B06', 'सूचना अनुमति दिनुहोस्', 'अहिले होइन', 'आज, 4:30 PM', 'यो बन्द गरे पनि हामी SMS बाट खबर पठाइरहन्छौं।')), 'Phase 7: B06 in Nepali');
-  assert(!(await NE('B03', 'आज 4:30 PM मा बुक गर्नुहोस्', 'रिसेप्सनमा, वा eSewa, Khalti वा Fonepay बाट तिर्नुहोस्।')), 'Phase 7: Book button and fee line in Nepali');
+  assert(!(await NE('B06', 'सूचना अनुमति दिनुहोस्', 'अहिले होइन', 'आज, दिउँसो 4:30', 'यो बन्द गरे पनि हामी SMS बाट खबर पठाइरहन्छौं।')), 'Phase 7: B06 in Nepali');
+  assert(!(await NE('B03', 'आज दिउँसो 4:30 मा बुक गर्नुहोस्', 'रिसेप्सनमा, वा eSewa, Khalti वा Fonepay बाट तिर्नुहोस्।')), 'Phase 7: Book button and fee line in Nepali');
   assert(!(await NE('B05', 'रिसेप्सनमा तिर्ने', 'सकियो')), 'Phase 7: Pay at reception and Done in Nepali');
   assert(!(await NE('B10', 'तपाईं चेक इन हुनुभयो', 'तपाईंको भेट', 'कहाँ')), "Phase 7: walk-in card in Nepali");
   assert(!(await NE('H06', 'फार्मासिस्टलाई देखाउनुहोस्')) && !(await NE('H07', 'सकियो')) && !(await NE('H09', 'रिपोर्ट डाउनलोड गर्नुहोस्')), 'Phase 7: Health actions in Nepali');
   assert(!(await NE('H15', 'बरु PIN प्रयोग गर्नुहोस्', 'औंठाछाप सेन्सर छुनुहोस्')) && !(await NE('H17', 'PIN बिर्सनुभयो?')), 'Phase 7: fingerprint sheet and PIN screen in Nepali');
   assert(!(await NE('B07', 'क्लिनिकमा फोन गर्नुहोस्')) && !(await NE('H01', 'Clinica PIN ले अनलक नगरेसम्म')), 'Phase 7: Call the clinic and the Health lock body in Nepali');
+  // ---- Phase 8: Nepali everywhere in the patient app, the lab trend, the sample privacy policy ----
+  assert(!(await NE('B05', 'तपाईं Dr. Priya Sharma सँग आज दिउँसो 4:30 मा बुक हुनुभयो।', '15 मिनेट अगाडि आइपुग्नुहोस् र रिसेप्सनमा चेक इन गर्नुहोस्।')), 'Phase 8: Confirmed in Nepali (booked line, arrive early)');
+  assert(!(await NE('B10', 'Dr. Anita Joshi लाई पर्खँदै', 'NPR 800, रिसेप्सनमा तिरिएको')), 'Phase 8: B10 waiting and paid line in Nepali');
+  assert(!(await NE('C02', '15 मिनेट अगाडि आइपुगेर रिसेप्सनमा चेक इन गर्नुहोस्। अहिले खाइरहेका औषधिहरू लिएर आउनुहोस्।', 'शुक्र, सेप्टेम्बर 11, बिहान 10:30')), 'Phase 8: appointment detail and dates in Nepali');
+  assert(!(await NE('SC04', 'अर्को हप्ताबारे सोध्न क्लिनिकमा फोन गर्नुहोस्।')), 'Phase 8: Care sentence in Nepali');
+  assert(!(await NE('SH02', 'Dr. Sharma ढिला हुनुहुन्छ')) && !(await NE('07', '0:42 पछि नयाँ कोड पठाउन सकिन्छ')), 'Phase 8: running late and resend timer in Nepali');
+  assert(!(await NE('GX08', 'जारी राख्न Clinica अपडेट गर्नुहोस्', 'अपडेट गर्नुहोस्')) && !(await NE('NM01', '10 मिनेटअघि')), 'Phase 8: update screen and notification centre in Nepali');
+  assert(!(await NE('A06', 'Dr. Priya Sharma ले लेख्नुभयो', 'भाइरल संक्रमण।', 'दिनको 3 पटक 1 ट्याब्लेट, खाना खाएपछि')), "Phase 8: Ask's answer and the doctor's canned words in Nepali");
+  assert(!(await NE('HM03', 'अगस्ट 24, सिटी हस्पिटल ल्याब', 'तपाईंको रगतमा चिनीको मात्रा हुनुपर्नेभन्दा बढी छ।')), 'Phase 8: report explanation in Nepali');
+  await J('H08'); assert(await P('text=June 2026') && await P('text=Jun 20, City Hospital lab'), 'Phase 8: the earlier HbA1c is in the reports list');
+  await J('HM03'); assert(await P('text=Over time') && await P('text=6.1% → 7.2% ↑') && await P('text=Jun 20 → Aug 24 · Higher in the latest test') && await p.$eval('#phone svg[aria-hidden=true] polyline', e => !!e), 'Phase 8: patient report shows the trend in words, with a decorative line');
+  await J('H09b'); assert(await P('text=6.1% → 7.2% ↑') && (await p.textContent('#note')).startsWith('H09b'), 'Phase 8: H09b trend frame');
+  assert(!(await NE('HM03', 'समयसँगै', 'जुन 20 → अगस्ट 24 · पछिल्लो जाँचमा बढी')), 'Phase 8: trend in Nepali');
+  await J('K11f'); assert(await P('text=6.1% → 7.2%, Jun 20 → Aug 24'), 'Phase 8: trend in the desk history lab list');
+  await p.click('#phone [data-act="d-lab:hba1c"]'); assert(await P('text=Over time') && await P('text=Jun 20 → Aug 24 · Higher in the latest test') && await P('text=7.2%'), 'Phase 8: trend on the desk lab view');
+  await J('25'); assert(await P('text=Sample policy for this prototype, not legal advice; to be reviewed by the hospital\'s legal team before release.'), 'Phase 8: privacy policy marked as a sample');
+  for (const h of ['What we collect', 'Why we use it', 'Who sees it', 'Your Health PIN', 'Text messages (SMS)', 'Paying with a wallet', 'How long we keep it', 'Your rights', 'Contact', 'Changes']) if (!(await P(`h3:text("${h}")`))) throw new Error('FAIL: policy section ' + h);
+  assert(await P('text=Delete: Profile › Close account deletes your app account, sign-in and PIN.'), 'Phase 8: policy covers every section, deletion via Close account');
+  assert(!(await NE('25', 'नमुना नीति', 'तपाईंका अधिकार', 'वालेटबाट भुक्तानी')), 'Phase 8: privacy policy in Nepali');
+  await J('K11f'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('text=Lab results') && await P('text=Back to visit') && !(await P('text=पछाडि')), 'Phase 8: staff apps stay English with Nepali chosen');
+  const neThrows = await p.evaluate(async () => { const bad = []; // frameIds/jumpTo are on window, so this also runs against the built app (CI)
+    for (const id of frameIds()) { try { jumpTo(id); if (S.app && S.app !== 'patient') continue; S.lang = 'ne'; render(); } catch (e) { bad.push(id + ': ' + e.message); } } return bad; });
+  assert(!neThrows.length, `Phase 8: every patient frame renders in Nepali (${neThrows.join('; ')})`);
   console.log('page errors:', errs);
+  if (errs.length) process.exitCode = 1; // CI: a page error fails the run
   await b.close();
 })().catch(e => { console.error(e.message); process.exit(1); });
