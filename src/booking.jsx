@@ -58,7 +58,8 @@ export const rows = items => <div className="list">{sepJoin(items)}</div>;
 // Pay now (Figma 641:31182). R10: nothing is chosen until the patient picks — Pay at reception is an explicit option, like the wallets.
 // F09/R13/T05/V06/W01: the Fee row says "to pay" until the wallet confirms; on a failure screen it says nothing was charged.
 export { WALLETS };
-const howText = how => how === 'reception' ? 'to pay at reception' : how ? `to pay with ${WALLETS[how][0]}` : 'choose how to pay below';
+const howText = how => ne() ? (how === 'reception' ? 'रिसेप्सनमा तिर्ने' : how ? `${WALLETS[how][0]} बाट तिर्ने` : 'तल कसरी तिर्ने छान्नुहोस्') // Figma sync: B04 fee line in Nepali
+  : how === 'reception' ? 'to pay at reception' : how ? `to pay with ${WALLETS[how][0]}` : 'choose how to pay below';
 export const feeRow = (failed = false) => row('lt-fee.svg', tr('Fee'), `NPR ${FEE}, ${howText(S.payWith)}${failed ? `. ${tr('You have not been charged.')}` : ''}`);
 export const payBlock = () => <div className="pay-block">{label(tr("How you'll pay"))}
   <div className="pay-tiles" role="radiogroup" aria-label={tr("How you'll pay")}>
@@ -103,7 +104,7 @@ export function navBar(active) {
 export function textArea(saved) {
   return <div className="inset"><div className="field-wrap">
     <label className="label" htmlFor="reason" style={{ lineHeight: '20px' }}>{tr('Reason for visit (optional)')}</label>
-    <div className="field textarea"><textarea id="reason" placeholder="For example: fever for three days" value={S.reason} onChange={e => { S.reason = e.target.value; paint(); }}></textarea></div>
+    <div className="field textarea"><textarea id="reason" placeholder={tr("For example: fever for three days")} value={S.reason} onChange={e => { S.reason = e.target.value; paint(); }}></textarea></div>
     {support(saved && S.reason.trim() ? "Saved. You won't need to type this again." : 'Helps your doctor prepare. Only the clinic sees this.')}{/* W14: never "Saved" while empty */}
   </div></div>;
 }
@@ -300,7 +301,7 @@ Object.assign(SCREENS, {
         {textArea(false)}
       </div>
       {/* R10: the line above lifts Confirm off the spot where Book was, and Confirm waits for a payment choice */}
-      <div className="cta bordered"><p className="body-s">{S.payWith ? `NPR ${FEE}, ${howText(S.payWith)}.` : 'Choose how to pay to confirm.'}</p>
+      <div className="cta bordered"><p className="body-s">{S.payWith ? `NPR ${FEE}, ${howText(S.payWith)}${ne() ? '।' : '.'}` : tr('Choose how to pay to confirm.')}</p>
         {btn(S.payWith ? tr('Confirm booking') : tr('Choose how to pay'), 'confirm', { disabled: !S.payWith })}</div>
       {homeInd()}
     </div>),

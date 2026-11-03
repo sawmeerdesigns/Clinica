@@ -106,6 +106,7 @@ export const toastClear = () => { clearTimeout(toastT); S.toast = null; };
 // Shared helpers (btn, heading, listItem, row, notice, setting, bar…) pass their text through tr(), so a string here changes everywhere
 // it's used. Only the patient app translates; the care team's apps share these helpers but stay English.
 const NE = {
+  'Choose how to pay to confirm.': 'पुष्टि गर्न कसरी तिर्ने छान्नुहोस्।', 'For example: fever for three days': 'जस्तै: तीन दिनदेखि ज्वरो', // Figma sync: B04
   'Find doctor': 'डाक्टर खोज्नुहोस्', 'Doctor, specialty or condition': 'डाक्टर, विशेषज्ञता वा समस्या', 'Search doctors': 'डाक्टर खोज्नुहोस्', 'Specialty': 'विशेषज्ञता',
   'General medicine': 'सामान्य चिकित्सा', Cardiology: 'मुटु रोग', Dermatology: 'छाला रोग', Paediatrics: 'बाल रोग', Gynaecology: 'स्त्री रोग',
   'Available today': 'आज उपलब्ध', 'Choose a day': 'दिन छान्नुहोस्', 'Choose a time': 'समय छान्नुहोस्', 'Closed on Saturdays': 'शनिबार बन्द',
