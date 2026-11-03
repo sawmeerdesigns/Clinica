@@ -4,7 +4,7 @@ import { cloneElement, useEffect, useLayoutEffect, useReducer, useRef, useState 
 import { ask, say, src } from './ask.jsx';
 import { backTo, bar, label, row, rows, tag, when } from './booking.jsx';
 import { emergency, setting } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast, tr } from './core.jsx';
 import { DESK_START } from './desk.jsx';
 import { DOCTOR_START, drOffline, showApp } from './doctor.jsx';
 import { centred, field, lead, list, unlock } from './health.jsx';
@@ -16,7 +16,10 @@ export const ND = window.NepaliDate.default; // Published Bikram Sambat table (2
 // Demo backend
 export const CODE_OK = '123456';
 export const CODE_EXPIRED = '000000';
-export const RECORDS = [{ name: 'Anisha Sharma', born: 'March 1994' }, { name: 'Ramesh Sharma', born: 'June 1961' }];
+export const RECORDS = [{ name: 'Anisha Sharma', born: 'March 1994' }, { name: 'Ramesh Sharma', born: 'June 1961', managedBy: 'Anisha Sharma' }]; // F14/R11: Anisha manages her father's profile
+// F22/R22/T22: the demo family's records belong to 9841234412 only. Another number sees none (an empty number is a jumped-to demo state).
+export const FAMILY_NO = '9841234412';
+export const family = () => !S.phone || digits(S.phone) === FAMILY_NO ? RECORDS : [];
 
 export const AD_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const AD_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -59,21 +62,21 @@ export const homeInd = light => <div className="home-ind" style={{ color: light 
 export const appBar = ({ back = true, title = '' } = {}) => (
   <div className="appbar">
     {back && <button className="icon-btn" data-act="back" aria-label="Back"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></button>}
-    <div className="title">{title}</div><div className="slot"></div>
+    {title ? <h1 className="title">{title}</h1> : <div className="title"></div>}<div className="slot"></div>{/* W13: a titled bar is the screen's heading */}
   </div>);
-export const heading = (h, p, cls = 'h-xl') => (
-  <div className="inset"><div className="heading"><h2 className={cls}>{h}</h2>{p ? <p className="lede">{p}</p> : null}</div></div>);
+export const heading = (h, p, cls = 'h-xl', H = 'h1') => ( // W13: the screen's heading; pass 'h2' under a titled bar
+  <div className="inset"><div className="heading"><H className={cls}>{tr(h)}</H>{p ? <p className="lede">{tr(p)}</p> : null}</div></div>); // F15/R12: tr() in the shared helpers
 export const btn = (label, act, { kind = 'primary', disabled = false, size = '' } = {}) =>
-  <button className={`btn ${kind} ${size}`} data-act={act} disabled={disabled}>{label}</button>;
+  <button className={`btn ${kind} ${size}`} data-act={act} disabled={disabled}>{tr(label)}</button>;
 export const support = (msg, tone = '', icon = '') => (
-  <div className={`support ${tone}`}>{icon ? <img src={`${A}${icon}`} width="14" height="14" alt="" /> : null}<p>{msg}</p></div>);
+  <div className={`support ${tone}`}>{icon ? <img src={`${A}${icon}`} width="14" height="14" alt="" /> : null}<p>{tr(msg)}</p></div>);
 
 // ---------- screens ----------
 Object.assign(SCREENS, {
   splash: (act = 'splash-next') => (
     <div className="screen bold" data-act={act}>
       {statusBar(true)}
-      <div className="splash-body"><div className="wordmark">Clinica</div><p style={{ fontSize: 16, lineHeight: '24px' }}>Your clinic, in your pocket.</p></div>
+      <div className="splash-body"><h1 className="wordmark">Clinica</h1>{/* W13 */}<p style={{ fontSize: 16, lineHeight: '24px' }}>Your clinic, in your pocket.</p></div>
       <div className="clinic"><p style={{ fontSize: 14, lineHeight: '20px' }}>for</p><p className="h-s">City Hospital</p></div>
       {homeInd(true)}
     </div>),
@@ -83,7 +86,7 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="body" style={{ paddingTop: 48 }}>
         <div className="inset"><div className="heading" style={{ gap: 4 }}>
-          <h2 className="h-xl">Choose your language</h2>
+          <h1 className="h-xl">Choose your language</h1>{/* W13 */}
           <h2 className="h-xl deva" style={{ color: 'var(--text-secondary)' }}>भाषा छान्नुहोस्</h2>
         </div></div>
         <div className="inset"><div className="tiles" role="radiogroup" aria-label="Language">
@@ -102,7 +105,7 @@ Object.assign(SCREENS, {
 
   onb1: () => onboarding(1, "Book with your clinic's own doctors.", 'See who is in today and choose a time that suits you.',
     <div className="card">
-      <div className="avatar">SA</div>
+      <div className="avatar" aria-hidden="true">SA</div>
       <div className="doctor"><p className="h-s">Dr. Sameer Acharya</p><p className="spec">General medicine</p><span className="tag">Available today</span></div>
     </div>),
   onb2: () => onboarding(2, 'Know the moment something changes.', "If your doctor is running late or a visit moves, we'll tell you straight away.",
@@ -121,7 +124,7 @@ Object.assign(SCREENS, {
         {S.codeFor === 'newphone' ? heading('Your new mobile number', "We'll text a code to check it. Your records stay the same.")
           : heading('Your mobile number', "We'll text a 6-digit code. Use the number your clinic has on file, so we can find your records.")}
         <div className="inset"><div className="field-wrap">
-          <label className="label" htmlFor="tel">Mobile number</label>
+          <label className="label" htmlFor="tel">{tr('Mobile number')}</label>
           <div className={`field ${S.phoneErr ? 'err' : ''}`} id="tel-field">
             <span className="dial"><span className="flag-np" aria-hidden="true"></span>+977<img src={`${A}icon-chevron-down.svg`} width="20" height="20" alt="" /></span>
             <span className="divider"></span>
@@ -147,7 +150,7 @@ Object.assign(SCREENS, {
     const msg = {
       typing: <div className="body-s" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <p style={{ fontWeight: 600, color: 'var(--text-tertiary)' }} id="resend">Resend code in {mmss(S.resend)}</p>
-                <p>Wrong number? <a href="#" className="link" data-act="back" style={{ color: 'inherit' }}>Go back to change it.</a></p></div>,
+                <p>{tr('Wrong number?')} <a href="#" className="link" data-act="back" style={{ color: 'inherit' }}>{tr('Go back to change it.')}</a></p></div>,
       wrong: support(`That code didn't match. ${S.tries} ${S.tries === 1 ? 'try' : 'tries'} left.`, 'err', 'icon-error.svg'),
       noarrive: support("Didn't get it? Check the number above is right, then send a new one.", '', 'icon-info.svg'),
       expired: support('That code has expired. Send a new one and enter it as soon as it arrives.', 'err', 'icon-error.svg'),
@@ -183,7 +186,7 @@ Object.assign(SCREENS, {
       <div className="body">
         {heading('Too many tries', 'For your safety, sign-in is paused for this number. Wait, or ask reception to help you sign in.')}
         <div className="inset">{support(<>You can try again in <span id="lock">{mmss(S.lock)}</span>.</>, 'warn', 'icon-warning-info.svg')}</div>
-        <div className="inset"><a className="btn secondary" href="tel:+97710000000">Call the clinic</a></div>
+        <div className="inset"><a className="btn secondary" href="tel:+97710000000">{tr('Call the clinic')}</a></div>
       </div>
       {homeInd()}
     </div>),
@@ -192,9 +195,9 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar({ back: false })}
       <div className="body g20">
-        {heading("Who's using the app?", `City Hospital has ${RECORDS.length} records for this number, because many families share a phone. Choose yours.`)}
+        {heading("Who's using the app?", `City Hospital has ${family().length} records for this number, because many families share a phone. Choose yours.`)}
         <div className="list">
-          {sepJoin([...RECORDS.map(r => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pick:${r.name}`)),
+          {sepJoin([...family().map(r => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pick:${r.name}`)),
             listItem('icon-add.svg', 'Someone else', 'Create a new profile', 'go:profile')])}
         </div>
         <div className="inset"><p className="body-s tertiary">Anyone who signs in with this number will be asked this, so each person only sees their own record.</p></div>
@@ -212,28 +215,36 @@ Object.assign(SCREENS, {
         {heading('Create your profile', 'The clinic uses this to find you at reception.')}
         <div className="inset"><form id="pf" noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }} onSubmit={e => { e.preventDefault(); createProfile(); }}>
           <div className="field-wrap">
-            <label className="label" htmlFor="name">Full name</label>
-            <div className={`field ${S.nameErr ? 'err' : ''}`}><input id="name" autoComplete="name" placeholder="Your full name" value={S.name}
+            <label className="label" htmlFor="name">{tr('Full name')}</label>{/* F15/R12 */}
+            <div className={`field ${S.nameErr ? 'err' : ''}`}><input id="name" autoComplete="name" placeholder={tr('Your full name')} value={S.name}
               onChange={e => { S.name = e.target.value; if (S.nameErr && S.name.trim()) S.nameErr = false; paint(); }} /></div>
             <div id="name-msg">{S.nameErr ? support('Enter your full name, as the clinic has it.', 'err') : null}</div>
           </div>
           <div className="field-wrap">
-            <label className="label" htmlFor="dob">Date of birth</label>
+            <label className="label" htmlFor="dob">{tr('Date of birth')}</label>
             <div className={`field ${S.dobErr ? 'err' : ''}`}>
               <button type="button" className="cal-btn" data-act="open-picker" aria-label="Choose date of birth"><img src={`${A}icon-calendar.svg`} width="20" height="20" alt="" /></button>
               <input id="dob" inputMode="numeric" autoComplete="bday" placeholder="DD / MM / YYYY" value={S.dob}
+                onClick={() => { if (!S.dob) openPicker(); }} // F26: tapping the empty field opens the picker; a typed date stays editable
                 onChange={e => { S.dob = maskDob(e.target.value); S.dobErr = ''; paint(); }}
                 onBlur={() => { if (S.dob.length === 14) { S.dobErr = dobError(); S.dobErr ? render() : paint(); } }} />
             </div>
             <div id="dob-msg">{dobMsg}</div>
           </div>
           <fieldset className={`radio-group ${S.sexErr ? 'err' : ''}`} id="sex">
-            <legend>Sex</legend>
-            <div className="radio-options">
-              {['Female', 'Male', 'Other'].map(v => <label key={v} className="radio"><input type="radio" name="sex" value={v} checked={S.sex === v}
-                onChange={() => { S.sex = v; S.sexErr = false; paint(); }} />{v}</label>)}
+            <legend>{tr('Sex')}</legend>
+            <div className="radio-options roomy">{/* R25: one per row, full-width targets */}
+              {['Female', 'Male', 'Other'].map(v => <label key={v} className="radio"><input type="radio" name="sex" value={v} aria-label={tr(v)} checked={S.sex === v}
+                onChange={() => { S.sex = v; S.sexErr = false; paint(); }} /><span aria-hidden="true">{tr(v)}</span></label>)}{/* W18: read once, as the radio */}
             </div>
             <div id="sex-msg">{S.sexErr ? support('Choose one.', 'err') : null}</div>
+          </fieldset>
+          <fieldset className="radio-group" id="pronouns">{/* V16: optional, with Prefer not to say */}
+            <legend>{tr('Pronouns (optional)')}</legend>
+            <div className="radio-options roomy">
+              {['She/her', 'He/him', 'They/them', 'Prefer not to say'].map(v => <label key={v} className="radio"><input type="radio" name="pronouns" value={v} checked={S.pronouns === v}
+                onChange={() => { S.pronouns = v; paint(); }} />{tr(v)}</label>)}
+            </div>
           </fieldset>
         </form></div>
       </div>
@@ -277,7 +288,7 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="body" style={{ justifyContent: 'center', padding: '0 16px 16px' }}>
         {empty('icon-lock.svg', 'Please sign in again', "For your security, you're signed out after a long time away. Your health records are safe.",
-          <>{btn(`Send a code to ${masked()}`, 'session-code', { size: 'l' })}{btn('Use a different number', 'session-other', { kind: 'secondary', size: 'l' })}</>)}
+          <>{btn(`Send a code to ${masked()}`, 'session-code', { size: 'l' })}{btn('Use a different number', 'session-other', { kind: 'secondary', size: 'l' })}</>, false, 'h1')}
       </div>
       {homeInd()}
     </div>),
@@ -303,7 +314,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{S.stack.length ? appBar() : null}
       <div className="body" style={{ justifyContent: 'center', padding: '0 16px 16px' }}>
-        {empty('icon-person.svg', S.endTitle, S.endBody, btn('Restart prototype', 'restart', { size: 'l' }), true)}
+        {empty('icon-person.svg', S.endTitle, S.endBody, btn('Restart prototype', 'restart', { size: 'l' }), true, 'h1')}
       </div>
       {homeInd()}
     </div>),
@@ -314,9 +325,9 @@ export function onboarding(step, title, body, card) {
     <div className="screen subtle">
       {statusBar()}
       <div className="body hero-body">
-        <div className="inset"><div className="heading"><h2 className="h-display">{title}</h2><p className="lede">{body}</p></div></div>
+        <div className="inset"><div className="heading"><h1 className="h-display">{title}</h1>{/* W13 */}<p className="lede">{body}</p></div></div>
         <div className="hero-inset"><div className="hero"><img src={`${A}hero.png`} alt="A doctor in a white coat with a stethoscope" />{card}</div></div>
-        <div className="dots" aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(i => <i key={i} className={i === step ? 'on' : ''}></i>)}</div>
+        <div className="dots" role="img" /* A4 */ aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(i => <i key={i} className={i === step ? 'on' : ''}></i>)}</div>
       </div>
       <div className="cta row">{step < 3 ? <>{btn('Skip', 'go:phone', { kind: 'secondary' })}{btn('Next', `go:onb${step + 1}`)}</> : btn('Get started', 'go:phone')}</div>
       {homeInd()}
@@ -326,15 +337,15 @@ export function onboarding(step, title, body, card) {
 export function listItem(icon, title, sub, act) {
   return <button className="list-item" data-act={act}>
     <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>
-    <span className="text"><span className="item-title">{title}</span><span className="body-s">{sub}</span></span>
+    <span className="text"><span className="item-title">{tr(title)}</span><span className="body-s">{tr(sub)}</span></span>
     <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" />
   </button>;
 }
 
-export function empty(icon, title, body, actions, action = false) {
+export function empty(icon, title, body, actions, action = false, H = 'p') { // H: 'h1' when it is the screen's only title (W13)
   return <div className="empty">
     <div className="tile-ic" style={action ? { background: 'var(--surface-icon-neutral-bold)' } : undefined}><img src={`${A}${icon}`} width={action ? 20 : 28} height={action ? 20 : 28} alt="" /></div>
-    <p className="h-s">{title}</p><p className="body-s">{body}</p>
+    <H className="h-s">{tr(title)}</H><p className="body-s">{tr(body)}</p>
     <div className="actions">{actions}</div>
   </div>;
 }
@@ -382,7 +393,7 @@ export function DobSheet() {
   const pk = S.picker, r = pickerRanges(pk);
   pk.y = Math.min(Math.max(pk.y, r.years[0]), r.years.at(-1));
   pk.d = Math.min(pk.d, r.days);
-  useEffect(() => { document.querySelector('#sheet .seg[aria-pressed="true"]')?.focus(); }, []);
+  useEffect(() => { document.getElementById('w-y')?.focus(); }, []); // R25: a date of birth starts at the year
   let conv;
   if (pk.cal === 'AD') { const b = toBS(pk.y, pk.m, pk.d); conv = b ? `That's ${bsText(b)}.` : 'No BS conversion before 2000 BS (1943 AD).'; }
   else { const a = toAD(pk.y, pk.m, pk.d); conv = a ? `That's ${a.date} ${AD_LONG[a.month]} ${a.year} AD.` : ''; }
@@ -399,9 +410,10 @@ export function DobSheet() {
         <div className="wheels">
           <div className="band"></div>
           {/* A wheel rebuilds when its list changes: a new calendar, or a month with a different number of days. */}
-          <Wheel key={`d${pk.cal}${r.days}`} id="w-d" label="Day" items={range(1, r.days)} idx={pk.d - 1} onPick={i => { pk.d = i + 1; paint(); }} />
-          <Wheel key={`m${pk.cal}`} id="w-m" label="Month" items={r.months} idx={pk.m} onPick={i => { pk.m = i; paint(); }} />
+          {/* R25: Year first, then Month and Day */}
           <Wheel key={`y${pk.cal}`} id="w-y" label="Year" items={r.years} idx={r.years.indexOf(pk.y)} onPick={i => { pk.y = r.years[i]; paint(); }} />
+          <Wheel key={`m${pk.cal}`} id="w-m" label="Month" items={r.months} idx={pk.m} onPick={i => { pk.m = i; paint(); }} />
+          <Wheel key={`d${pk.cal}${r.days}`} id="w-d" label="Day" items={range(1, r.days)} idx={pk.d - 1} onPick={i => { pk.d = i + 1; paint(); }} />
         </div>
         <div className="conversion" id="conv" aria-live="polite">{conv}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{btn('Done', 'picker-done')}{btn('Cancel', 'close-picker', { kind: 'secondary' })}</div>
@@ -496,11 +508,12 @@ export function verify() {
   if (S.code.length < 6 || S.codeState === 'expired') return;
   if (S.code === CODE_OK && S.codeFor === 'newphone') { // the old number is told by SMS too
     Object.assign(S, { phone: S.newPhone, phoneChanged: true, codeFor: null, tries: 3 });
+    toast('Mobile number changed.'); // W03: the shared live region announces it
     return backTo('pfdetails');
   }
-  if (S.code === CODE_OK && S.codeFor === 'addperson') { S.codeFor = null; S.tries = 3; return go('whos', { replace: true }); } // the other records on this number
+  if (S.code === CODE_OK && S.codeFor === 'addperson') { S.codeFor = null; S.tries = 3; return go(family().length ? 'whos' : 'profile', { replace: true }); } // the other records on this number (F22)
   if (S.code === CODE_OK && S.codeFor === 'pinreset') { S.tries = 3; S.codeFor = null; S.pinEntry = ''; return go('pinnew', { replace: true }); } // PIN reset (health.jsx)
-  if (S.code === CODE_OK) { S.tries = 3; S.signedIn = true; S.stack = []; return go('whos', { replace: true }); }
+  if (S.code === CODE_OK) { S.tries = 3; S.signedIn = true; S.stack = []; return go(family().length ? 'whos' : 'profile', { replace: true }); } // F22/R22/T22: no records, nobody else's names
   if (S.code === CODE_EXPIRED) { S.codeState = 'expired'; return render(); }
   S.tries--;
   if (S.tries <= 0) { S.stack = ['splash', 'phone']; return go('locked', { replace: true }); }
@@ -586,9 +599,22 @@ FLOW.push(
 );
 export let ALL = [];
 
+// Decision (reload): a reload keeps the drafts and leaves staff in their own app, signed in. sessionStorage, this tab only;
+// real persistence is out of scope. Drafts: the phone/desktop visit (drKept), the reception walk-in (wk), the booking reason.
+const KEEP = 'clinica-reload';
 export function boot() {
   ALL = FLOW.flatMap(([, items]) => items); // each screen's caption, for the note; the presets are test fixtures
   start('full');
+  let k = null;
+  try { if (performance.getEntriesByType('navigation')[0]?.type === 'reload') k = JSON.parse(sessionStorage.getItem(KEEP)); } catch { k = null; }
+  if (k) {
+    if (k.app !== 'patient') start(k.app);
+    Object.assign(S, { drKept: k.drKept || {}, wk: k.wk || S.wk, reason: k.reason || '' });
+    if (k.app === 'staff' && k.stMe) { staffTab = k.staffTab || staffTab; S.stMe = k.stMe; S.screen = stHome(); }
+    if ((k.app === 'doctor' || k.app === 'desk') && k.drSigned) Object.assign(S, { drSigned: true, screen: k.app === 'doctor' ? 'dqueue' : 'kqueue' });
+    render();
+  }
+  addEventListener('pagehide', () => { try { sessionStorage.setItem(KEEP, JSON.stringify({ app: S.app, stMe: S.stMe, staffTab, drSigned: S.drSigned, drKept: S.drKept, wk: S.wk, reason: S.reason })); } catch { /* storage blocked: start fresh */ } });
 }
 
 // Two ways in: a returning patient with everything, or a new patient with nothing yet.
@@ -650,16 +676,48 @@ export function pickCase(c) {
 export const setS = e => { const el = e.target; S[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value; render(); }; // panel demo controls
 
 // ---------- the page: role tabs, the phone (or desktop) stage, case tabs and the edge-case panel ----------
+// W03/W13/W17: the screen's heading takes focus when the screen changes. A screen without an h1 (a device stand-in) focuses its root.
+export function focusHeading() {
+  const ph = $phone(), h = ph?.querySelector('h1') || ph?.querySelector('.screen');
+  if (!h) return;
+  if (h.tabIndex < 0 && !h.hasAttribute('tabindex')) h.tabIndex = -1;
+  h.focus();
+}
 export function Phone() {
-  const ref = useRef();
+  const ref = useRef(), was = useRef({});
   useLayoutEffect(() => { // after every commit: per-screen behaviour on a full render, and the app bar's scroll seam
+    const ae = document.activeElement; // before inert below can blur it
     if (takeRemount()) mount[S.screen]?.();
-    const body = ref.current.querySelector('.body'), bar = ref.current.querySelector('.appbar');
+    const ph = ref.current, body = ph.querySelector('.body'), bar = ph.querySelector('.appbar');
     if (body && bar) body.onscroll = () => bar.classList.toggle('seam', body.scrollTop > 0); // Scrolled: a seam, not a shadow
+    // A5: a scrolling screen body can be reached and scrolled by keyboard, and says what it is.
+    ph.querySelectorAll('.body').forEach(b => {
+      if (b.scrollHeight > b.clientHeight && getComputedStyle(b).overflowY !== 'hidden') {
+        b.tabIndex = 0; b.setAttribute('role', 'region'); b.setAttribute('aria-label', ph.querySelector('h1')?.textContent || 'Screen');
+      } else if (b.hasAttribute('tabindex')) { b.removeAttribute('tabindex'); b.removeAttribute('role'); b.removeAttribute('aria-label'); }
+    });
+    // A6: the stage is the main landmark only when the app hasn't drawn its own <main>.
+    if (ph.querySelector('main')) ph.parentElement.removeAttribute('role'); else ph.parentElement.setAttribute('role', 'main');
+    // V05: everything behind an open sheet or dialog is inert, so it can't be tabbed to, tapped by voice or read.
+    ph.querySelectorAll('[data-inert]').forEach(e => { e.inert = false; e.removeAttribute('data-inert'); });
+    const dlg = ph.querySelector('[aria-modal="true"]');
+    if (dlg) for (let el = dlg; el !== ph; el = el.parentElement) for (const sib of el.parentElement.children)
+      if (sib !== el && !sib.matches('.scrim, .sheet-home, .toast-region')) { sib.inert = true; sib.setAttribute('data-inert', ''); }
+    // W03: focus moves only when the screen, the app or a sheet changes — never on a paint while typing.
+    const w = was.current, key = `${S.app}/${S.screen}`;
+    if (dlg) { // a sheet opened (or replaced another): focus goes into it unless it focused something itself
+      if (!w.dlg) w.trigger = ae;
+      if (!dlg.contains(document.activeElement) && !document.activeElement?.closest('.toast-region')) { dlg.tabIndex = -1; dlg.focus(); }
+    } else if (w.key && key !== w.key) { // a new screen: its heading, unless its mount hook focused a field,
+      const cur = document.activeElement; // or focus is out on the page's own controls (role tabs, skip link, edge-case panel)
+      if (!(cur !== ae && ph.contains(cur)) && (!ae || ae === document.body || ph.contains(ae))) focusHeading();
+    } else if (w.dlg) { // a sheet closed on the same screen: back to what opened it
+      const t = w.trigger; if (t?.isConnected && ph.contains(t)) t.focus(); else focusHeading();
+    }
+    w.dlg = !!dlg; w.key = key;
   });
-  const desk = S.app === 'desk' || S.app === 'staff'; // the desktop apps (desk.jsx, staff.jsx) render at 1440 × 900
-  // The desktop apps are drawn at their real size and scaled to fit between the tab bars; the phones are 1:1.
-  const k = desk ? Math.max(.3, Math.min(1, (window.innerWidth - 48) / 1440, (window.innerHeight - 160) / 900)) : 1;
+  // V04: the desktop apps (desk.jsx, staff.jsx) are laid out responsively in CSS (styles.css .phone.desk), not scaled to fit.
+  const desk = S.app === 'desk' || S.app === 'staff';
   const el = SCREENS[S.screen](), ov = OVERLAY[S.sheet]?.(); // bottom sheets any screen can open (care.jsx)
   const screen = cloneElement(el, { key: S.screen }, ...[].concat(el.props.children), ...(ov ? [ov] : []));
   const onClick = e => {
@@ -678,10 +736,13 @@ export function Phone() {
     phoneListeners.keydown.forEach(f => f(e));
   };
   return (
-    <div className={`phone${desk ? ' desk' : ''}`} id="phone" aria-live="polite" ref={ref} style={{ '--k': k.toFixed(3) }} onClick={onClick} onKeyDown={onKeyDown}
+    <div className={`phone${desk ? ' desk' : ''}`} id="phone" ref={ref} onClick={onClick} onKeyDown={onKeyDown}
       onSubmit={e => e.preventDefault()}>{/* a form never navigates; buttons inside one would submit it */}
       {screen}
       {S.picker && <DobSheet />}
+      {/* F24/R20/T11/W07/V09: one live region for success toasts (core.jsx toast()), always present so it's announced */}
+      <div className="toast-region" role="status">{S.toast ? <div className="toast"><p>{S.toast.msg}</p>
+        {S.toast.action ? <button className="toast-act" data-act={S.toast.action[1]}>{S.toast.action[0]}</button> : null}</div> : null}</div>
     </div>);
 }
 
@@ -702,20 +763,22 @@ export const pnChoose = (key, text, options) => pnField(text, <select data-s={ke
 export function Shell() {
   const [, force] = useReducer(x => x + 1, 0);
   useEffect(() => subscribe(force), []);
-  useEffect(() => { window.addEventListener('resize', paint); return () => window.removeEventListener('resize', paint); }, []);
   const openAsRef = useRef();
-  const tab = S.app !== 'staff' ? S.app : ({ admin: 'admin', desk: 'reception', hr: 'hr' })[stMe()?.access] || staffTab;
+  const tab = S.app !== 'staff' ? S.app : ({ admin: 'admin', trustee: 'admin', desk: 'reception', hr: 'hr' })[stMe()?.access] || staffTab; // T23: a trustee signs in under Top Level Management
   const kind = casesOpen ? 'edge' : (S.app === 'patient' ? S.careEmpty : S.app === 'staff' ? S.stHoliday : S.drNoPatients) ? 'empty' : 'full';
   const roleTab = (t, l) => <button className="tab" data-tab={t} aria-current={tab === t} onClick={() => pickTab(t)}>{l}</button>;
   const caseTab = (c, l) => <button className="tab" data-case={c} aria-current={kind === c} onClick={() => pickCase(c)}>{l}</button>;
   return (
     <div className="shell">
+      {/* W18: skip the role tabs straight to the app's heading */}
+      <a className="skip" href="#phone" onClick={e => { e.preventDefault(); focusHeading(); }}>Skip to the app</a>
       <nav className="tabs" aria-label="Who's using Clinica">
         {roleTab('patient', 'Patient')}{roleTab('doctor', 'Doctor (Mobile)')}{roleTab('desk', 'Doctor Dashboard')}
         {roleTab('hr', 'HR Manager')}{roleTab('reception', 'Reception')}{roleTab('admin', 'Top Level Management')}
       </nav>
 
-      <main className="stage"><Phone /></main>
+      {/* A6: a div, so each app's own <main> is the only one (Phone sets role="main" here when the app has none) */}
+      <div className="stage"><Phone /></div>
 
       <nav className="tabs" aria-label="Cases">
         {caseTab('full', 'Full flow')}{caseTab('empty', 'Empty cases')}{caseTab('edge', 'Edge cases')}
@@ -767,7 +830,7 @@ export function Shell() {
           <ul>
             <li>Every tab shares the same day: what happens here shows on the patient's phone too.</li>
             {S.app === 'staff'
-              ? <li>Admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>. Password <code>clinica</code>.</li>
+              ? <li>Admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>, trustee (read-only) <code>CH-TRS-01</code>. Password <code>clinica</code>.</li>
               : <li>Doctor staff ID <code>CH-0231</code>. Password <code>clinica</code>.</li>}
           </ul>
         </details>

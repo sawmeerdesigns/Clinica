@@ -6,7 +6,7 @@ import { btn, homeInd, statusBar } from './app.jsx';
 import { ask, say, src, words } from './ask.jsx';
 import { bar, label, row, rows, tag, when } from './booking.jsx';
 import { frame, notifRow } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, fresh, go, later, mount, render, sepJoin } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, fresh, go, later, mount, render, sepJoin, toast, tr } from './core.jsx';
 import { field, firstNum, lbl, list, lowStock, openHealth, saveMed } from './health.jsx';
 import { checks, chip, clock, img, now } from './staff.jsx';
 
@@ -63,7 +63,7 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="appbar chat hug">
         <div className="side"><a href="#" className="back-l" data-act="back"><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>Medicines</a></div>
-        <div className="c-title">Add a medicine</div><div className="side end"><div className="slot"></div></div>
+        <h1 className="c-title">Add a medicine</h1>{/* W13 */}<div className="side end"><div className="slot"></div></div>
       </div>
       <div className="body g20">
         <div className="inset"><div className="greet2"><p className="g1">Tell me about your medicine</p><p className="lede">Say the name, strength, how much you have, and how often you take it.</p></div>
@@ -95,9 +95,9 @@ Object.assign(SCREENS, {
       {low ? <div className="mt-alert" role="status"><p className="mt-at"><img src={`${A}icon-warning-error-18.svg`} width="18" height="18" alt="" />{m.left ? `Only ${m.left} ${m.unit} remain` : `No ${m.unit} left`}</p>
         <p>Please restock soon — missing doses can affect your recovery.</p></div> : null}
       <div className="mt-stats">{[[m.since, 'Tracking since'], [m.sched, 'Schedule'], [`${m.left} ${m.unit}`, 'Stock left', low]].map(([v, l, red]) =>
-        <div key={l}><p className={`mt-v ${red ? 'low' : ''}`}>{v}</p><p className="body-s">{l}</p></div>)}</div>
-      {m.each ? <div className="stack8"><p className="mt-h">Instructions</p><p className="mt-instr"><img src={`${A}icon-schedule-secondary-16.svg`} width="16" height="16" alt="" />Take {m.each}{m.often ? `, ${m.often.toLowerCase()}` : ''}</p></div> : null}
-    </div>, { cta: <><button className="btn primary l" data-act="mt-restock"><img src={`${A}icon-add-white-24.svg`} width="24" height="24" alt="" />Add medicine</button>
+        <div key={l}><p className={`mt-v ${red ? 'low' : ''}`}>{v}</p><p className="body-s">{tr(l)}</p></div>)}</div>{/* F15/R12 */}
+      {m.each ? <div className="stack8"><p className="mt-h">{tr('Instructions')}</p><p className="mt-instr"><img src={`${A}icon-schedule-secondary-16.svg`} width="16" height="16" alt="" />Take {m.each}{m.often ? `, ${m.often.toLowerCase()}` : ''}</p></div> : null}
+    </div>, { cta: <><button className="btn primary l" data-act="mt-restock"><img src={`${A}icon-add-white-24.svg`} width="24" height="24" alt="" />{tr('Add medicine')}</button>
       {btn(out ? 'None left to take' : 'I took a dose', 'mt-dose', { kind: 'secondary', size: 'l', disabled: out })}</> });
   },
 
@@ -106,8 +106,8 @@ Object.assign(SCREENS, {
     return frame(m.title, <div className="inset stack24">
       <div className="mt-stock"><p className={`mt-n ${low ? 'low' : ''}`}>{m.left}</p><p className="lede">{m.unit} left</p>{low ? <p className="mt-low">Running low — buy more soon</p> : null}</div>
       <div className="mt-rows">{[['How much you take', m.each], ['How often', m.often], ['Last taken', 'Just now'], ['Added', m.since === 'Today' ? 'Today' : `${m.since} ago`]]
-        .map(([k, v], i) => <Fragment key={k}>{i > 0 && <div className="mt-sep" aria-hidden="true"></div>}<div className="mt-kv"><span>{k}</span><b>{v || '—'}</b></div></Fragment>)}</div>
-    </div>, { cta: <p className="mt-done" role="status"><img src={`${A}icon-check-circle-success-20.svg`} width="20" height="20" alt="" />Dose logged</p> });
+        .map(([k, v], i) => <Fragment key={k}>{i > 0 && <div className="mt-sep" aria-hidden="true"></div>}<div className="mt-kv"><span>{tr(k)}</span><b>{v || '—'}</b></div></Fragment>)}</div>
+    </div>, { cta: <p className="mt-done"><img src={`${A}icon-check-circle-success-20.svg`} width="20" height="20" alt="" />{tr('Dose logged')}</p> });
   },
 
   mtrestock: () => frame(`Restock ${med().name || med().title}`, <div className="inset">
@@ -118,7 +118,7 @@ Object.assign(SCREENS, {
   // The phone's lock screen, not an app screen.
   mtpush: () => (
     <a href="#" className="screen push" data-act="push-open" aria-label="Clinica notification: Paracetamol is almost out of stock. Opens the medicine.">
-      <div className="p-time"><p className="p-clock">9:41</p><p className="p-date">Saturday, 6 September</p></div>
+      <div className="p-time"><p className="p-clock">9:41</p><p className="p-date">{new Date(2026, 8, 6).toLocaleDateString('en-US', { weekday: 'long' })}, 6 September</p>{/* F20: weekday from the date */}</div>
       <div className="p-card">
         <div className="p-head"><span className="p-app"><img src={`${A}icon-medication-white-14.svg`} width="14" height="14" alt="" /></span><span>CLINICA</span><span className="p-now">now</span></div>
         <p className="p-title">Paracetamol is almost out of stock</p><p className="p-body">Only 6 tablets left. Restock before you run out.</p>
@@ -142,7 +142,7 @@ Object.assign(ACTIONS, {
     go('mtreview', { replace: true });
   },
   'mt-restock': () => { const m = med(); S.mform = { name: m.name, form: m.form, strength: m.strength, qty: '', each: m.each, often: m.often }; S.mErr = {}; go('mtrestock'); },
-  'mt-dose': () => { const m = med(); m.left = Math.max(0, m.left - perDose(m)); go('mtdose', { replace: true }); },
+  'mt-dose': () => { const m = med(); m.left = Math.max(0, m.left - perDose(m)); toast('Dose logged.'); go('mtdose', { replace: true }); }, // W03
   'push-open': () => { S.medI = 0; openHealth('mtmed'); }, // through the Health lock
 });
 
@@ -163,7 +163,7 @@ FLOW.push(['Medicines — tracker', [
   ['MT04', 'Review what the assistant heard', 'After speaking', `${NO_CAP} Filled in from what was said, and every field stays editable. Nothing is saved until the patient saves it.`, () => ({ screen: 'mtreview', stack: MS, mform: { ...HEARD }, ...MU })],
   ['MT05', 'Medicine — Paracetamol', 'Taps a medicine', `${NO_CAP} The ring, the warning in words, and the schedule. 'Add medicine' restocks this one; 'I took a dose' logs it.`, () => ({ screen: 'mtmed', stack: MS, medI: 0, ...MU })],
   ['MT06', 'Medicine — dose logged', 'I took a dose', `${NO_CAP} The count goes down by one dose and says so. Back returns to the list.`, () => ({ screen: 'mtdose', stack: MS, medI: 0, meds: fresh().meds.map((m, i) => i ? m : { ...m, left: 5 }), ...MU })],
-  ['MT07', 'Medicine alerts', 'From the bell on Home', `${NO_CAP} The Notification centre with medicine alerts. Each opens its medicine through the Health lock. Figma names the medicines in the titles, which the Content/Notification rule forbids on a shared phone — kept as designed, flagged.`, () => ({ screen: 'notifs', stack: ['home'], notifs: MED_NOTIFS.map(n => ({ ...n })) })],
+  ['MT07', 'Medicine alerts', 'From the bell on Home', `${NO_CAP} The Notification centre with medicine alerts. Each opens its medicine through the Health lock. As with lab reports (W10), the in-app centre names the medicine; the lock screen (NM03) never does — there it reads 'Time for your medicine'.`, () => ({ screen: 'notifs', stack: ['home'], notifs: MED_NOTIFS.map(n => ({ ...n })) })],
   ['MT08', 'Restock Paracetamol', "From 05 — 'Add medicine'", 'Same fields as adding fresh — but name, form, and strength are already known, so only the new count needs entering.', () => ({ screen: 'mtrestock', stack: [...MS, 'mtmed'], medI: 0, mform: { name: 'Paracetamol', form: 'Tablet', strength: '500 mg', qty: '', each: '1 tablet', often: 'Twice a day' }, ...MU })],
   ['MT09', 'Push notification — low stock', 'On the lock screen', 'What the OS notification looks like when stock runs low — tapping it opens the medicine directly (through the Health lock).', () => ({ screen: 'mtpush' })],
 ]]);

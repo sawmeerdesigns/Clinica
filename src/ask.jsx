@@ -5,9 +5,10 @@ import { Fragment, createElement } from 'react';
 import { Phone, btn, empty, heading, homeInd, start, statusBar, support } from './app.jsx';
 import { DOCTORS, bar, iconBtn, label, navBar, row, rows, tag, when } from './booking.jsx';
 import { emergency, notice, openCal } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, extraState, go, mount, paint, render } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, extraState, go, mount, paint, render, tr } from './core.jsx';
 import { RX, RX2, VISITS, centred, field, lbl, lead, medText, unlock } from './health.jsx';
 import { chip, img, now, patients, person, results } from './staff.jsx';
+import { FU_DAY, dayLabel, isoOf, week } from './data.js';
 
 export const EXTRA_STATE_ASK = () => ({
   askSeen: false, chat: [], askUnlocked: false, askInput: '', listening: false, offline: false,
@@ -21,7 +22,8 @@ export const CHIPS = [
   ['icon-document-action-18.svg', 'Summarise my last visit'],
   ['icon-calendar-action-18.svg', "What's coming up?"],
 ];
-export const FOLLOW_DAYS = [['Wed', 'Sep 10'], ['Thu', 'Sep 11'], ['Fri', 'Sep 12'], ['Sat', 'Sep 13', true], ['Sun', 'Sep 14'], ['Mon', 'Sep 15'], ['Tue', 'Sep 16']];
+// F20: weekday, date, closed, iso — from real dates, the week from Sep 10 (Saturday closed).
+export const FOLLOW_DAYS = week(new Date(2026, 8, 10)).map(x => [x.wd, x.date, x.closed, x.iso]);
 export const FOLLOW_TIMES = [['9:00 AM', true], ['10:30 AM'], ['11:00 AM'], ['3:30 PM'], ['4:00 PM', true], ['4:30 PM']];
 export const HEALTH_KEYS = ['lastvisit', 'visit12', 'which', 'rx', 'report', 'result', 'reviewing']; // these open through the lock
 export const FB_KEYS = ['coming', 'where', 'lastvisit', 'visit12', 'rx', 'prepare', 'report', 'result', 'reviewing', 'insurance', 'unknown']; // answers that can be rated
@@ -29,26 +31,27 @@ export const FB_KEYS = ['coming', 'where', 'lastvisit', 'visit12', 'rx', 'prepar
 // ---------- pieces ----------
 export const src = (icon, text) => <p className="source"><img src={`${A}${icon}`} width="16" height="16" alt="" />{text}</p>;
 export const acts = (...b) => createElement('div', { className: 'ans-acts' }, ...b);
-export const obtn = (label, act) => <button className="btn secondary l hug" data-act={act}>{label}</button>;
-export const ocall = label => <a className="btn secondary l hug" href="tel:+97710000000">{label}</a>;
+export const obtn = (label, act) => <button className="btn secondary l hug" data-act={act}>{tr(label)}</button>; // Figma sync: action labels follow the language
+export const ocall = label => <a className="btn secondary l hug" href="tel:+97710000000">{tr(label)}</a>;
 export const say = t => <p className="ans-p">{t}</p>;
 export const chipRow = items => <div className="chips">{items.map(([i, t, a]) => { const ic = i ? <img src={`${A}${i}`} width="18" height="18" alt="" /> : null;
-  return a.startsWith('tel:') ? <a key={t} className="chip" href={a}>{ic}{t}</a> : <button key={t} className="chip" data-act={a}>{ic}{t}</button>; })}</div>;
+  return a.startsWith('tel:') ? <a key={t} className="chip" href={a}>{ic}{tr(t)}</a> : <button key={t} className="chip" data-act={a}>{ic}{tr(t)}</button>; })}</div>;
 export const words = (who, text) => <div className="words"><span className="bar"></span><div><p className="w-who">{who} wrote</p><p className="w-text">{text}</p></div></div>;
 export const noteCard = (icon, title, body, cls = '', extra = null) => <div className={`card notice-row ${cls}`}>{icon ? lead(icon) : null}
   <div className="nr-t"><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div></div>;
-export const visitCard = (when, where, act) => { const T = act ? 'button' : 'div'; return <T className="card appt" data-act={act || undefined}>
-  <span className="avatar l">PS</span>
-  <span className="appt-t"><span className="h-s">Dr. Priya Sharma</span><span className="when">{when}</span><span className="where">{where}</span></span>
+// F02/R04/T04/V03: the card names the booked doctor (the follow-up is always Dr. Sharma's).
+export const visitCard = (when, where, act, doc = 'ps') => { const T = act ? 'button' : 'div', d = DOCTORS[doc]; return <T className="card appt" data-act={act || undefined}>
+  <span className="avatar l" aria-hidden="true">{d.ini}</span>
+  <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when}</span><span className="where">{where}</span></span>
   {act ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}</T>; };
-export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today'); };
+export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today', a.doc); };
 export const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 2', S.followup === f && 'appt:fu'); // an old snapshot links nowhere
 
 // App bar, Chat shape: back arrow and its label as one tap target, title centred. The Assistant home (no action) shows the arrow alone (Figma 633:30822).
 export const chatBar = (action = true) => (
   <div className="appbar chat">
     <div className="side"><a href="#" className="back-l" data-act="home" aria-label={action ? undefined : 'Back'}><span className="icon-btn"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></span>{action ? 'Home' : null}</a></div>
-    <div className="c-title">Ask</div>
+    <h1 className="c-title">Ask</h1>{/* W13 */}
     <div className="side end">{action ? iconBtn('icon-add-24.svg', 'New conversation', 'ask-new') : <div className="slot"></div>}</div>
   </div>);
 
@@ -202,7 +205,7 @@ Object.assign(SCREENS, {
       {statusBar()}{bar({ back: false, title: 'Ask' })}
       <div className="body g20">
         <div className="inset">{noteCard('', 'Messages is now Ask', 'To reach a person at the clinic, call reception.', 'info')}</div>
-        {heading('Ask about your care', 'Find, summarise and prepare, from your own records at City Hospital.')}
+        {heading('Ask about your care', 'Find, summarise and prepare, from your own records at City Hospital.', undefined, 'h2')}
         {rows([row('lt-calendar.svg', "What's coming up", 'And where to go when you arrive'), row('lt-document.svg', 'What your doctor told you', 'In their own words'),
           row('lt-clipboard.svg', 'What to do next', 'And how to prepare for a visit')])}
         <div className="inset"><p className="ask-limit">It isn't a doctor. It can't check symptoms or give medical advice — for that, call the clinic, or 102 in an emergency.</p></div>
@@ -251,7 +254,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Book follow-up' })}
       <div className="body g20">
-        <div className="inset"><div className="card"><span className="avatar">PS</span>
+        <div className="inset"><div className="card"><span className="avatar" aria-hidden="true">PS</span>
           <span className="text doctor"><span className="h-s">Dr. Priya Sharma</span><span className="spec">General medicine</span>{tag('Follow-up from your Aug 28 visit', 'neutral')}</span></div></div>
         <div className="inset stack8">{lbl('Choose a day')}
           <div className="hscroll days" role="radiogroup" aria-label="Day">{FOLLOW_DAYS.map(([d, dt, closed], i) =>
@@ -269,7 +272,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Add a question' })}
       <div className="body g20">
-        {heading('What would you like to ask Dr. Sharma?', "Write it down now so you don't forget it at your visit.")}
+        {heading('What would you like to ask Dr. Sharma?', "Write it down now so you don't forget it at your visit.", undefined, 'h2')}
         <div className="inset"><div className="field-wrap">
           <label className="label" htmlFor="askq" style={{ lineHeight: '20px' }}>Your question</label>
           <div className="field textarea"><textarea id="askq" value={S.askQuestion} onChange={e => { S.askQuestion = e.target.value; paint(); }}></textarea></div>
@@ -323,7 +326,7 @@ Object.assign(ACTIONS, {
   'ask-time': arg => { S.askTime = arg; render(); },
   'ask-booked': () => { // the patient books it; the Assistant never books on its own
     const [wd, date] = FOLLOW_DAYS[S.askDay];
-    S.followup = { day: `${wd}, ${date}`, time: S.askTime, iso: [2026, 8, 10 + S.askDay] };
+    S.followup = { day: `${wd}, ${date}`, time: S.askTime, iso: FOLLOW_DAYS[S.askDay][3] }; // F20
     if (S.stack.at(-1) === 'ask') S.chat.push({ q: 'Book follow-up', key: 'booked', fu: S.followup }); // also booked from Care, C10
     S.cal.fu = false;
     back(); // back to the conversation, which now records the booking
@@ -351,7 +354,7 @@ Object.assign(NUM, {
 
 export const T = (q, key, extra = {}) => ({ q, key, fb: 'hide', ...extra }); // Figma's A-screens predate the rating
 export const ASK = { screen: 'ask', askSeen: true };
-export const FU = { day: 'Thu, Sep 11', time: '10:30 AM', iso: [2026, 8, 11] };
+export const FU = { day: dayLabel(FU_DAY), time: '10:30 AM', iso: isoOf(FU_DAY) }; // F20
 FLOW.push(
   ['Ask — starting', [
     ['A01', 'First open', 'First time the tab opens', "Says what it does and what it isn't. Existing users learn Messages is now Ask — and how to reach a person.", () => ({ screen: 'askfirst' })],

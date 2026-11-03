@@ -1,15 +1,16 @@
 // Clinica — Health tab: lock and PIN, visits, prescriptions, reports, medicines.
 // Figma: zw3saW6ot26E6gWH20K3ux, section 539:16334. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM)
 // and reuses pieces from booking.jsx (bar, label, tag, rows, callBtn, backTo).
-import { appBar, btn, digits, empty, heading, homeInd, listItem, masked, mmss, start, statusBar, support } from './app.jsx';
+import { RECORDS, appBar, btn, digits, empty, heading, homeInd, listItem, masked, mmss, start, statusBar, support } from './app.jsx';
 import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
 import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
 import { csheet, notice, pinOf, switchTo } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin, toast, tr } from './core.jsx';
 import { labOf } from './doctor.jsx';
 import { med, ring } from './meds.jsx';
 import { openSys } from './more.jsx';
 import { img, now, person, results } from './staff.jsx';
+import { DOCTORS } from './data.js';
 
 export const RX = [
   { name: 'Paracetamol 500 mg', for: 'For fever and headache', how: '1 tablet 3 times a day, after food', dur: 'For 5 days, until Sep 2',
@@ -21,8 +22,9 @@ export const RX = [
 export const RX2 = [{ name: 'Amoxicillin 500 mg', for: 'For the ear infection', how: '1 capsule 3 times a day', dur: 'For 7 days, finished Aug 19' }];
 // Lab reports reach the patient only once a doctor has looked at them.
 export const LABS = {
-  hba1c: { title: 'HbA1c blood test', sub: 'Sep 2, City Hospital lab', month: 'September 2026', date: 'Sep 2, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true,
-    words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Sep 4' },
+  // T28 class: dated before the Aug 28 demo day (it read Sep 2, reviewed Sep 4).
+  hba1c: { title: 'HbA1c blood test', sub: 'Aug 24, City Hospital lab', month: 'August 2026', date: 'Aug 24, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true,
+    words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Aug 26' },
   cbc: { title: 'CBC blood test', sub: 'Aug 28, City Hospital lab', month: 'August 2026', tag: ['Being reviewed', 'neutral'], reviewing: true },
   thyroid: { title: 'Thyroid panel', sub: 'Jul 3, City Hospital lab', month: 'July 2026', date: 'Jul 3, 2026', tag: ['Ready', 'success'], pages: 2,
     words: 'Your thyroid levels are normal. No change to your treatment.', by: 'Reviewed by Dr. Anita Joshi on Jul 5' },
@@ -30,17 +32,18 @@ export const LABS = {
 export const VISITS = {
   aug28: { title: 'Visit on Aug 28', doc: ['PS', 'Dr. Priya Sharma', 'Aug 28, 4:30 PM', 'General medicine, OPD 2'], rx: 'aug28',
     words: 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.' },
-  aug12: { title: 'Visit on Aug 12', doc: ['RS', 'Dr. Ramesh Shrestha', 'Aug 12, 11:00 AM', 'General medicine, OPD 3'], rx: 'aug12',
+  aug12: { title: 'Visit on Aug 12', doc: ['RS', 'Dr. Ramesh Shrestha', 'Aug 12, 11:00 AM', `General medicine, ${DOCTORS.rs.opd}`] /* W20: his OPD from the one doctor list */, rx: 'aug12',
     words: "An ear infection. Take all of the amoxicillin, even once it feels better. Come back if the pain gets worse or there's discharge." },
 };
 export const PRESCRIPTIONS = {
   aug28: { doc: ['PS', 'Dr. Priya Sharma', 'Prescribed Aug 28', 'General medicine, OPD 2'], meds: RX, note: 'Finish the whole course, even if you feel better sooner.' },
-  aug12: { doc: ['RS', 'Dr. Ramesh Shrestha', 'Prescribed Aug 12', 'General medicine, OPD 3'], meds: RX2, note: 'Take all of it, even once it feels better.', finished: 'Aug 19' },
+  aug12: { doc: ['RS', 'Dr. Ramesh Shrestha', 'Prescribed Aug 12', `General medicine, ${DOCTORS.rs.opd}`] /* W20: his OPD from the one doctor list */, meds: RX2, note: 'Take all of it, even once it feels better.', finished: 'Aug 19' },
 };
 
 extraState(() => ({
   unlocked: false, afterUnlock: null, healthEmpty: false, lockWhy: null, fingerChanged: false, pinChanged: false,
-  labs: ['hba1c', 'cbc', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false,
+  labs: ['cbc', 'hba1c', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false, // labs newest first: CBC Aug 28, HbA1c Aug 24
+  homeLock: {}, // T22: name → false when that person turned off "Also lock appointments and medicines"
   pin: null, pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, pinTries: 5, pinWait: 30,
   finger: null, bio: null, bioFails: 0, sheet: null, codeFor: null,
   meds: [ // the Medicines tracker's data (meds.jsx)
@@ -55,7 +58,7 @@ extraState(() => ({
 }), ORDER.health);
 
 // ---------- pieces ----------
-export const lbl = t => <p className="sec-label lh20">{t}</p>;
+export const lbl = t => <p className="sec-label lh20">{tr(t)}</p>; // F15/R12
 export const chev = <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" />;
 export const lead = icon => <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>;
 export const list = items => <div className="list">{sepJoin(items)}</div>;
@@ -67,7 +70,7 @@ export const medRow = (m, act) => act
   : <div className="list-item static">{lead('lt-rx.svg')}{medText(m)}</div>;
 
 export const docCard = (ini, name, l2, l3) => <div className="card appt">
-  <span className="avatar l">{ini}</span>
+  <span className="avatar l" aria-hidden="true">{ini}</span>
   <span className="appt-t"><span className="h-s">{name}</span><span className="when">{l2}</span><span className="where">{l3}</span></span></div>;
 
 export const reportRow = (title, sub, status, act) => <button className="list-item" data-act={act}>{lead('lt-lab.svg')}
@@ -76,8 +79,9 @@ export const reportRow = (title, sub, status, act) => <button className="list-it
 export const centred = inner => <div className="body" style={{ justifyContent: 'center' }}>{inner}</div>;
 
 // ---------- PIN ----------
-export const pinDots = (n, err) => <div className="pin-dots" role="img" aria-label={err ? 'PIN did not match' : `${n} of 4 digits entered`}>
-  {[0, 1, 2, 3].map(i => <span key={i} className={`dot ${err ? 'err' : i < n ? 'on' : ''}`}></span>)}</div>;
+export const pinDots = (n, err) => <><div className="pin-dots" role="img" aria-label={err ? 'PIN did not match' : `${n} of 4 digits entered`}>
+  {[0, 1, 2, 3].map(i => <span key={i} className={`dot ${err ? 'err' : i < n ? 'on' : ''}`}></span>)}</div>
+  <p className="vh" aria-live="polite">{n && !err ? `${n} of 4 digits entered` : ''}</p></>; // R26: each digit is announced
 export const keypad = () => <div className="inset"><div className="keypad" aria-label="PIN keypad">
   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <button key={d} className="key" data-act={`pin-digit:${d}`}>{d}</button>)}
   <span className="key blank"></span><button className="key" data-act="pin-digit:0">0</button>
@@ -119,12 +123,12 @@ export const bioSheet = () => {
   return <>
   <div className="scrim" data-act="bio-cancel"></div>
   <div className="bio-sheet" role="dialog" aria-modal="true" aria-labelledby="bio-t">
-    <p className="cs-t" id="bio-t">Unlock your health records</p>
+    <p className="cs-t" id="bio-t">{tr('Unlock your health records')}</p>{/* Figma sync: the fingerprint sheet in Nepali */}
     <p className="body-s">Clinica</p>
-    <button className={`sensor ${fail ? 'err' : ''}`} data-act="bio-touch" aria-label="Fingerprint sensor">
+    <button className={`sensor ${fail ? 'err' : ''}`} data-act="bio-touch" aria-label={tr('Fingerprint sensor')}>
       <img src={`${A}icon-fingerprint-40${fail ? '-error' : ''}.svg`} width="40" height="40" alt="" /></button>
-    <p className={fail ? 'bio-err' : 'body-s'} role="status">{fail ? 'Not recognised. Try again.' : 'Touch the fingerprint sensor'}</p>
-    <button className="btn secondary" data-act="bio-pin">Use PIN instead</button>
+    <p className={fail ? 'bio-err' : 'body-s'} role="status">{tr(fail ? 'Not recognised. Try again.' : 'Touch the fingerprint sensor')}</p>
+    <button className="btn secondary" data-act="bio-pin">{tr('Use PIN instead')}</button>
   </div><div className="sheet-home"></div></>;
 };
 
@@ -140,7 +144,7 @@ export function perDayOf(often, each) {
 export function field(key, labelText, ph) {
   const err = S.mErr[key];
   return <div key={key} className="field-wrap">
-    <label className="label" htmlFor={`mf-${key}`}>{labelText}</label>
+    <label className="label" htmlFor={`mf-${key}`}>{tr(labelText)}</label>
     <div className={`field ${err ? 'err' : ''}`}><input id={`mf-${key}`} data-f={key} placeholder={ph} value={S.mform[key] || ''}
       onChange={e => { S.mform[key] = e.target.value; delete S.mErr[key]; paint(); }} /></div>
     {err ? support(err, 'err') : null}
@@ -260,7 +264,7 @@ Object.assign(SCREENS, {
         <div className="inset stack8">{lbl("Doctor's note")}<p className="note-body">{r.note}</p></div>
       </div>
       <div className="cta">{r.finished // a finished course isn't handed over at a counter
-        ? <p className="body-s">This course finished on {r.finished}.</p> : <button className="btn secondary" data-act="go:hpharm">Show to pharmacist</button>}</div>
+        ? <p className="body-s">This course finished on {r.finished}.</p> : <button className="btn secondary" data-act="go:hpharm">{tr('Show to pharmacist')}</button>}</div>
       {homeInd()}
     </div>);
   },
@@ -274,7 +278,7 @@ Object.assign(SCREENS, {
         <div className="rx-list">{RX.map(m => <div key={m.name} className="rx-line"><p className="rx-n">{m.name}</p><p className="rx-d">{m.form}</p><p className="rx-q">{m.disp}</p></div>)}</div>
         <div className="stack6"><p className="rx-ref">Prescription no. RX-0828-4821</p><p className="body-s">This screen stays on while it's open.</p></div>
       </div>
-      <div className="cta"><button className="btn secondary" data-act="back">Done</button></div>
+      <div className="cta"><button className="btn secondary" data-act="back">{tr('Done')}</button></div>
       {homeInd()}
     </div>),
 
@@ -304,11 +308,11 @@ Object.assign(SCREENS, {
         <div className="inset stack8">{lbl('What your doctor says')}
           <p className="note-body">{l.words}</p>
           <p className="body-s tertiary">{l.by}</p></div>
-        {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'doctor:ps', { size: 'l' }))}</div> : null}
+        {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'report-fu', { size: 'l' }))}</div> : null}{/* W11 */}
         <div className="inset stack8">{lbl('Report')}
           <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{l.title} report</span><span className="body-s">PDF, {l.pages} page{l.pages > 1 ? 's' : ''}</span></span>{chev}</button></div>
       </div>
-      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />Download report</button></div>
+      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />{tr('Download report')}</button></div>
       {homeInd()}
     </div>);
   },
@@ -327,7 +331,7 @@ Object.assign(SCREENS, {
         </div>
         <p className="body-s">Page 1 of 1</p>
       </div>
-      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />Download report</button></div>
+      <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />{tr('Download report')}</button></div>
       {homeInd()}
     </div>);
   },
@@ -344,10 +348,10 @@ Object.assign(SCREENS, {
   pincreate: () => pinScreen('Choose a PIN for your health records', "Your phone's own PIN may be known to others who use it. This one is only yours.",
     S.pinMismatch ? errLine(MISMATCH) : null),
   pinconfirm: () => pinScreen('Enter it again', "So we know it's right."),
-  pin: () => pinScreen(...({ pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
-      hreport: ['Enter your PIN', 'To open your lab report.'] }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
+  pin: () => pinScreen(...(managedBy() ? ['Enter your PIN', `Or ${managedBy().split(' ')[0]}'s own Clinica PIN — she manages this profile.`] : { pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
+      hreport: ['Enter your PIN', 'To open your lab report.'], home: ['Enter your PIN', 'To see your appointments and medicines.'] /* T22 */ }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
     <>{S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
-      <button className="btn secondary l hug" data-act="forgot">Forgot your PIN?</button></>),
+      <button className="btn secondary l hug" data-act="forgot">{tr('Forgot your PIN?')}</button></>),
   pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null),
   pinnewconfirm: () => pinScreen('Enter it again', "So we know it's right."),
 
@@ -357,7 +361,7 @@ Object.assign(SCREENS, {
       <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
         {empty('icon-fingerprint-28.svg', 'Use your fingerprint next time?',
           "It's quicker than your PIN. But anyone whose fingerprint is saved on this phone could open your records too.",
-          <>{btn('Use fingerprint', 'finger:on', { size: 'l' })}{btn('Just use my PIN', 'finger:off', { kind: 'secondary', size: 'l' })}</>)}
+          <>{btn('Use fingerprint', 'finger:on', { size: 'l' })}{btn('Just use my PIN', 'finger:off', { kind: 'secondary', size: 'l' })}</>, false, 'h1')}
       </div>
       {homeInd()}
     </div>),
@@ -367,7 +371,7 @@ Object.assign(SCREENS, {
       {statusBar()}{appBar()}
       <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
         {empty('icon-lock.svg', 'Too many tries', `For your safety, wait before trying again, or reset your PIN with a code sent to ${masked()}.`,
-          btn('Reset with an SMS code', 'forgot', { size: 'l' }))}
+          btn('Reset with an SMS code', 'forgot', { size: 'l' }), false, 'h1')}
         <p className="wait">You can try again in <span id="pinwait">{mmss(S.pinWait)}</span></p>
       </div>
       {homeInd()}
@@ -376,8 +380,11 @@ Object.assign(SCREENS, {
 });
 
 // ---------- behaviour ----------
+// F14/R11: who manages the signed-in person's profile, if anyone (app.jsx RECORDS). Their own PIN opens this person's Health too.
+export const managedBy = () => RECORDS.find(r => r.name === S.fullName)?.managedBy;
+
 export function openHealth(target = 'health') {
-  S.stack = []; S.bio = null; S.sheet = null;
+  S.stack = []; S.bio = null; S.sheet = null; S.lockStack = null;
   S.lockWhy = target === 'hreport' ? 'report' : null; // says why the PIN is being asked for
   if (S.healthEmpty) { S.screen = 'hempty'; return render(); } // nothing to lock yet
   S.afterUnlock = target; S.screen = 'hlocked'; render();       // every time the tab opens
@@ -389,7 +396,9 @@ export function unlock() {
   S.lockWhy = null;
   if (t === 'pinnew') { S.afterUnlock = 'pflock'; S.stack = ['pf', 'pflock']; S.screen = 'pinnew'; return render(); } // Profile › Change PIN, after the current one
   if (t === 'pfphone') { S.stack = ['pf', 'pfdetails']; S.screen = 'phone'; return render(); } // Profile › change number, after the PIN
-  S.stack = t === 'health' || t === 'ask' ? [] : t === 'pflock' ? ['pf'] : t === 'mtmed' ? ['health', 'mtlist'] : t === 'hreport' ? ['health', 'hlabs'] : ['health'];
+  // T22: Home's locked row comes back to Home, with nothing behind it
+  S.stack = t === 'health' || t === 'ask' || t === 'home' ? [] : t === 'pflock' ? ['pf'] : t === 'mtmed' ? ['health', 'mtlist'] : t === 'hreport' ? ['health', 'hlabs'] : ['health'];
+  if (S.lockStack) { S.stack = S.lockStack; S.lockStack = null; } // W16: back where they were when Clinica locked
   S.screen = t;
   if (t === 'ask') return resolveAskLock(); // ask.jsx: the locked answer now shows
   render();
@@ -399,7 +408,8 @@ export function unlock() {
 export const HEALTH_SCREENS = ['health', 'hvisits', 'hvisit', 'hfollow', 'hrx', 'hrxd', 'hpharm', 'hlabs', 'hreport', 'hfile', 'hreviewing', 'mtlist', 'mtmed', 'mtdose'];
 document.addEventListener('visibilitychange', () => {
   if (document.hidden || !S.unlocked || !HEALTH_SCREENS.includes(S.screen)) return;
-  Object.assign(S, { unlocked: false, lockWhy: 'left', afterUnlock: 'health', stack: [], screen: 'hlocked', bio: null, sheet: null });
+  // W16: unlocking returns to the screen that was open (e.g. the report), not Health's main screen.
+  Object.assign(S, { unlocked: false, lockWhy: 'left', afterUnlock: S.screen, lockStack: S.stack, stack: [], screen: 'hlocked', bio: null, sheet: null });
   render();
 });
 
@@ -421,12 +431,18 @@ export function downloadReport(l) {
 
 export const PIN_SCREENS = ['pincreate', 'pinconfirm', 'pin', 'pinnew', 'pinnewconfirm', 'pfpin'];
 
+// F25/R26: taps that land while the fourth digit is moving on (pincreate → pinconfirm) are kept and replayed on the next screen.
+let pinBuf = [];
 export function pinDigit(d) {
-  if (S.pinEntry.length >= 4) return;
+  if (S.pinEntry.length >= 4) { pinBuf.push(d); return; }
   if (S.pinErr || S.pinMismatch) { S.pinErr = false; S.pinMismatch = false; S.pinEntry = ''; }
   S.pinEntry += d;
   render();
-  if (S.pinEntry.length === 4) after(pinComplete, 180); // the fourth digit moves on; there is no button
+  if (S.pinEntry.length === 4) after(() => { // the fourth digit moves on; there is no button
+    const buf = pinBuf; pinBuf = [];
+    pinComplete();
+    if (PIN_SCREENS.includes(S.screen) || S.sheet === 'askpin') buf.forEach(pinDigit);
+  }, 180);
 }
 
 export function pinComplete() {
@@ -447,16 +463,16 @@ export function pinComplete() {
       S.stack = []; S.screen = 'finger'; return render();
     case 'pinnewconfirm':
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
-      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; return unlock(); // then straight back into Health, or to Health lock
+      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; if (S.pinChanged) toast('PIN changed.'); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
     case 'pfpin': // care.jsx — Switch person
-      if (e === pinOf(S.switchTo)) return switchTo(S.switchTo);
+      if (e === pinOf(S.switchTo) || (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234'))) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
       S.pinErr = true; return render();
     case 'pin':
       if (e === S.pin && S.fingerChanged) { // a new fingerprint on the phone: the opt-in asks again, since the risk has changed
         Object.assign(S, { fingerChanged: false, finger: null, pinErr: false, pinTries: 5, stack: [], screen: 'finger' });
         return render();
       }
-      if (e === S.pin) return unlock();
+      if (e === S.pin || (managedBy() && [S.fullName, managedBy()].some(n => e === pinOf(RECORDS.findIndex(r => r.name === n))))) return unlock(); // F14/R11: caregiver's PIN or their own
       S.pinTries--;
       if (S.pinTries <= 0) { S.pinErr = false; S.pinWait = 30; return go('toomany', { replace: true }); }
       S.pinErr = true; return render();
@@ -507,8 +523,14 @@ Object.assign(ACTIONS, {
   report: arg => { S.report = arg; go('hreport'); },
   'report-dl': () => downloadReport(labOf(S.report)),
   'health-go': arg => openHealth(arg),
+  // T03: Home's "Lab report ready" opens the newest ready report (S.labs runs newest first), as the notification does (care.jsx).
+  // W11: a follow-up from a report: reason filled in from the report, tagged as a follow-up, and a clash with an existing visit is flagged (booking.jsx fuClash).
+  'report-fu': () => { const l = labOf(S.report);
+    Object.assign(S, { doc: 'ps', day: 0, time: null, fuOf: S.report, reason: `Follow-up on my ${l.title} from ${l.date.replace(/, \d{4}$/, '')}. Dr. Sharma asked to see me.` }); go('doctor'); },
+  'lab-ready': () => { S.report = S.labs.find(k => !labOf(k).reviewing) || S.report; openHealth('hreport'); },
   'unlock-start': () => {
-    if (!S.pin) return go('pincreate'); // first unlock: create the PIN now, when it protects something
+    if (!S.pin && !managedBy()) return go('pincreate'); // first unlock: create the PIN now, when it protects something
+    if (managedBy()) return go('pin'); // F14/R11: a managed profile opens with the caregiver's PIN, no new one to make
     if (S.finger === 'on' && !S.fingerChanged) { S.bio = 'prompt'; return render(); }
     go('pin');
   },
