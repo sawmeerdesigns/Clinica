@@ -682,6 +682,9 @@ export function Phone() {
       onSubmit={e => e.preventDefault()}>{/* a form never navigates; buttons inside one would submit it */}
       {screen}
       {S.picker && <DobSheet />}
+      {/* F24/R20/T11/W07/V09: one live region for success toasts (core.jsx toast()), always present so it's announced */}
+      <div className="toast-region" role="status">{S.toast ? <div className="toast"><p>{S.toast.msg}</p>
+        {S.toast.action ? <button className="toast-act" data-act={S.toast.action[1]}>{S.toast.action[0]}</button> : null}</div> : null}</div>
     </div>);
 }
 

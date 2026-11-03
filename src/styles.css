@@ -1002,3 +1002,22 @@ button.att-c[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
 .att-key i { width: 8px; height: 8px; border-radius: var(--radius-full); }
 .att-key .present i { background: var(--text-success); } .att-key .leave i { background: var(--text-warning); }
 .att-key .absent i { background: var(--text-error); } .att-key .weekend i { background: var(--text-tertiary); }
+
+/* Toast: one success message with an optional action, in a live region (core.jsx toast(); F24/R20/T11/W07/V09) */
+.toast-region { position: absolute; left: 16px; right: 16px; bottom: 104px; z-index: 5; display: flex; justify-content: center; pointer-events: none; }
+.phone.desk .toast-region { bottom: 32px; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 16px; max-width: 480px; padding: 12px 16px; border-radius: var(--radius-large); background: var(--text-primary); color: var(--text-on-action); font: 600 14px/20px "Open Sans"; animation: fade .2s; }
+.toast-act { flex: none; border: 0; background: none; padding: 4px 0; font: 700 14px/20px "Open Sans"; color: #9cc3ff; cursor: pointer; }
+/* R30: pending count on the Reports nav item */
+.nbadge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--surface-action); color: var(--text-on-action); font: 700 12px/20px "Open Sans"; text-align: center; }
+.bnav a > span { position: relative; }
+.bnav a span.nbadge { position: absolute; top: -2px; right: 2px; display: block; width: auto; height: 20px; }
+.bnav a span.nbadge .vh { position: absolute; width: 1px; height: 1px; }
+.k-ni .nbadge { margin-left: auto; }
+/* T10/W06: a value outside its reference range */
+.dv-f.out { color: var(--text-error); font-weight: 600; }
+.dv-r { font-size: 12px; line-height: 17px; color: var(--text-tertiary); }
+.dv-n { display: flex; flex-direction: column; }
+/* F04/R02/T01/V01: Edit and Remove on each medicine being prescribed */
+.dm-acts { display: flex; gap: 20px; margin-top: 6px; }
+.dm-acts button { border: 0; background: none; padding: 4px 0; cursor: pointer; font-size: 14px; line-height: 20px; }

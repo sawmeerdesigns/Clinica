@@ -87,3 +87,12 @@ export function back() {
 
 // Joins a list with the hairline separator lists use between rows.
 export const sepJoin = items => items.map((x, i) => <Fragment key={i}>{i > 0 && <div className="sep" aria-hidden="true" />}{x}</Fragment>);
+
+// One toast for success messages, with an optional action (e.g. Undo). app.jsx draws it in a role="status" live region.
+// It outlives render(), so its timer is its own. F24/R20/T11/W07/V09; Phase 5 reuses it for every success state.
+let toastT;
+export const toast = (msg, action = null, ms = 5000) => { // action: [label, 'data-act'] or null
+  clearTimeout(toastT); S.toast = { msg, action };
+  toastT = setTimeout(() => { S.toast = null; paint(); }, ms);
+};
+export const toastClear = () => { clearTimeout(toastT); S.toast = null; };

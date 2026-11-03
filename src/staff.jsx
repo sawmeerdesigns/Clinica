@@ -8,7 +8,7 @@ import { T, acts, say, src } from './ask.jsx';
 import { bar, initials, label, row, rows, sk, tag, when } from './booking.jsx';
 import { setting, signoutSheet } from './care.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, onPhone, paint, render, reset, sepJoin } from './core.jsx';
-import { DR_HISTORY, DR_PATIENTS, EXTRA_STATE_DR, drField, drRadio, drStatus, drTime, drToday, showApp } from './doctor.jsx';
+import { DR_HISTORY, DR_PATIENTS, EXTRA_STATE_DR, draftCue, drField, drRadio, drStatus, drTime, drToday, showApp } from './doctor.jsx';
 import { field, list } from './health.jsx';
 import { ring } from './meds.jsx';
 import { ARR, ARR_STATE, DEPTS, DOCTORS } from './data.js';
@@ -386,6 +386,7 @@ Object.assign(SCREENS, {
     const f = (k, l, ph, type = 'text', list = '') => <div className="field-wrap"><label className="label" htmlFor={`wk-${k}`}>{l}</label><div className={`field ${e[k] ? 'err' : ''}`}>
       <input id={`wk-${k}`} data-wf={k} type={type} placeholder={ph} value={w[k] || ''} list={list || undefined} onChange={ev => { S.wk[k] = ev.target.value; paint(); }} /></div>{e[k] ? support(e[k], 'err') : null}</div>;
     return sPage(<><div className="st-ttl"><h1 className="k-h2">Register a walk-in</h1><p className="dr-sub">For a patient arriving without a booking</p></div>
+      {S.wkKept ? draftCue('Draft kept — the details entered earlier are still here.') : null}
       <form id="st-walkf" className="st-form" noValidate>
       {sSec('Patient details', <div className="fields st-f8">{f('name', 'Full name', 'e.g. Dipesh Rai')}{f('phone', 'Phone number', '+977 98XX-XXXXXX', 'tel')}
         <div className="st-2">{f('h', 'Height', 'e.g. 165 cm')}{f('w', 'Weight', 'e.g. 60 kg')}</div></div>)}
@@ -623,7 +624,9 @@ Object.assign(ACTIONS, {
   'st-forgot': () => { S.stForgot = true; render(); },
   'st-signout': () => { Object.assign(S, { stMenu: null, sheet: 'stsignout' }); render(); },
   'st-signout-ok': () => { Object.assign(S, { stMe: null, stMenu: null, sheet: null, stack: [], screen: 'ssignin' }); render(); },
-  'st-go': sc => sGo(sc),
+  'st-go': sc => { // T21: coming back to a half-filled walk-in form says it was kept
+    if (sc === 'swalk') S.wkKept = ['name', 'phone', 'h', 'w', 'doc', 'reason'].some(k => (S.wk[k] || '').trim());
+    sGo(sc); },
   'st-adddoc': () => { S.stAdded = null; sGo('sadd', 'sdocs'); },
   'st-menu': k => { S.stMenu = S.stMenu === k ? null : k; sRe(); },
   'st-f': arg => { const [k, v] = arg.split('|'), cur = S.stF[k] || []; S.stF = { ...S.stF, [k]: cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v] }; sRe(); },

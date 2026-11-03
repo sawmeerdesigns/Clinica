@@ -42,3 +42,27 @@ Fixes for the findings from the five synthetic usability runs (F = run 1, R = ru
 ### check.cjs changes (Phase 1)
 - The phone and desktop release flows pick a decision before releasing. The follow-up sheet's button is now "Release with follow-up request" (it was "Flag for follow-up"), and the K20e sheet text is "Release with a follow-up request?" and quotes the comment.
 - 11 new assertions: Release is disabled and the comment empty until a decision; the suggestion is a placeholder; both sheets quote the comment; k-rep sets drRep and toggling gives Kabita's own text (phone and desktop); T15 asks, keeps and replaces; Home "Lab report ready" opens HbA1c.
+
+## Phase 2 — Doctor apps
+
+| Finding IDs | File:line | What changed | Status |
+|---|---|---|---|
+| F04 / R02 / T01 / V01 / F23 (visit note) | src/doctor.jsx:100, :195, :439, :441, :464 | A visit starts empty: no medicines, no note. The prepared note shows only as a "Suggested: …" placeholder, with "Leave it blank to use the suggested note" (same pattern as the Phase 1 release comment). Each medicine card has Edit (opens the same form, filled in, titled "Edit medicine") and Remove. Phone and desktop share the pieces (`drNoteField`, `drMedList`, `drFollowRadio`). | Fixed |
+| R24 | src/doctor.jsx:178, :203, :455 | Add medicine has a required "Dose each time" field, so a card reads "1 tablet, twice a day", and the quantity to dispense travels with it. "In 2 weeks" shows its date while choosing ("In 2 weeks · Fri, Sep 11", from data.js `FU_DAY`/`dayLabel`). | Fixed |
+| F03 / R03 / T02 / V02 | src/doctor.jsx:464, src/desk.jsx:148 | `d-start` puts the draft in `drKept` from the start, so every way out of the phone visit (Back, a tab, another patient, the other phone, the desktop X) keeps it. A restored draft shows "Draft kept — your note, medicines and follow-up are as you left them." (`draftCue`, phone and desktop). | Fixed |
+| T21 | src/staff.jsx:389, :628 | Coming back to a half-filled walk-in form shows the same "Draft kept" cue. | Fixed |
+| F05 / R08 / T12 / V17 | src/doctor.jsx:369, :477, src/desk.jsx:154 | Complete visit opens a review sheet built on the release-sheet pattern: the note as quoted, each medicine with dose, duration and quantity ("Quantity not set" when missing), the follow-up as a real date, and a "Same medicine twice" warning when one drug appears twice at any strength. "Complete visit" completes; "Back to editing" closes it with nothing lost. Same sheet on the desktop. New frames D04f and K11k. | Fixed |
+| T10 / W06 (ranges) | src/doctor.jsx:29, :115 | Each lab value shows its reference range ("Range 12.0–15.5 g/dL"); the Normal/High/Low flag is worked out from the value against that range. Ranges are fictional but plausible adult ranges. | Fixed |
+| F24 / R20 / T11 / W07 / V09 | src/core.jsx:91, src/app.jsx:685, src/doctor.jsx:393, :406, :506, :212 | One shared toast (`toast(msg, [label, act])` in core.jsx) drawn in an always-present `role="status"` region. Release shows "CBC blood test released to Anisha Sharma." with Undo for 5 s. Undo puts the report back as pending with the decision and comment as they were, reopens it, and removes the patient-side release and notification. Reports (phone and desktop) lists "Released today": patient, report, "Released by Dr. Priya Sharma at 4:52 PM", Released / Follow-up asked. | Fixed |
+| T25 / F24 / R20 (history) | src/doctor.jsx:149, :429, :433, src/desk.jsx:54, :77 | "View Anisha's history" on the report (phone: the history screen; desktop: the Queue's history pane, Reports keeps its place). The tag reads "Seen by you", not "Your visit". Every entry opens: today's visit in full, any other as date, department and reason. Lab results are not yet listed in history. | Partial: labs in history not added |
+| R30 | src/doctor.jsx:87, src/desk.jsx:22 | The Reports nav item shows the pending count on phone and desktop, with " waiting" for screen readers. | Fixed |
+| V21 / F26 (banner) | src/doctor.jsx:238, :475 | "You're with … now." is a link that opens that visit, with its kept draft. | Fixed |
+
+### Decisions taken (Phase 2)
+- Follow-up still defaults to "No follow-up"; the review sheet shows it before anything is saved.
+- The released-by name is the signed-in doctor (Dr. Priya Sharma, the only doctor account); the time is the demo's moving clock (`now()`).
+- Figma frames D04, D04b, K11b and the history frames still preset Anisha's/Nabin's prepared medicines, so those states stay reviewable; Start visit itself begins empty.
+
+### check.cjs changes (Phase 2)
+- Changed: D04 now asserts an empty draft with the suggestion as placeholder (it asserted the pre-filled "For fever and headache"). Complete visit clicks through the review sheet (phone, desktop, D04c). "Released, off the list" checks the pending row, since the CBC now appears under Released today. Back to the queue reads 6 of 8.
+- Added (about 30): medicine add with dose/quantity, Edit, Remove; draft kept on phone Back with cue; banner opens the visit; review sheet with duplicate warning, Sep 11 / Sep 18 dates, Back to editing; reference ranges and flag (phone, desktop); history from the report and doctor wording, past visit opens; toast + Undo reverts (phone, desktop), re-release; Released today; Reports badge 2 → 1 (phone, desktop); D04f, K11k frames; Reception draft cue.
