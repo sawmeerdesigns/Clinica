@@ -396,7 +396,8 @@ export function drRelease() { // what releasing does, on either device
   S.drPending = S.drPending.filter(x => x !== k);
   if (k === 'cbc') { // Anisha's CBC: now released, with this comment, on her side
     S.released = { ...S.released, cbc: { follow, words: drWords() } }; // W05: exactly what the sheet quoted
-    S.notifs.unshift(notif = { g: 'Today', icon: 'lt-lab.svg', t: 'A lab report is ready', b: 'Open Health to see it.', when: 'Just now', go: 'hreport-cbc' });
+    // W10: names the test and the reviewing doctor (the signed-in one), so it never reads the same as another report's.
+    S.notifs.unshift(notif = { g: 'Today', icon: 'lt-lab.svg', t: `Your ${r.test} is ready${follow ? ' — Dr. Sharma wants to see you' : ''}`, b: 'Open Health to read what Dr. Sharma wrote.', when: 'Just now', go: 'hreport-cbc' });
   }
   // F24/R20/T11/W07/V09: recorded as released today, by the signed-in doctor, and said out loud with Undo for 5 seconds.
   S.drOut = [{ k, follow, by: 'Dr. Priya Sharma', at: now(), rel: { ...S.drRel }, notif }, ...S.drOut.filter(o => o.k !== k)];

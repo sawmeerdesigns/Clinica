@@ -1,7 +1,7 @@
 // Clinica — Health tab: lock and PIN, visits, prescriptions, reports, medicines.
 // Figma: zw3saW6ot26E6gWH20K3ux, section 539:16334. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM)
 // and reuses pieces from booking.jsx (bar, label, tag, rows, callBtn, backTo).
-import { appBar, btn, digits, empty, heading, homeInd, listItem, masked, mmss, start, statusBar, support } from './app.jsx';
+import { RECORDS, appBar, btn, digits, empty, heading, homeInd, listItem, masked, mmss, start, statusBar, support } from './app.jsx';
 import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
 import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
 import { csheet, notice, pinOf, switchTo } from './care.jsx';
@@ -22,8 +22,9 @@ export const RX = [
 export const RX2 = [{ name: 'Amoxicillin 500 mg', for: 'For the ear infection', how: '1 capsule 3 times a day', dur: 'For 7 days, finished Aug 19' }];
 // Lab reports reach the patient only once a doctor has looked at them.
 export const LABS = {
-  hba1c: { title: 'HbA1c blood test', sub: 'Sep 2, City Hospital lab', month: 'September 2026', date: 'Sep 2, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true,
-    words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Sep 4' },
+  // T28 class: dated before the Aug 28 demo day (it read Sep 2, reviewed Sep 4).
+  hba1c: { title: 'HbA1c blood test', sub: 'Aug 24, City Hospital lab', month: 'August 2026', date: 'Aug 24, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true,
+    words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Aug 26' },
   cbc: { title: 'CBC blood test', sub: 'Aug 28, City Hospital lab', month: 'August 2026', tag: ['Being reviewed', 'neutral'], reviewing: true },
   thyroid: { title: 'Thyroid panel', sub: 'Jul 3, City Hospital lab', month: 'July 2026', date: 'Jul 3, 2026', tag: ['Ready', 'success'], pages: 2,
     words: 'Your thyroid levels are normal. No change to your treatment.', by: 'Reviewed by Dr. Anita Joshi on Jul 5' },
@@ -41,7 +42,7 @@ export const PRESCRIPTIONS = {
 
 extraState(() => ({
   unlocked: false, afterUnlock: null, healthEmpty: false, lockWhy: null, fingerChanged: false, pinChanged: false,
-  labs: ['hba1c', 'cbc', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false,
+  labs: ['cbc', 'hba1c', 'thyroid'], report: 'thyroid', // newest first: CBC Aug 28, HbA1c Aug 24 visit: 'aug28', rx: 'aug28', rxNone: false,
   pin: null, pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, pinTries: 5, pinWait: 30,
   finger: null, bio: null, bioFails: 0, sheet: null, codeFor: null,
   meds: [ // the Medicines tracker's data (meds.jsx)
@@ -305,7 +306,7 @@ Object.assign(SCREENS, {
         <div className="inset stack8">{lbl('What your doctor says')}
           <p className="note-body">{l.words}</p>
           <p className="body-s tertiary">{l.by}</p></div>
-        {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'doctor:ps', { size: 'l' }))}</div> : null}
+        {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'report-fu', { size: 'l' }))}</div> : null}{/* W11 */}
         <div className="inset stack8">{lbl('Report')}
           <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{l.title} report</span><span className="body-s">PDF, {l.pages} page{l.pages > 1 ? 's' : ''}</span></span>{chev}</button></div>
       </div>
@@ -345,7 +346,7 @@ Object.assign(SCREENS, {
   pincreate: () => pinScreen('Choose a PIN for your health records', "Your phone's own PIN may be known to others who use it. This one is only yours.",
     S.pinMismatch ? errLine(MISMATCH) : null),
   pinconfirm: () => pinScreen('Enter it again', "So we know it's right."),
-  pin: () => pinScreen(...({ pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
+  pin: () => pinScreen(...(managedBy() ? ['Enter your PIN', `Or ${managedBy().split(' ')[0]}'s own Clinica PIN — she manages this profile.`] : { pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
       hreport: ['Enter your PIN', 'To open your lab report.'] }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
     <>{S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
       <button className="btn secondary l hug" data-act="forgot">Forgot your PIN?</button></>),
@@ -377,8 +378,11 @@ Object.assign(SCREENS, {
 });
 
 // ---------- behaviour ----------
+// F14/R11: who manages the signed-in person's profile, if anyone (app.jsx RECORDS). Their own PIN opens this person's Health too.
+export const managedBy = () => RECORDS.find(r => r.name === S.fullName)?.managedBy;
+
 export function openHealth(target = 'health') {
-  S.stack = []; S.bio = null; S.sheet = null;
+  S.stack = []; S.bio = null; S.sheet = null; S.lockStack = null;
   S.lockWhy = target === 'hreport' ? 'report' : null; // says why the PIN is being asked for
   if (S.healthEmpty) { S.screen = 'hempty'; return render(); } // nothing to lock yet
   S.afterUnlock = target; S.screen = 'hlocked'; render();       // every time the tab opens
@@ -391,6 +395,7 @@ export function unlock() {
   if (t === 'pinnew') { S.afterUnlock = 'pflock'; S.stack = ['pf', 'pflock']; S.screen = 'pinnew'; return render(); } // Profile › Change PIN, after the current one
   if (t === 'pfphone') { S.stack = ['pf', 'pfdetails']; S.screen = 'phone'; return render(); } // Profile › change number, after the PIN
   S.stack = t === 'health' || t === 'ask' ? [] : t === 'pflock' ? ['pf'] : t === 'mtmed' ? ['health', 'mtlist'] : t === 'hreport' ? ['health', 'hlabs'] : ['health'];
+  if (S.lockStack) { S.stack = S.lockStack; S.lockStack = null; } // W16: back where they were when Clinica locked
   S.screen = t;
   if (t === 'ask') return resolveAskLock(); // ask.jsx: the locked answer now shows
   render();
@@ -400,7 +405,8 @@ export function unlock() {
 export const HEALTH_SCREENS = ['health', 'hvisits', 'hvisit', 'hfollow', 'hrx', 'hrxd', 'hpharm', 'hlabs', 'hreport', 'hfile', 'hreviewing', 'mtlist', 'mtmed', 'mtdose'];
 document.addEventListener('visibilitychange', () => {
   if (document.hidden || !S.unlocked || !HEALTH_SCREENS.includes(S.screen)) return;
-  Object.assign(S, { unlocked: false, lockWhy: 'left', afterUnlock: 'health', stack: [], screen: 'hlocked', bio: null, sheet: null });
+  // W16: unlocking returns to the screen that was open (e.g. the report), not Health's main screen.
+  Object.assign(S, { unlocked: false, lockWhy: 'left', afterUnlock: S.screen, lockStack: S.stack, stack: [], screen: 'hlocked', bio: null, sheet: null });
   render();
 });
 
@@ -422,12 +428,18 @@ export function downloadReport(l) {
 
 export const PIN_SCREENS = ['pincreate', 'pinconfirm', 'pin', 'pinnew', 'pinnewconfirm', 'pfpin'];
 
+// F25/R26: taps that land while the fourth digit is moving on (pincreate → pinconfirm) are kept and replayed on the next screen.
+let pinBuf = [];
 export function pinDigit(d) {
-  if (S.pinEntry.length >= 4) return;
+  if (S.pinEntry.length >= 4) { pinBuf.push(d); return; }
   if (S.pinErr || S.pinMismatch) { S.pinErr = false; S.pinMismatch = false; S.pinEntry = ''; }
   S.pinEntry += d;
   render();
-  if (S.pinEntry.length === 4) after(pinComplete, 180); // the fourth digit moves on; there is no button
+  if (S.pinEntry.length === 4) after(() => { // the fourth digit moves on; there is no button
+    const buf = pinBuf; pinBuf = [];
+    pinComplete();
+    if (PIN_SCREENS.includes(S.screen) || S.sheet === 'askpin') buf.forEach(pinDigit);
+  }, 180);
 }
 
 export function pinComplete() {
@@ -450,14 +462,14 @@ export function pinComplete() {
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
       S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; return unlock(); // then straight back into Health, or to Health lock
     case 'pfpin': // care.jsx — Switch person
-      if (e === pinOf(S.switchTo)) return switchTo(S.switchTo);
+      if (e === pinOf(S.switchTo) || (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234'))) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
       S.pinErr = true; return render();
     case 'pin':
       if (e === S.pin && S.fingerChanged) { // a new fingerprint on the phone: the opt-in asks again, since the risk has changed
         Object.assign(S, { fingerChanged: false, finger: null, pinErr: false, pinTries: 5, stack: [], screen: 'finger' });
         return render();
       }
-      if (e === S.pin) return unlock();
+      if (e === S.pin || (managedBy() && [S.fullName, managedBy()].some(n => e === pinOf(RECORDS.findIndex(r => r.name === n))))) return unlock(); // F14/R11: caregiver's PIN or their own
       S.pinTries--;
       if (S.pinTries <= 0) { S.pinErr = false; S.pinWait = 30; return go('toomany', { replace: true }); }
       S.pinErr = true; return render();
@@ -509,9 +521,13 @@ Object.assign(ACTIONS, {
   'report-dl': () => downloadReport(labOf(S.report)),
   'health-go': arg => openHealth(arg),
   // T03: Home's "Lab report ready" opens the newest ready report (S.labs runs newest first), as the notification does (care.jsx).
+  // W11: a follow-up from a report: reason filled in from the report, tagged as a follow-up, and a clash with an existing visit is flagged (booking.jsx fuClash).
+  'report-fu': () => { const l = labOf(S.report);
+    Object.assign(S, { doc: 'ps', day: 0, time: null, fuOf: S.report, reason: `Follow-up on my ${l.title} from ${l.date.replace(/, \d{4}$/, '')}. Dr. Sharma asked to see me.` }); go('doctor'); },
   'lab-ready': () => { S.report = S.labs.find(k => !labOf(k).reviewing) || S.report; openHealth('hreport'); },
   'unlock-start': () => {
-    if (!S.pin) return go('pincreate'); // first unlock: create the PIN now, when it protects something
+    if (!S.pin && !managedBy()) return go('pincreate'); // first unlock: create the PIN now, when it protects something
+    if (managedBy()) return go('pin'); // F14/R11: a managed profile opens with the caregiver's PIN, no new one to make
     if (S.finger === 'on' && !S.fingerChanged) { S.bio = 'prompt'; return render(); }
     go('pin');
   },

@@ -39,11 +39,12 @@ export const chipRow = items => <div className="chips">{items.map(([i, t, a]) =>
 export const words = (who, text) => <div className="words"><span className="bar"></span><div><p className="w-who">{who} wrote</p><p className="w-text">{text}</p></div></div>;
 export const noteCard = (icon, title, body, cls = '', extra = null) => <div className={`card notice-row ${cls}`}>{icon ? lead(icon) : null}
   <div className="nr-t"><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div></div>;
-export const visitCard = (when, where, act) => { const T = act ? 'button' : 'div'; return <T className="card appt" data-act={act || undefined}>
-  <span className="avatar l">PS</span>
-  <span className="appt-t"><span className="h-s">Dr. Priya Sharma</span><span className="when">{when}</span><span className="where">{where}</span></span>
+// F02/R04/T04/V03: the card names the booked doctor (the follow-up is always Dr. Sharma's).
+export const visitCard = (when, where, act, doc = 'ps') => { const T = act ? 'button' : 'div', d = DOCTORS[doc]; return <T className="card appt" data-act={act || undefined}>
+  <span className="avatar l">{d.ini}</span>
+  <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when}</span><span className="where">{where}</span></span>
   {act ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}</T>; };
-export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today'); };
+export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${DOCTORS[a.doc].spec}, ${DOCTORS[a.doc].opd}`, link && 'appt:today', a.doc); };
 export const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 2', S.followup === f && 'appt:fu'); // an old snapshot links nowhere
 
 // App bar, Chat shape: back arrow and its label as one tap target, title centred. The Assistant home (no action) shows the arrow alone (Figma 633:30822).

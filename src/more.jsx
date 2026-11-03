@@ -3,7 +3,7 @@
 // Most states live beside the screens they vary (booking.jsx, care.jsx, health.jsx, ask.jsx); this file holds the
 // new sheets and standalone screens, and the side-panel entries.
 import { Fragment } from 'react';
-import { Phone, RECORDS, btn, empty, homeInd, statusBar, toHome } from './app.jsx';
+import { Phone, RECORDS, btn, family, empty, homeInd, statusBar, toHome } from './app.jsx';
 import { T, acts, answer, ask, feedback, say, src, words } from './ask.jsx';
 import { BOOKING_STACK, DOCTORS, bookFor, filtMatch, freeTimes, label, plural, rel, row, rows, tag, when } from './booking.jsx';
 import { MAPS, NOTIFS, emergency, setting } from './care.jsx';
@@ -22,7 +22,7 @@ Object.assign(OVERLAY, {
   bookfor: () => sheetOf(<>
     <div className="stack4"><p className="h-s">Who is this visit for?</p><p className="body-s">People whose clinic records use this phone number. To add someone, ask at reception.</p></div>
     <div className="stack4" role="radiogroup" aria-label="Booking for"><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>Booking for</p>
-      {[S.fullName, ...RECORDS.map(r => r.name).filter(n => n !== S.fullName)].map(n =>
+      {[S.fullName, ...family().map(r => r.name).filter(n => n !== S.fullName)].map(n => /* F22: only this number's people */
         <Fragment key={n}>{radioRow((S.bookFor || S.fullName) === n, n === S.fullName ? `${n} (you)` : n, `book-for:${n}`)}</Fragment>)}</div>
     {btn('Cancel', 'sheet-close', { kind: 'secondary' })}</>, 'Who is this visit for?'),
 
@@ -214,7 +214,8 @@ export function interceptLink(e) {
   const ok = e.target.closest('.as a.as-btn');
   if (ok) { // the sheet's own confirm goes through to the phone, then the sheet closes
     if (ok.getAttribute('href') === '#') e.preventDefault();
-    setTimeout(() => { S.sheet = null; render(); });
+    const act = S.sys?.act; // e.g. 'pay-ok': the mocked wallet confirms the payment (booking.jsx, W02)
+    setTimeout(() => { S.sheet = null; act ? ACTIONS[act]() : render(); });
     return true;
   }
   const a = e.target.closest('a[href^="tel:"], a[href^="https://www.google.com/maps"]');

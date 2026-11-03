@@ -2,9 +2,9 @@
 // Figma: zw3saW6ot26E6gWH20K3ux, section 542:19194. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM, OVERLAY)
 // and reuses pieces from booking.jsx, health.jsx and ask.jsx.
 import { Fragment } from 'react';
-import { AD_SHORT, Phone, RECORDS, bsText, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
+import { AD_SHORT, Phone, RECORDS, bsText, family, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
 import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
-import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
+import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, payCard, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
 import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, render, reset } from './core.jsx';
 import { drShort } from './doctor.jsx';
 import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
@@ -17,7 +17,8 @@ export const MAPS = 'https://www.google.com/maps/search/?api=1&query=City+Hospit
 export const CAL_NOTE = 'Check in at reception 15 minutes early. Details are in the Clinica app.';
 export const NOTIFS = [
   { g: 'Today', icon: 'lt-schedule.svg', t: 'Dr. Sharma is running late', b: "Your 4:30 PM slot is kept. We'll message you when she's ready.", when: '10 min ago', go: 'late' },
-  { g: 'Today', icon: 'lt-lab.svg', t: 'A lab report is ready', b: 'Open Health to see it.', when: '2 hours ago', go: 'hreport' },
+  // W10: names the test and the doctor who reviewed it (the lock screen, more.jsx, still names neither).
+  { g: 'Today', icon: 'lt-lab.svg', t: 'Your HbA1c blood test is ready — Dr. Sharma wants to see you', b: 'Open Health to read what she wrote.', when: '2 hours ago', go: 'hreport' },
   { g: 'Earlier', icon: 'lt-calendar.svg', t: 'Your visit is tomorrow', b: '4:30 PM with Dr. Priya Sharma at OPD 2. Arrive by 4:15 PM.', when: 'Yesterday', go: 'today', read: true },
   { g: 'Earlier', icon: 'lt-document.svg', t: 'Your visit notes are ready', b: 'From your visit on Aug 12. Open Health to read them.', when: 'Aug 13', go: 'hvisit', read: true },
 ];
@@ -141,7 +142,7 @@ Object.assign(SCREENS, {
   care: () => {
     const a = S.appt, f = S.followup;
     // R04/T04/V03: grouped by the visit's real date — only a visit today sits under Today; a later one joins Coming up.
-    const card = visitCard(when(a.day, a.time), `${DOCTORS[a.doc].opd}, City Hospital`, 'appt:today'), isToday = a.day === 0;
+    const card = visitCard(when(a.day, a.time), `${DOCTORS[a.doc].opd}, City Hospital`, 'appt:today', a.doc), isToday = a.day === 0; // F02/R04
     const today = <div className="inset stack8">{lbl(isToday ? 'Today' : 'Coming up')}{card}</div>;
     const coming = f ? <div className="inset stack8">{lbl('Coming up')}{isToday ? null : card}{fuCard('appt:fu')}</div> : null;
     let body;
@@ -217,15 +218,20 @@ Object.assign(SCREENS, {
     const rest = {
       checkedin: () => <div className="inset stack8">{lbl('While you wait')}<p className="body-m">Need to step out? Tell reception first, so your turn isn't missed.</p></div>,
       turn: () => <div className="inset stack8">{lbl("If you can't go now")}<p className="body-m">Can't go right now? Tell reception, so you don't lose your turn.</p></div>,
-      with: () => <div className="inset stack8">{lbl('On your way out')}<p className="body-m">Pay the fee at reception. Your SMS confirmation has the amount.</p></div>,
+      with: () => <div className="inset stack8">{lbl('On your way out')}<p className="body-m">{a.pay?.paid ? `Your fee is paid (receipt ${a.pay.ref}). Nothing to pay at reception.` // W02
+        : 'Pay the fee at reception. Your SMS confirmation has the amount.'}</p></div>,
       done: () => <div className="inset stack8">{lbl('Next step')}{S.followup ? fuCard('appt:fu')
         : S.fuAdvice === 'none' ? notice('', 'No follow-up needed', 'Come back only if it gets worse.') // as the doctor advised
         : S.fuAdvice === 'other' ? notice('', S.fuDate ? `Follow-up on ${drShort(S.fuDate)}` : 'Follow-up needed', 'Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' })) // the date the doctor chose
         : notice('', 'Follow-up in 2 weeks', 'Around Sep 11. Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' }))}</div>,
     }[v]?.() || arrive;
-    const cta = { booked: () => dirBtn(d.opd), ontime: () => dirBtn(d.opd), late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}</>,
+    // R23/T14: today's visit (or a later one) can be moved from here too, not only when running late.
+    const cta = { booked: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}</>, ontime: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}</>,
+      late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}</>,
       done: () => btn('Go to Health', 'health-tab', { kind: 'secondary' }) }[v]?.() || null;
-    return frame('Appointment', <>{top ? <div className="inset">{top}</div> : null}<div className="inset">{todayCard(false)}</div>{rest}</>, { cta });
+    // V14: the reason given and how the fee is paid (F09/W02: Paid · receipt / Not paid · Pay now / Pay at reception).
+    const booking = v === 'done' ? null : <div className="stack8">{sect('Your booking', list([row('lt-clipboard.svg', 'Reason for visit', a.reason || 'None given')]), 0)}<div className="inset">{payCard(a)}</div></div>;
+    return frame('Appointment', <>{top ? <div className="inset">{top}</div> : null}<div className="inset">{todayCard(false)}</div>{rest}{booking}</>, { cta });
   },
 
   notifs: () => {
@@ -244,9 +250,10 @@ Object.assign(SCREENS, {
   pf: () => frame('Profile', <>
     <div className="inset"><div className="who"><span className="avatar l">{initials(S.fullName)}</span>
       <div><p className="who-n">{S.fullName}</p><p className="body-s">Patient at City Hospital</p><p className="body-s tertiary">{masked()}</p></div></div></div>
-    {sect('You', list([listItem('icon-person.svg', 'Your details', 'Name, birth date and mobile number', 'go:pfdetails')]))}
+    {sect('You', list([listItem('icon-person.svg', 'Your details', 'Name, birth date and mobile number', 'go:pfdetails'),
+      listItem('lt-fee.svg', 'Payments', S.payments.length ? `${S.payments.length} paid in the app` : 'Fees paid in the app, with receipts', 'go:pfpay')]))}{/* T05/W02 */}
     {sect('Settings', list([listItem('lt-translate.svg', 'Language', S.lang === 'ne' ? 'नेपाली' : 'English', 'go:pflang'),
-      listItem('lt-bell.svg', 'Notifications', S.notifOff ? 'Off in phone settings' : 'On', 'go:pfnotif'),
+      listItem('lt-bell.svg', 'Notifications', S.notifOff ? 'Off in phone settings' : S.notif !== 'on' && S.notNow ? 'Off. You chose Not now' : 'On', 'go:pfnotif'), /* W15: her own answer too */
       listItem('lt-lock.svg', 'Health lock', S.finger === 'on' && !S.noSensor ? 'PIN and fingerprint' : S.pin ? 'PIN' : 'Set up when you first open Health', 'pf-lock')]))}
     {sect('Your clinic', list([listItem('lt-hospital.svg', 'City Hospital', 'Phone, address and opening hours', 'go:pfclinic')]))}
     {sect('Help and about', list([listItem('lt-help-circle.svg', 'Help', 'Emergencies, contacting the clinic, privacy', 'go:pfhelp'), listItem('lt-info.svg', 'About Clinica', 'Version, privacy', 'go:pfabout')]))}
@@ -261,7 +268,7 @@ Object.assign(SCREENS, {
       <div className="inset">{notice('', 'Kept by City Hospital', "To change your name, date of birth or sex, ask at reception — the clinic's record is the one that counts.")}</div>
       {sect('Details', list([row('icon-person.svg', 'Full name', S.fullName),
         row('lt-calendar-month.svg', 'Date of birth', p ? `${p.d} ${AD_SHORT[p.m]} ${p.y}${b ? `, or ${bsText(b)}` : ''}` : 'On file at reception'),
-        row('icon-person.svg', 'Sex', me.sex || 'On file at reception'), row('lt-clipboard.svg', 'Patient number', me.no),
+        row('icon-person.svg', 'Sex', me.sex || 'On file at reception'), ...(S.pronouns ? [row('icon-person.svg', 'Pronouns', S.pronouns)] : []), row('lt-clipboard.svg', 'Patient number', me.no),
         listItem('lt-call.svg', 'Mobile number', masked(), 'pf-phone')]))}</>);
   },
 
@@ -279,7 +286,8 @@ Object.assign(SCREENS, {
     const n = S.nset, off = S.notifOff;
     return frame('Notifications', <>
       {off ? <div className="inset">{notice('warn', 'Notifications are off for Clinica', "They're turned off in your phone's settings, so nothing below reaches you here. SMS updates still arrive.",
-        btn('Open phone settings', 'os:Phone settings', { size: 'l' }))}</div> : null}
+        btn('Open phone settings', 'os:Phone settings', { size: 'l' }))}</div>
+      : S.notif !== 'on' && S.notNow ? <div className="inset">{notice('', 'You chose Not now', "Nothing pops up on this phone. SMS updates still arrive.", btn('Turn on notifications', 'notif-on', { size: 'l' }))}</div> : null}{/* W15 */}
       {sect('Your appointments', listP([setting('Appointment reminders', 'The day before, and 2 hours before', n.remind, 'nset:remind', off),
         setting('Delays and cancellations', 'Always on, so the clinic can reach you', true, '', true),
         setting('Follow-up reminders', 'When a follow-up is due', n.fu, 'nset:fu', off)]))}
@@ -296,6 +304,10 @@ Object.assign(SCREENS, {
     {sect('If you forget', list([listItem('lt-sms.svg', 'Reset your PIN', 'With a code sent by SMS', 'pf-reset')]))}
     <div className="inset"><p className="body-s">Your Clinica PIN isn't your phone's PIN. On a shared phone, it's the one thing only you know.</p></div></>),
 
+  // T05/W02: fees paid in the app, each with its receipt. The wallet is mocked, so the receipt references are made up.
+  pfpay: () => frame('Payments', S.payments.length ? sect('Paid in the app', list(S.payments.map(x => row('lt-fee.svg', `NPR ${FEE} with ${x.how} · Receipt ${x.ref}`, `${x.doc}, ${x.when}${x.for !== S.fullName ? ` · for ${x.for}` : ''}`))))
+    : centred(empty('icon-info-secondary-28.svg', 'No payments yet', 'Fees you pay in the app show here, with their receipt. Fees paid at reception are on the receipt they give you.'))),
+
   pfclinic: () => frame('City Hospital', <>
     <div className="inset">{emergency()}</div>
     {sect('Contact', list([linkRow('lt-call.svg', 'Reception', '+977 1-4412345', 'tel:+97714412345'), linkRow('lt-location.svg', 'Address', 'Maharajgunj, Kathmandu', MAPS),
@@ -303,12 +315,12 @@ Object.assign(SCREENS, {
     { cta: <a className="btn primary" href="tel:+97714412345"><img src={`${A}icon-call-on-action-24.svg`} width="24" height="24" alt="" />Call reception</a> }),
 
   pfswitch: () => {
-    const others = RECORDS.map((r, i) => [r, i]).filter(([r]) => r.name !== S.fullName);
+    const others = RECORDS.map((r, i) => [r, i]).filter(([r]) => r.name !== S.fullName && family().includes(r)); // F22/R22/T22: only this number's people
     return frame('Switch person', <>
       {heading("Who's using the app?", `${others.length + 1} people at City Hospital share this phone, and each has their own PIN.`)}
       {sect('People', list([<div className="list-item static">{lead('icon-person.svg')}<span className="text"><span className="item-title">{S.fullName}</span><span className="body-s">You, right now</span></span>
           <img src={`${A}icon-check-circle-20.svg`} width="20" height="20" alt="Current person" /></div>,
-        ...others.map(([r, i]) => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pf-switch:${i}`)),
+        ...others.map(([r, i]) => listItem('icon-person.svg', r.name, `Born ${r.born}${r.managedBy ? ` · Managed by ${r.managedBy}` : ''}`, `pf-switch:${i}`)),
         listItem('icon-add.svg', 'Someone else', 'Sign in with their own record', 'pf-other')]))}
       <div className="inset"><p className="body-s">Switching asks for that person's Clinica PIN, so nobody opens someone else's records by accident.</p></div></>);
   },
@@ -413,6 +425,7 @@ Object.assign(ACTIONS, {
   },
   'notif-read': () => { S.notifs.forEach(n => { n.read = true; }); render(); },
   nset: key => { S.nset[key] = !S.nset[key]; render(); },
+  'notif-on': () => { S.notif = 'on'; render(); }, // W15
   // Off at once — safer and reversible. On goes through the opt-in, which restates the trade-off.
   'pf-finger': () => { if (S.finger === 'on') { S.finger = 'off'; return render(); } S.afterUnlock = 'pflock'; go('finger'); },
   'pf-lock': () => { S.pinChanged = false; go('pflock'); },
@@ -444,7 +457,7 @@ Object.assign(NUM, {
   pf: s => ({ signout: 'P08', close: 'P10' })[s.sheet] || 'P01',
   pfdetails: s => s.phoneChanged ? 'PM08' : 'P02', pflang: () => 'P03', pfnotif: s => s.notifOff ? 'P09' : 'P04',
   pflock: s => s.pinChanged ? 'PM04' : s.noSensor ? 'HM13' : s.finger !== 'on' ? 'PM10' : 'P05',
-  pfclinic: () => 'P06', pfswitch: () => 'P07', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
+  pfclinic: () => 'P06', pfswitch: () => 'P07', pfpay: () => 'P12', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
 });
 later(() => { NUM.confirmed = s => s.cal.appt ? 'K03' : 'B05'; }, ORDER.care); // over booking.jsx's
 
@@ -472,6 +485,7 @@ FLOW.push(
     ['P01', 'Profile', 'Profile tab', "Where the rest of the app sends people: language, notifications, the Health lock. Shown here at full scroll length — the hub for everything other screens point to.", () => ({ screen: 'pf', pin: '1234', finger: 'on' })],
     ['P02', 'Your details', 'From 01', 'Shown, not edited: change them at reception, or the next search stops matching and a duplicate record is born. Date of birth in AD and BS.', () => ({ screen: 'pfdetails', stack: PF })],
     ['P03', 'Language', 'From 01', 'The same tiles as onboarding. Changes straight away; a doctor\'s notes stay in the language they were written in.', () => ({ screen: 'pflang', stack: PF })],
+    ['P12', 'Payments', 'From 01 — Payments', 'New (T05/W02): fees paid in the app, each with its receipt reference. The wallet is mocked, so references are made up.', () => ({ screen: 'pfpay', stack: PF })],
     ['P04', 'Notifications', 'From 01, or the gear in the Notification centre', 'Switches take effect at once. Delays and cancellations are always on, so the clinic can reach you. SMS continues either way; never marketing.', () => ({ screen: 'pfnotif', stack: PF })],
   ]],
   ['Profile — lock, clinic and this phone', [
@@ -486,7 +500,7 @@ FLOW.push(
     ['P10', 'Close account', 'From 01 — Close account', 'Cannot be undone, so red. Honest about what is not deleted: the clinic keeps medical records by law, and the patient can ask for a copy.', () => ({ screen: 'pf', sheet: 'close' })],
   ]],
   ['Notification centre', [
-    ['N01', 'Notifications', 'From the bell on Home', "Updates about the patient's care — distinct from Messages, which are conversations. Unread: dot and bold title. Each row opens where it is about — the delay in Care, reports and notes through the Health lock, which is why they never name the test. The gear opens Profile's notification settings.", () => ({ screen: 'notifs', stack: ['home'] })],
+    ['N01', 'Notifications', 'From the bell on Home', "Updates about the patient's care — distinct from Messages, which are conversations. Unread: dot and bold title. Each row opens where it is about — the delay in Care, reports and notes through the Health lock. A lab report names the test and the doctor who reviewed it (W10); only the lock screen keeps them private. The gear opens Profile's notification settings.", () => ({ screen: 'notifs', stack: ['home'] })],
     ['N02', 'Nothing yet', 'A new patient', 'Says what will arrive here, so the empty list reads as waiting rather than broken.', () => ({ screen: 'notifs', stack: ['home'], healthEmpty: true })],
     ['N03', 'Phone notifications off', 'Replaces 01 when the phone blocks Clinica', "Shown at full length — it scrolls. The list keeps updating; the banner says what doesn't happen and how to fix it, and that SMS still arrives.", () => ({ screen: 'notifs', stack: ['home'], notifOff: true })],
   ]],

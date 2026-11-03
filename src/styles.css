@@ -269,6 +269,8 @@ body { background: var(--surface-page); }
 .radio-group { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .radio-group legend { padding: 0; font: 600 14px/20px "Open Sans"; color: var(--text-primary); }
 .radio-options { display: flex; flex-wrap: wrap; column-gap: 24px; }
+.radio-options.roomy { flex-direction: column; } /* R25: one option per row, each a full-width 48px target */
+.radio-options.roomy .radio { min-height: 48px; }
 .radio { display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 0; font-size: 16px; line-height: 24px; cursor: pointer; }
 .radio input {
   appearance: none; margin: 0; width: 24px; height: 24px; display: grid; place-items: center; cursor: pointer;

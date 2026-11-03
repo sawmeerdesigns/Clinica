@@ -16,7 +16,10 @@ export const ND = window.NepaliDate.default; // Published Bikram Sambat table (2
 // Demo backend
 export const CODE_OK = '123456';
 export const CODE_EXPIRED = '000000';
-export const RECORDS = [{ name: 'Anisha Sharma', born: 'March 1994' }, { name: 'Ramesh Sharma', born: 'June 1961' }];
+export const RECORDS = [{ name: 'Anisha Sharma', born: 'March 1994' }, { name: 'Ramesh Sharma', born: 'June 1961', managedBy: 'Anisha Sharma' }]; // F14/R11: Anisha manages her father's profile
+// F22/R22/T22: the demo family's records belong to 9841234412 only. Another number sees none (an empty number is a jumped-to demo state).
+export const FAMILY_NO = '9841234412';
+export const family = () => !S.phone || digits(S.phone) === FAMILY_NO ? RECORDS : [];
 
 export const AD_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const AD_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -192,9 +195,9 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar({ back: false })}
       <div className="body g20">
-        {heading("Who's using the app?", `City Hospital has ${RECORDS.length} records for this number, because many families share a phone. Choose yours.`)}
+        {heading("Who's using the app?", `City Hospital has ${family().length} records for this number, because many families share a phone. Choose yours.`)}
         <div className="list">
-          {sepJoin([...RECORDS.map(r => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pick:${r.name}`)),
+          {sepJoin([...family().map(r => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pick:${r.name}`)),
             listItem('icon-add.svg', 'Someone else', 'Create a new profile', 'go:profile')])}
         </div>
         <div className="inset"><p className="body-s tertiary">Anyone who signs in with this number will be asked this, so each person only sees their own record.</p></div>
@@ -229,11 +232,18 @@ Object.assign(SCREENS, {
           </div>
           <fieldset className={`radio-group ${S.sexErr ? 'err' : ''}`} id="sex">
             <legend>Sex</legend>
-            <div className="radio-options">
+            <div className="radio-options roomy">{/* R25: one per row, full-width targets */}
               {['Female', 'Male', 'Other'].map(v => <label key={v} className="radio"><input type="radio" name="sex" value={v} checked={S.sex === v}
                 onChange={() => { S.sex = v; S.sexErr = false; paint(); }} />{v}</label>)}
             </div>
             <div id="sex-msg">{S.sexErr ? support('Choose one.', 'err') : null}</div>
+          </fieldset>
+          <fieldset className="radio-group" id="pronouns">{/* V16: optional, with Prefer not to say */}
+            <legend>Pronouns (optional)</legend>
+            <div className="radio-options roomy">
+              {['She/her', 'He/him', 'They/them', 'Prefer not to say'].map(v => <label key={v} className="radio"><input type="radio" name="pronouns" value={v} checked={S.pronouns === v}
+                onChange={() => { S.pronouns = v; paint(); }} />{v}</label>)}
+            </div>
           </fieldset>
         </form></div>
       </div>
@@ -382,7 +392,7 @@ export function DobSheet() {
   const pk = S.picker, r = pickerRanges(pk);
   pk.y = Math.min(Math.max(pk.y, r.years[0]), r.years.at(-1));
   pk.d = Math.min(pk.d, r.days);
-  useEffect(() => { document.querySelector('#sheet .seg[aria-pressed="true"]')?.focus(); }, []);
+  useEffect(() => { document.getElementById('w-y')?.focus(); }, []); // R25: a date of birth starts at the year
   let conv;
   if (pk.cal === 'AD') { const b = toBS(pk.y, pk.m, pk.d); conv = b ? `That's ${bsText(b)}.` : 'No BS conversion before 2000 BS (1943 AD).'; }
   else { const a = toAD(pk.y, pk.m, pk.d); conv = a ? `That's ${a.date} ${AD_LONG[a.month]} ${a.year} AD.` : ''; }
@@ -399,9 +409,10 @@ export function DobSheet() {
         <div className="wheels">
           <div className="band"></div>
           {/* A wheel rebuilds when its list changes: a new calendar, or a month with a different number of days. */}
-          <Wheel key={`d${pk.cal}${r.days}`} id="w-d" label="Day" items={range(1, r.days)} idx={pk.d - 1} onPick={i => { pk.d = i + 1; paint(); }} />
-          <Wheel key={`m${pk.cal}`} id="w-m" label="Month" items={r.months} idx={pk.m} onPick={i => { pk.m = i; paint(); }} />
+          {/* R25: Year first, then Month and Day */}
           <Wheel key={`y${pk.cal}`} id="w-y" label="Year" items={r.years} idx={r.years.indexOf(pk.y)} onPick={i => { pk.y = r.years[i]; paint(); }} />
+          <Wheel key={`m${pk.cal}`} id="w-m" label="Month" items={r.months} idx={pk.m} onPick={i => { pk.m = i; paint(); }} />
+          <Wheel key={`d${pk.cal}${r.days}`} id="w-d" label="Day" items={range(1, r.days)} idx={pk.d - 1} onPick={i => { pk.d = i + 1; paint(); }} />
         </div>
         <div className="conversion" id="conv" aria-live="polite">{conv}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{btn('Done', 'picker-done')}{btn('Cancel', 'close-picker', { kind: 'secondary' })}</div>
@@ -498,9 +509,9 @@ export function verify() {
     Object.assign(S, { phone: S.newPhone, phoneChanged: true, codeFor: null, tries: 3 });
     return backTo('pfdetails');
   }
-  if (S.code === CODE_OK && S.codeFor === 'addperson') { S.codeFor = null; S.tries = 3; return go('whos', { replace: true }); } // the other records on this number
+  if (S.code === CODE_OK && S.codeFor === 'addperson') { S.codeFor = null; S.tries = 3; return go(family().length ? 'whos' : 'profile', { replace: true }); } // the other records on this number (F22)
   if (S.code === CODE_OK && S.codeFor === 'pinreset') { S.tries = 3; S.codeFor = null; S.pinEntry = ''; return go('pinnew', { replace: true }); } // PIN reset (health.jsx)
-  if (S.code === CODE_OK) { S.tries = 3; S.signedIn = true; S.stack = []; return go('whos', { replace: true }); }
+  if (S.code === CODE_OK) { S.tries = 3; S.signedIn = true; S.stack = []; return go(family().length ? 'whos' : 'profile', { replace: true }); } // F22/R22/T22: no records, nobody else's names
   if (S.code === CODE_EXPIRED) { S.codeState = 'expired'; return render(); }
   S.tries--;
   if (S.tries <= 0) { S.stack = ['splash', 'phone']; return go('locked', { replace: true }); }

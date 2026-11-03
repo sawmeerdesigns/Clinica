@@ -32,10 +32,11 @@ export const fresh = () => Object.assign({
   first: 'Anisha', fullName: 'Anisha Sharma',
   doc: 'ps', day: 0, time: '4:30 PM', reason: '', reasonSaved: false, taken: {}, fav: {},
   specialty: 'General medicine', query: '',
-  homeState: 'default', appt: { doc: 'ps', day: 0, time: '4:30 PM' },
+  homeState: 'default', appt: { doc: 'ps', day: 0, time: '4:30 PM', reason: 'Fever for three days, with a headache' }, // V14: her reason, as the doctor's queue has it
   notif: 'ask', notNow: 0,
   loading: null, refreshing: false, careErr: false, micPerm: null,
   bookFor: null, booked: null, failKind: 'taken', failNext: '', filt: { today: false, sex: 'Any' }, fdraft: null,
+  payWith: null, payFor: null, payments: [], bookedOnce: false, fuOf: null, pronouns: '', // Phase 3: payment (W02), retry (W14), follow-up (W11), pronouns (V16)
 }, ...byOrder(EXTRA).map(f => f()));
 
 export let S = {};
@@ -72,7 +73,10 @@ const LATER = [];
 export const later = (f, n) => LATER.push({ f, n });
 export const runLater = () => byOrder(LATER.splice(0)).forEach(f => f());
 
+// R10: when the screen last changed, so a double-tap's second tap can be ignored (booking.jsx confirm).
+export let shownAt = 0;
 export function go(screen, { replace = false } = {}) {
+  if (S.screen !== screen) shownAt = Date.now();
   if (!replace && S.screen !== screen) S.stack.push(S.screen);
   S.screen = screen;
   S.picker = null;
