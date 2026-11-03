@@ -2,7 +2,7 @@
 :root {
   --text-primary: #292b2e;
   --text-secondary: #4a4e54;
-  --text-tertiary: #6c727a;
+  --text-tertiary: #646a72; /* A1: 4.78:1 or better on every surface it sits on */
   --text-action: #0b62d6;
   --text-on-action: #ffffff;
   --text-disabled: #6c727a;

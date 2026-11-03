@@ -508,6 +508,8 @@ Object.assign(ACTIONS, {
   report: arg => { S.report = arg; go('hreport'); },
   'report-dl': () => downloadReport(labOf(S.report)),
   'health-go': arg => openHealth(arg),
+  // T03: Home's "Lab report ready" opens the newest ready report (S.labs runs newest first), as the notification does (care.jsx).
+  'lab-ready': () => { S.report = S.labs.find(k => !labOf(k).reviewing) || S.report; openHealth('hreport'); },
   'unlock-start': () => {
     if (!S.pin) return go('pincreate'); // first unlock: create the PIN now, when it protects something
     if (S.finger === 'on' && !S.fingerChanged) { S.bio = 'prompt'; return render(); }

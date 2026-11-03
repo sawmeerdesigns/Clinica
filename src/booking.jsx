@@ -161,7 +161,7 @@ Object.assign(SCREENS, {
           <button className="tile" data-act="health-go:hrx"><img src={`${A}qa-rx.svg`} width="28" height="28" alt="" />Prescriptions</button>
         </div></div> : null}
         {st === 'default' && !S.healthEmpty ? <div><div className="inset">{label('Recent')}</div><div className="list">
-            {sepJoin([listItem('lt-lab.svg', 'Lab report ready', 'Open Health to see it', 'health-go:hreport'),
+            {sepJoin([listItem('lt-lab.svg', 'Lab report ready', 'Open Health to see it', 'lab-ready') /* T03 */,
                listItem('lt-rx.svg', 'Prescription updated', 'From Dr. Sharma, Aug 25', 'health-go:hrxd'),
                listItem('lt-followup.svg', 'Follow-up due', 'Dermatology, Sep 14', 'stub:Follow-up')])}
           </div></div> : null}

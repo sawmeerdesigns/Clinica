@@ -316,7 +316,7 @@ export function onboarding(step, title, body, card) {
       <div className="body hero-body">
         <div className="inset"><div className="heading"><h2 className="h-display">{title}</h2><p className="lede">{body}</p></div></div>
         <div className="hero-inset"><div className="hero"><img src={`${A}hero.png`} alt="A doctor in a white coat with a stethoscope" />{card}</div></div>
-        <div className="dots" aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(i => <i key={i} className={i === step ? 'on' : ''}></i>)}</div>
+        <div className="dots" role="img" /* A4 */ aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(i => <i key={i} className={i === step ? 'on' : ''}></i>)}</div>
       </div>
       <div className="cta row">{step < 3 ? <>{btn('Skip', 'go:phone', { kind: 'secondary' })}{btn('Next', `go:onb${step + 1}`)}</> : btn('Get started', 'go:phone')}</div>
       {homeInd()}

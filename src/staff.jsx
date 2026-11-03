@@ -194,7 +194,7 @@ export const results = (n, total, what) => S.stQ ? `${n} result${n === 1 ? '' : 
 export let stVisible = [];
 export function sTable(cols, items, cells, act) {
   stVisible = items.map(x => x.id);
-  const all = items.length && items.every(x => S.stSel.includes(x.id));
+  const all = items.length > 0 && items.every(x => S.stSel.includes(x.id)); // A3: an empty list is not "all selected" (0 leaked into aria-checked)
   return <div className="st-tbl"><div className="st-th" role="row">{cbBtn(all, 'st-cball', 'Select all')}{cols.map(([l, w], i) => w ? <span key={i} style={{ width: w }}>{l}</span> : <Fragment key={i}><span className="sp"></span><span>{l}</span></Fragment>)}</div>
     <div className="st-rows">{sepJoin(items.map(x => <div className="st-tr" role="row" {...(act ? { 'data-act': `${act}:${x.id}`, tabIndex: 0 } : {})}>{cbBtn(S.stSel.includes(x.id), `st-cb:${x.id}`, `Select ${x.name}`)}{cells(x)}</div>))}</div></div>;
 }

@@ -31,6 +31,16 @@ export const DR_REPORTS = {
     normal: 'Your cholesterol levels are all within a healthy range. Keep up the good work.' },
 };
 export const DR_FOLLOW = 'Please book a follow-up so we can discuss this.';
+// W06/F23: a report opens undecided, with an empty comment; the report's own text is only a suggestion.
+export const drRelNew = () => ({ choice: null, comment: '', edited: false });
+// F01/R01: the suggestion is worked out from the report on screen, never carried over from another one.
+export const drSuggest = (k = S.drRep) => S.drRel.choice === 'follow' ? DR_FOLLOW : S.drRel.choice ? DR_REPORTS[k].normal : '';
+export const drWords = (k = S.drRep) => S.drRel.comment.trim() || drSuggest(k); // what the patient will read
+// The comment box and Release button, shared by phone and desktop. Release waits for a decision (W06/F23).
+export const drComment = (r, k) => <div className="field-wrap"><label className="dr-label" htmlFor="d-comment">Comment for {r.first}</label>
+  <div className="field textarea"><textarea id="d-comment" value={S.drRel.comment} placeholder={S.drRel.choice ? `Suggested: ${drSuggest(k)}` : 'Choose what the patient should see first'}
+    onChange={e => { S.drRel.comment = e.target.value; S.drRel.edited = true; paint(); }} /></div>
+  {S.drRel.choice && !S.drRel.comment.trim() ? <p className="dr-body tertiary">Leave it blank to send the suggested text.</p> : null}</div>;
 
 export const EXTRA_STATE_DR = () => ({
   app: 'patient', saved: {}, drSigned: false, drErr: false, drId: '', drPw: '', drNoPatients: false,
@@ -272,10 +282,9 @@ Object.assign(SCREENS, {
         <p className="dr-body tertiary">Reference ranges only — patients never see raw values like these, only what you tell them.</p></div>
       <div className="inset">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}</div>
       {follow ? <div className="inset"><p className="dr-body tertiary">Releasing this shows {r.first} the same “asked to see you” card and Book follow-up action already built on her side.</p></div> : null}
-      <div className="inset"><div className="field-wrap"><label className="dr-label" htmlFor="d-comment">Comment for {r.first}</label>
-        <div className="field textarea"><textarea id="d-comment" value={rel.comment} onChange={e => { rel.comment = e.target.value; rel.edited = true; paint(); }} /></div></div></div>
+      <div className="inset">{drComment(r, S.drRep)}</div>
       <div style={{ height: 20, flex: 'none' }}></div>
-      <div className="inset">{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'd-release')}</div>
+      <div className="inset">{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'd-release', { disabled: !rel.choice })}</div>
     </div>, { bar: drBar('Review report', true) });
   },
 
@@ -304,13 +313,18 @@ Object.assign(mount, {
 });
 
 // Release asks first, with exactly what the patient will be told. Brand, not red: releasing is the intended outcome.
+// W05: both branches quote the comment and say what her app shows (health.jsx hreport: the comment, plus a "Book follow-up" card when flagged).
 Object.assign(OVERLAY, {
   drrelease: () => {
-    const r = DR_REPORTS[S.drRep], p = DR_PATIENTS[r.pid], c = S.drRel.comment.trim(), goBack = btn('Go back', 'sheet-close', { kind: 'secondary' });
+    const r = DR_REPORTS[S.drRep], p = DR_PATIENTS[r.pid], w = drWords(), goBack = btn('Go back', 'sheet-close', { kind: 'secondary' });
+    const sees = `${p.name} (${drPid(r.pid)}) will see your comment right away: “${w}”`;
     return S.drRel.choice === 'follow'
-      ? csheet('Flag this for follow-up?', `${r.first} will be told to expect a call, not see the raw result.`, btn('Flag for follow-up', 'd-release-ok'), goBack)
-      : csheet('Release this report?', `Comment for ${p.name} (${drPid(r.pid)}): “${c || r.normal}” ${r.first} will be able to see this right away.`, btn(`Release to ${r.first}`, 'd-release-ok'), goBack);
+      ? csheet('Release with a follow-up request?', `${sees} ${r.first} will also be asked to book a follow-up with you.`, btn('Release with follow-up request', 'd-release-ok'), goBack)
+      : csheet('Release this report?', sees, btn(`Release to ${r.first}`, 'd-release-ok'), goBack);
   },
+  // T15: changing the decision after writing your own comment asks before anything is replaced.
+  drkeep: () => csheet('Keep your comment?', `You changed the decision to “${S.drRel.next === 'follow' ? 'I need to see them again' : 'Everything is normal'}”. Your comment still says: “${S.drRel.comment.trim()}”`,
+    btn('Keep my comment', 'd-keep:keep'), btn('Use the suggested text', 'd-keep:replace', { kind: 'secondary' })),
   drsignout: () => signoutSheet("You'll need to sign in again to see today's queue.", 'd-signout'),
   // Desktop adds a medicine in a sheet over the visit; the phone uses a full screen (daddmed).
   draddmed: () => <><div className="scrim" data-act="sheet-close"></div>
@@ -326,7 +340,7 @@ export function drRelease() { // what releasing does, on either device
   const k = S.drRep, follow = S.drRel.choice === 'follow';
   S.drPending = S.drPending.filter(x => x !== k);
   if (k === 'cbc') { // Anisha's CBC: now released, with this comment, on her side
-    S.released = { ...S.released, cbc: { follow, words: S.drRel.comment.trim() || DR_REPORTS.cbc.normal } };
+    S.released = { ...S.released, cbc: { follow, words: drWords() } }; // W05: exactly what the sheet quoted
     S.notifs.unshift({ g: 'Today', icon: 'lt-lab.svg', t: 'A lab report is ready', b: 'Open Health to see it.', when: 'Just now', go: 'hreport-cbc' });
   }
 }
@@ -383,13 +397,16 @@ Object.assign(ACTIONS, {
     const { [S.dp]: _, ...kept } = S.drKept; S.drKept = kept;
     Object.assign(S, { stack: [], screen: 'dqueue' }); render();
   },
-  'd-report': k => { S.drRep = k; S.drRel = { choice: 'normal', comment: DR_REPORTS[k].normal, edited: false }; go('dreport'); },
-  'd-choice': v => { // the comment follows the choice until the doctor writes their own
-    const r = DR_REPORTS[S.drRep]; S.drRel.choice = v;
-    if (!S.drRel.edited) S.drRel.comment = v === 'follow' ? DR_FOLLOW : r.normal;
+  'd-report': k => { S.drRep = k; S.drRel = drRelNew(); go('dreport'); }, // W06/F23: undecided
+  'd-choice': v => { // F01/R01: never copies text in, so no other report's comment can land here; the suggestion is the placeholder
+    const rel = S.drRel;
+    if (rel.edited && rel.choice && v !== rel.choice && rel.comment.trim()) { rel.next = v; S.sheet = 'drkeep'; return render(); } // T15
+    rel.choice = v;
+    if (!rel.edited) rel.comment = ''; // a Figma frame's preset text gives way to the new suggestion
     render();
   },
-  'd-release': () => { S.sheet = 'drrelease'; render(); },
+  'd-keep': how => { const rel = S.drRel; rel.choice = rel.next; if (how === 'replace') Object.assign(rel, { comment: '', edited: false }); S.sheet = null; render(); }, // T15
+  'd-release': () => { if (!S.drRel.choice) return; S.sheet = 'drrelease'; render(); }, // W06: no decision, no release
   'd-release-ok': () => {
     S.sheet = null; drRelease();
     if (S.app === 'desk') { Object.assign(S, { screen: 'kreports', stack: [], kRep: null }); return render(); }
@@ -459,6 +476,6 @@ later(() => FLOW.push(['Doctor app', [ // the presets read DR_DRAFTS, ready only
   ['D04e', 'Add another medicine — missing details', 'Save medicine', 'Every required field says what it needs, all at once. Quantity, Purpose and End date are optional.', DW({ screen: 'daddmed', stack: ['dqueue', 'dvisit'], dp: 'as', visitDay: 'with', drDraft: { ...DR_DRAFTS.as, meds: [...DR_DRAFTS.as.meds] },
     drMed: { nameErr: 'This field is required.', strengthErr: 'This field is required.', formErr: 'This field is required.', oftenErr: 'This field is required.', longErr: 'This field is required.' } })],
   ['D06d', 'Release confirmation', 'Release to Kabita', 'The exact comment, before it reaches the patient. Brand, not red: releasing is the intended outcome.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal }, sheet: 'drrelease' })],
-  ['D06e', 'Follow-up confirmation', 'Release with follow-up request', "Flagging asks first too: she'll be told to expect a call, not see the raw result.", DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW }, sheet: 'drrelease' })],
+  ['D06e', 'Follow-up confirmation', 'Release with follow-up request', "Flagging asks first too, quoting the comment she'll see and the follow-up she'll be asked to book (W05).", DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW }, sheet: 'drrelease' })],
   ['D07c', 'Sign out', 'Sign out', 'Asks first. Reversible, so Brand, not red.', DW({ screen: 'dprofile', sheet: 'drsignout' })],
 ]]), ORDER.doctor);

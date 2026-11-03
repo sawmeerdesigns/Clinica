@@ -25,3 +25,20 @@ Fixes for the findings from the five synthetic usability runs (F = run 1, R = ru
 ### check.cjs changes (values that changed on purpose)
 - Weekday labels: Thu, Sep 11 → Fri, Sep 11; Wed, Sep 3 → Thu, Sep 3; reschedule and Dr. Joshi steps now pick Sun instead of Fri, and the new times read Sun, Aug 30 or Sun, Sep 13.
 - Reception: 13 → 20 and 14 → 21 patients. Dashboard "Not yet arrived": 2 → 3 (Riya Maharjan, Paediatrics). Patients filtered by visit date: 13 of 26 → 20 of 33.
+
+## Phase 1 — Patient-safety and one-line fixes
+
+| Finding IDs | File:line | What changed | Status |
+|---|---|---|---|
+| F01 / R01 | src/desk.jsx:152, src/doctor.jsx:37, :401 | `k-rep` sets `S.drRep` as well as `S.kRep`. `d-choice` no longer copies any text into the comment: the suggestion is computed at render time from the report on screen (`drSuggest(k)`), so no other patient's comment can land in it, on phone or desktop. | Fixed |
+| W06 / F23 (release) | src/doctor.jsx:35, :40, :287, :409, src/desk.jsx:81, :152 | A report opens undecided with an empty comment (`drRelNew`). The report's text shows only as a "Suggested: …" placeholder, with "Leave it blank to send the suggested text." Release is disabled until a decision is picked. The comment box is one shared `drComment` for phone and desktop. Figma frames (D06–D06e, K20–K20e) still preset a decision. | Fixed (reference ranges: Phase 2) |
+| T15 | src/doctor.jsx:326, :401, :408 | Changing the decision after writing your own comment opens a "Keep your comment?" sheet (`csheet`): "Keep my comment" or "Use the suggested text". | Fixed |
+| W05 | src/doctor.jsx:318, :343 | Both release sheets name the patient and ID and quote the exact comment she will see right away. The follow-up sheet adds that she'll be asked to book a follow-up (what health.jsx `hreport` shows). "Will be told to expect a call" is gone, including from the D06e/K20e captions. The released text is the same `drWords()` the sheet quoted. | Fixed |
+| T03 | src/booking.jsx:164, src/health.jsx:512 | Home's "Lab report ready" runs `lab-ready`, which sets `S.report` to the newest released report (first in `S.labs` that isn't being reviewed, HbA1c) before opening Health, as the notification does. | Fixed |
+| A1 | src/styles.css:5 | `--text-tertiary` is #646a72. | Fixed |
+| A3 | src/staff.jsx:197 | Select all uses `items.length > 0 &&`, so aria-checked is never "0". | Fixed |
+| A4 | src/app.jsx:319 | Onboarding step dots have `role="img"`. | Fixed |
+
+### check.cjs changes (Phase 1)
+- The phone and desktop release flows pick a decision before releasing. The follow-up sheet's button is now "Release with follow-up request" (it was "Flag for follow-up"), and the K20e sheet text is "Release with a follow-up request?" and quotes the comment.
+- 11 new assertions: Release is disabled and the comment empty until a decision; the suggestion is a placeholder; both sheets quote the comment; k-rep sets drRep and toggling gives Kabita's own text (phone and desktop); T15 asks, keeps and replaces; Home "Lab report ready" opens HbA1c.

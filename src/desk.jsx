@@ -5,7 +5,7 @@ import { btn, empty, listItem, start, support } from './app.jsx';
 import { T, ask, src } from './ask.jsx';
 import { label, rel, row, rows, sk, tag, when } from './booking.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, go, later, mount, paint, render, sepJoin } from './core.jsx';
-import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drChip, drDate, drField, drMed, drMeds, drOffline, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
+import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drChip, drComment, drRelNew, drDate, drField, drMed, drMeds, drOffline, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
 import { DR_PATIENTS, TODAY, mdOf } from './data.js'; // one arrivals list and one today (F07/F20)
 import { centred, docCard, field, list } from './health.jsx';
 import { img, now, patients, person } from './staff.jsx';
@@ -77,8 +77,8 @@ export function kReportDetail() {
         {drValues(r.rows)}
         <p className="dr-body tertiary">Reference ranges only — patients never see raw values, only what you tell them.</p></div>
       <div className="stack16">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}
-        <div className="field-wrap"><label className="dr-label" htmlFor="d-comment">Comment for {r.first}</label><div className="field textarea"><textarea id="d-comment" value={rel.comment} onChange={e => { rel.comment = e.target.value; rel.edited = true; paint(); }} /></div></div>
-        <div>{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'k-release', { size: 'l', kind: 'primary hug' })}</div></div>
+        {drComment(r, k)}
+        <div>{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'k-release', { size: 'l', kind: 'primary hug', disabled: !rel.choice })}</div></div>
     </div></section>;
 }
 
@@ -149,7 +149,7 @@ Object.assign(ACTIONS, {
   'k-view': v => { S.kView = v; render(); },
   'k-start': () => { S.dp = S.kSel; ACTIONS['d-start'](); Object.assign(S, { screen: 'kqueue', stack: [], kView: 'complete' }); render(); }, // the note is written inline
   'k-complete': () => { S.dp = S.kSel; ACTIONS['d-complete'](); Object.assign(S, { screen: 'kqueue', stack: [], kView: 'visit' }); render(); },
-  'k-rep': k => { S.kRep = k; S.drRel = { choice: 'normal', comment: DR_REPORTS[k].normal, edited: false }; render(); },
+  'k-rep': k => { S.kRep = S.drRep = k; S.drRel = drRelNew(); render(); }, // F01/R01: the open report is drRep too; W06/F23: undecided
   'k-release': () => { S.drRep = S.kRep; ACTIONS['d-release'](); }, // asks first; confirming releases (doctor.jsx)
   'k-settings': sec => { S.drSec = sec; S.drPwErr = ''; drPwClear(); go('kset'); },
 });
@@ -192,6 +192,6 @@ later(() => FLOW.push(['Doctor desktop', [ // the presets read doctor.jsx's DR_D
   ['K11i', 'Queue — completing, other date', 'Other date', 'The optional follow-up date, typed or picked on the AD/BS wheels.', KW({ kSel: 'as', kView: 'complete', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as, meds: [...DR_DRAFTS.as.meds], follow: 'other', followDate: '' } })],
   ['K11j', 'Queue — add another medicine', 'Add another medicine', "The phone's Add another medicine form, as a sheet over the visit.", KW({ kSel: 'as', kView: 'complete', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as, meds: [...DR_DRAFTS.as.meds] }, dp: 'as', drMed: {}, sheet: 'draddmed' })],
   ['K20d', 'Reports — release confirmation', 'Release to Kabita', 'The exact comment, before it reaches the patient.', KW({ screen: 'kreports', kRep: 'lipid', drRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal }, sheet: 'drrelease' })],
-  ['K20e', 'Reports — follow-up confirmation', 'Release with follow-up request', "Flagging asks first: she'll be told to expect a call.", KW({ screen: 'kreports', kRep: 'cbc', drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW }, sheet: 'drrelease' })],
+  ['K20e', 'Reports — follow-up confirmation', 'Release with follow-up request', "Flagging asks first, quoting the comment she'll see and the follow-up she'll be asked to book (W05).", KW({ screen: 'kreports', kRep: 'cbc', drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW }, sheet: 'drrelease' })],
   ['K30c', 'Sign out', 'Sign out', 'Asks first, centred on the desktop. Reversible, so Brand, not red.', KW({ screen: 'kprofile', sheet: 'drsignout' })],
 ]]), ORDER.desk);

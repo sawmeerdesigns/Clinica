@@ -330,6 +330,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await P(".as >> text=Thyroid panel report.pdf") && await P(".as >> text=Saved to your phone's Files."), 'download prompt (SY5)');
   // ---- One prototype: two ways in, and the situations in Demo inputs ----
   assert(!(await p.$('#jump')), 'no screen list in the side panel');
+  await J('B01'); await p.evaluate(() => { S.report = 'thyroid'; }); await p.click('#phone >> text=Lab report ready');
+  assert(await p.evaluate(() => S.report) === 'hba1c', 'T03: Home "Lab report ready" opens the newest report');
   await p.evaluate(() => start('empty')); assert(await P('text=Nothing booked yet') && !(await P('text=Recent')) && !(await P('.bell .dot')), 'Empty: a new patient on Home');
   await p.click('.bnav >> text=Care'); assert(await P('text=No upcoming visits'), 'Empty: Care (C12)');
   await p.click('.bnav >> text=Health'); assert(await P('text=Nothing here yet'), 'Empty: Health (H11)');
@@ -372,9 +374,15 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await P('text=Rest and fluids.'), "the note she reads is the one the doctor wrote");
   await p.evaluate(() => switchPhone()); await p.click('.bnav >> text=Reports'); assert(await P('text=2 results are waiting on you'), 'reports (D05)');
   await p.click('[data-act="d-report:cbc"]'); assert(await P('text=13.2 g/dL') && await P('text=Release to Anisha'), 'report detail (D06)');
-  await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request') && await p.inputValue('#d-comment') === 'Please book a follow-up so we can discuss this.', 'flag follow-up (D06b)');
-  await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet >> text=Flag for follow-up'); assert(await P('text=1 result is waiting on you') && !(await P('text=CBC blood test')), 'released, off the list');
-  await p.click('[data-act="d-report:lipid"]'); await p.click('#phone >> text=Release to Kabita'); await p.click('#phone .csheet >> text=Release to Kabita'); assert(await P('text=Nothing waiting on you'), 'no reports pending (D05b)');
+  assert(await p.isDisabled('#phone .btn:text-is("Release to Anisha")') && !(await P('[role=radio][aria-checked="true"]')) && await p.inputValue('#d-comment') === '', 'W06/F23: no decision, empty comment, Release disabled');
+  await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request') && await p.inputValue('#d-comment') === '' && await p.getAttribute('#d-comment', 'placeholder') === 'Suggested: Please book a follow-up so we can discuss this.', 'flag follow-up (D06b): suggestion shown, not filled in');
+  await p.click('#phone >> text=Release with follow-up request'); { const t = await p.textContent('#phone .csheet'); assert(t.includes('“Please book a follow-up so we can discuss this.”') && t.includes('asked to book a follow-up') && !t.includes('expect a call'), 'W05: follow-up sheet quotes the comment and says what she sees'); }
+  await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 result is waiting on you') && !(await P('text=CBC blood test')), 'released, off the list');
+  await p.click('[data-act="d-report:lipid"]'); assert(await p.isDisabled('#phone .btn:text-is("Release to Kabita")'), 'Kabita: Release waits for a decision');
+  await p.click('.radio-row:has-text("I need to see them again")'); await p.click('.radio-row:has-text("Everything is normal")');
+  assert((await p.getAttribute('#d-comment', 'placeholder')).includes('cholesterol') && await p.inputValue('#d-comment') === '', "F01/R01 (phone): after Anisha's release, Kabita's suggestion is her own");
+  await p.click('#phone >> text=Release to Kabita'); { const t = await p.textContent('#phone .csheet'); assert(t.includes('“Your cholesterol levels are all within a healthy range. Keep up the good work.”') && !t.includes('blood count'), 'W05: release sheet quotes her comment'); }
+  await p.click('#phone .csheet >> text=Release to Kabita'); assert(await P('text=Nothing waiting on you'), 'no reports pending (D05b)');
   await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'home'; S.stack = []; render(); }); await p.click('[aria-label^="Notifications"]');
   await p.click('#phone >> text=A lab report is ready'); await p.evaluate(() => { S.unlocked = true; S.screen = 'hreport'; S.stack = ['health', 'hlabs']; render(); });
   assert(await P('text=CBC blood test') && await P('text=Dr. Sharma asked to see you') && await P('text=Please book a follow-up so we can discuss this.'), "Anisha sees the released CBC, with the doctor's comment and the asked-to-see-you card");
@@ -396,7 +404,14 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await P("text=Today's visit — complete") && await P('text=Aug 28 · 7 of 8 seen'), 'completed: read-only, the count moves');
   await p.click('.k-ni >> text=Reports'); assert(await P('text=Select a report') && await P('text=2 are waiting on you'), 'reports, nothing selected (K20a)');
   await p.click('[data-act="k-rep:cbc"]'); await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request'), 'flag follow-up (K20b)');
-  await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet >> text=Flag for follow-up'); assert(await P('text=1 is waiting on you'), 'released');
+  await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 is waiting on you'), 'released');
+  await p.click('[data-act="k-rep:lipid"]'); assert(await p.evaluate(() => S.drRep) === 'lipid' && await p.isDisabled('#phone .btn:text-is("Release to Kabita")'), 'F01/R01: k-rep opens Kabita as drRep, undecided');
+  await p.click('.radio-row:has-text("I need to see them again")'); await p.click('.radio-row:has-text("Everything is normal")');
+  assert((await p.getAttribute('#d-comment', 'placeholder')).includes('cholesterol'), "F01/R01 (desktop): toggling gives Kabita's own text, not Anisha's");
+  await p.fill('#d-comment', 'Your cholesterol is fine.'); await p.click('.radio-row:has-text("I need to see them again")');
+  assert(await P('.csheet >> text=Keep your comment?'), 'T15: changing the decision after editing asks first');
+  await p.click('#phone .csheet >> text=Keep my comment'); assert(await p.inputValue('#d-comment') === 'Your cholesterol is fine.' && await P('text=Release with follow-up request'), 'T15: keep');
+  await p.click('.radio-row:has-text("Everything is normal")'); await p.click('#phone .csheet >> text=Use the suggested text'); assert(await p.inputValue('#d-comment') === '' && await P('text=Release to Kabita'), 'T15: replace');
   await p.evaluate(() => showApp('doctor')); assert(await P('text=1 result is waiting on you') || await P('text=7 of 8 seen today'), "the doctor's phone shows the same day");
   await p.evaluate(() => showApp('patient')); await p.evaluate(() => { S.screen = 'cday'; S.stack = ['care']; render(); });
   assert(await P('text=Visit complete') && await P('text=Follow-up in 2 weeks'), "Anisha's phone: visit complete, follow-up in 2 weeks advised");
@@ -471,7 +486,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('T05'); assert(await p.evaluate(() => [...document.querySelectorAll('#phone .st-tr')].some(r => r.textContent.includes('Prakash') && r.textContent.includes('Ramesh Shrestha'))), 'admin Patients: Prakash saw Dr. Ramesh Shrestha');
   await J('T04a3'); assert(await p.evaluate(() => [...document.querySelectorAll('#phone a.k-link')].some(e => e.textContent.trim() === 'Doctors')), 'Add doctor goes back to Doctors');
   await J('T03h'); assert(await has('Orthopaedics has been added'), 'department added');
-  await J('K20e'); const fs = await p.textContent('.csheet'); assert(fs.includes('Flag this for follow-up?') && fs.includes('will be told to expect a call') && fs.includes('Flag for follow-up'), 'follow-up release asks first');
+  await J('K20e'); const fs = await p.textContent('.csheet'); assert(fs.includes('Release with a follow-up request?') && fs.includes('“Please book a follow-up so we can discuss this.”') && fs.includes('asked to book a follow-up') && !fs.includes('expect a call'), 'follow-up release asks first, quoting the comment (W05)');
   await J('D06d'); assert((await p.textContent('.csheet')).includes('Kabita Gurung (CH-2412)'), 'release sheet names the patient and ID');
   await J('D02e'); assert(await has("You're offline") && await has('5 of 8'), 'offline queue keeps the progress (D02e)');
   await J('K10c'); assert(await has("You're offline"), 'offline desktop queue (K10c)');
