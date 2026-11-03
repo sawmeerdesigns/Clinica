@@ -1,185 +1,145 @@
 # Clinica — usability fixes
 
-Fixes for the findings from the five synthetic usability runs (F = run 1, R = run 2, T = run 3, V = run 4, W = run 5). Each change cites its finding IDs in a code comment.
+Fixes for the findings from the five synthetic usability runs: F = run 1, R = run 2, T = run 3, V = run 4 (with axe A1–A6), W = run 5. There is no V15 or V20. Each change cites its finding IDs in a code comment. A finding reported in more than one run has one row, listing every ID. Line numbers are for the current tree.
 
-## Phase 0 — One source of truth for data
+Status key: **Fixed**, **Partial** (what's missing is named), **Deferred** (with the reason), **Not a code defect** (with the reason).
 
-| Finding IDs | File:line | What changed | Status |
-|---|---|---|---|
-| F07 / R05 / T06 / V07 | src/data.js:46, src/staff.jsx:73, :88, :228 | Every count comes from one arrivals list: Dr. Sharma's queue (`DR_PATIENTS` + `S.drq`) and everyone else's (`ARR` + `S.rq`), both in data.js. `ptToday`, the department cards and the dashboard's "Patients today" all count `arrivals()`. The dashboard, Departments and Reception now show 20. | Fixed |
-| F07 | src/staff.jsx:279 | A department's "Patients seen" counts its completed arrivals instead of all its patients today. | Fixed |
-| R05 / T06 | src/data.js:67, src/staff.jsx:38 | Reception now covers Dermatology, Paediatrics and Gynaecology, with 7 new arrivals that also have patient records. Which booked patients show is unchanged: Sunita Thapa stays hidden until Phase 4. | Fixed |
-| R07 / T08 | src/data.js:42, src/staff.jsx:82 | `DEPTS` holds only each department's name and OPDs. Its doctors are whoever on the roster has that specialty (not case-sensitive), so a doctor added in admin joins her department straight away. | Fixed |
-| W20 | src/data.js:20–40, src/staff.jsx:24, src/booking.jsx:14, src/health.jsx:34 | One `DOCTORS` record per doctor holds name, sex, specialty/department, OPD, working days, NMC number, duty, slots and employee ID. The booking app and the staff app both read it. Dr. Sunita Rai is Paediatrics everywhere. Dr. Kiran Gurung is Gynaecology and Dr. Maya Shrestha is Dermatology, following the staff app. The booking app's OPDs also follow the staff app. | Fixed |
-| R29 / F26 ("7 OPDs" vs 5 cards) | src/staff.jsx:266 | The header now counts both from the data: "5 departments · 7 OPDs". The old 7 was right, since 7 OPDs serve 5 departments, but the header didn't say so. | Fixed |
-| F20 | src/data.js:6–16, src/booking.jsx:12, src/ask.jsx:25, :328, :356, src/care.jsx:28, :36, :391, src/more.jsx:111, src/meds.jsx:121, src/desk.jsx:9 | Weekday labels are generated from real Dates around the fixed demo day, Fri Aug 28, 2026. Saturday is the closed day, matching "Closed Saturdays". That makes tomorrow (Aug 29) closed, so slot maps and edge-case states that pointed at Saturdays were moved by a day (see Decisions taken). | Fixed |
-| R04 / T04 / V03 (date grouping) | src/care.jsx:143 | Care groups the appointment by its real date: only a visit today sits under "Today", and a later one goes under "Coming up". The wrong doctor name on the card is Phase 3. | Partial: the doctor name is fixed in Phase 3 |
-| T28 / R18 (demo date) | src/staff.jsx:42 | Prasant Khadka's leave request is dated Aug 27, the day before the demo day. The missing reason and undo are Phase 4. | Partial: reason and undo come in Phase 4 |
-| (one copy) | src/data.js:81, src/booking.jsx, src/care.jsx, src/more.jsx | The fee (`FEE`) and wallets (`WALLETS`) live in data.js. The chosen wallet stays runtime state in `S.payWith`. | Fixed |
-
-### Decisions taken (Phase 0)
-- Specialties and OPDs follow the staff app, which defines the departments, leave and attendance.
-- Saturday is the closed day, matching the patient app's "Closed Saturdays" and the staff calendar. Because Aug 28, 2026 is a Friday, Dr. Anita Joshi's next slot moves from "tomorrow" to Sun, Aug 30, and Dr. Ramesh Shrestha is fully booked until Thu, Sep 3. The follow-up stays on Sep 11, now a Friday. The C03, C04, K05 and SC03 states move from the closed Sat, Sep 12 to Sun, Sep 13.
-- Doctors' working days are Sun–Fri. Dr. Suman KC works Sun–Thu, which is why he is off today, a Friday.
-
-### check.cjs changes (values that changed on purpose)
-- Weekday labels: Thu, Sep 11 → Fri, Sep 11; Wed, Sep 3 → Thu, Sep 3; reschedule and Dr. Joshi steps now pick Sun instead of Fri, and the new times read Sun, Aug 30 or Sun, Sep 13.
-- Reception: 13 → 20 and 14 → 21 patients. Dashboard "Not yet arrived": 2 → 3 (Riya Maharjan, Paediatrics). Patients filtered by visit date: 13 of 26 → 20 of 33.
-
-## Phase 1 — Patient-safety and one-line fixes
+## Master table
 
 | Finding IDs | File:line | What changed | Status |
 |---|---|---|---|
-| F01 / R01 | src/desk.jsx:152, src/doctor.jsx:37, :401 | `k-rep` sets `S.drRep` as well as `S.kRep`. `d-choice` no longer copies any text into the comment: the suggestion is computed at render time from the report on screen (`drSuggest(k)`), so no other patient's comment can land in it, on phone or desktop. | Fixed |
-| W06 / F23 (release) | src/doctor.jsx:35, :40, :287, :409, src/desk.jsx:81, :152 | A report opens undecided with an empty comment (`drRelNew`). The report's text shows only as a "Suggested: …" placeholder, with "Leave it blank to send the suggested text." Release is disabled until a decision is picked. The comment box is one shared `drComment` for phone and desktop. Figma frames (D06–D06e, K20–K20e) still preset a decision. | Fixed (reference ranges: Phase 2) |
-| T15 | src/doctor.jsx:326, :401, :408 | Changing the decision after writing your own comment opens a "Keep your comment?" sheet (`csheet`): "Keep my comment" or "Use the suggested text". | Fixed |
-| W05 | src/doctor.jsx:318, :343 | Both release sheets name the patient and ID and quote the exact comment she will see right away. The follow-up sheet adds that she'll be asked to book a follow-up (what health.jsx `hreport` shows). "Will be told to expect a call" is gone, including from the D06e/K20e captions. The released text is the same `drWords()` the sheet quoted. | Fixed |
-| T03 | src/booking.jsx:164, src/health.jsx:512 | Home's "Lab report ready" runs `lab-ready`, which sets `S.report` to the newest released report (first in `S.labs` that isn't being reviewed, HbA1c) before opening Health, as the notification does. | Fixed |
-| A1 | src/styles.css:5 | `--text-tertiary` is #646a72. | Fixed |
-| A3 | src/staff.jsx:197 | Select all uses `items.length > 0 &&`, so aria-checked is never "0". | Fixed |
-| A4 | src/app.jsx:319 | Onboarding step dots have `role="img"`. | Fixed |
-
-### check.cjs changes (Phase 1)
-- The phone and desktop release flows pick a decision before releasing. The follow-up sheet's button is now "Release with follow-up request" (it was "Flag for follow-up"), and the K20e sheet text is "Release with a follow-up request?" and quotes the comment.
-- 11 new assertions: Release is disabled and the comment empty until a decision; the suggestion is a placeholder; both sheets quote the comment; k-rep sets drRep and toggling gives Kabita's own text (phone and desktop); T15 asks, keeps and replaces; Home "Lab report ready" opens HbA1c.
-
-## Phase 2 — Doctor apps
-
-| Finding IDs | File:line | What changed | Status |
-|---|---|---|---|
-| F04 / R02 / T01 / V01 / F23 (visit note) | src/doctor.jsx:100, :195, :439, :441, :464 | A visit starts empty: no medicines, no note. The prepared note shows only as a "Suggested: …" placeholder, with "Leave it blank to use the suggested note" (same pattern as the Phase 1 release comment). Each medicine card has Edit (opens the same form, filled in, titled "Edit medicine") and Remove. Phone and desktop share the pieces (`drNoteField`, `drMedList`, `drFollowRadio`). | Fixed |
-| R24 | src/doctor.jsx:178, :203, :455 | Add medicine has a required "Dose each time" field, so a card reads "1 tablet, twice a day", and the quantity to dispense travels with it. "In 2 weeks" shows its date while choosing ("In 2 weeks · Fri, Sep 11", from data.js `FU_DAY`/`dayLabel`). | Fixed |
-| F03 / R03 / T02 / V02 | src/doctor.jsx:464, src/desk.jsx:148 | `d-start` puts the draft in `drKept` from the start, so every way out of the phone visit (Back, a tab, another patient, the other phone, the desktop X) keeps it. A restored draft shows "Draft kept — your note, medicines and follow-up are as you left them." (`draftCue`, phone and desktop). | Fixed |
-| T21 | src/staff.jsx:389, :628 | Coming back to a half-filled walk-in form shows the same "Draft kept" cue. | Fixed |
-| F05 / R08 / T12 / V17 | src/doctor.jsx:369, :477, src/desk.jsx:154 | Complete visit opens a review sheet built on the release-sheet pattern: the note as quoted, each medicine with dose, duration and quantity ("Quantity not set" when missing), the follow-up as a real date, and a "Same medicine twice" warning when one drug appears twice at any strength. "Complete visit" completes; "Back to editing" closes it with nothing lost. Same sheet on the desktop. New frames D04f and K11k. | Fixed |
-| T10 / W06 (ranges) | src/doctor.jsx:29, :115 | Each lab value shows its reference range ("Range 12.0–15.5 g/dL"); the Normal/High/Low flag is worked out from the value against that range. Ranges are fictional but plausible adult ranges. | Fixed |
-| F24 / R20 / T11 / W07 / V09 | src/core.jsx:91, src/app.jsx:685, src/doctor.jsx:393, :406, :506, :212 | One shared toast (`toast(msg, [label, act])` in core.jsx) drawn in an always-present `role="status"` region. Release shows "CBC blood test released to Anisha Sharma." with Undo for 5 s. Undo puts the report back as pending with the decision and comment as they were, reopens it, and removes the patient-side release and notification. Reports (phone and desktop) lists "Released today": patient, report, "Released by Dr. Priya Sharma at 4:52 PM", Released / Follow-up asked. | Fixed |
-| T25 / F24 / R20 (history) | src/doctor.jsx:149, :429, :433, src/desk.jsx:54, :77 | "View Anisha's history" on the report (phone: the history screen; desktop: the Queue's history pane, Reports keeps its place). The tag reads "Seen by you", not "Your visit". Every entry opens: today's visit in full, any other as date, department and reason. Lab results are not yet listed in history. | Partial: labs in history not added |
-| R30 | src/doctor.jsx:87, src/desk.jsx:22 | The Reports nav item shows the pending count on phone and desktop, with " waiting" for screen readers. | Fixed |
-| V21 / F26 (banner) | src/doctor.jsx:238, :475 | "You're with … now." is a link that opens that visit, with its kept draft. | Fixed |
-
-### Decisions taken (Phase 2)
-- Follow-up still defaults to "No follow-up"; the review sheet shows it before anything is saved.
-- The released-by name is the signed-in doctor (Dr. Priya Sharma, the only doctor account); the time is the demo's moving clock (`now()`).
-- Figma frames D04, D04b, K11b and the history frames still preset Anisha's/Nabin's prepared medicines, so those states stay reviewable; Start visit itself begins empty.
-
-### check.cjs changes (Phase 2)
-- Changed: D04 now asserts an empty draft with the suggestion as placeholder (it asserted the pre-filled "For fever and headache"). Complete visit clicks through the review sheet (phone, desktop, D04c). "Released, off the list" checks the pending row, since the CBC now appears under Released today. Back to the queue reads 6 of 8.
-- Added (about 30): medicine add with dose/quantity, Edit, Remove; draft kept on phone Back with cue; banner opens the visit; review sheet with duplicate warning, Sep 11 / Sep 18 dates, Back to editing; reference ranges and flag (phone, desktop); history from the report and doctor wording, past visit opens; toast + Undo reverts (phone, desktop), re-release; Released today; Reports badge 2 → 1 (phone, desktop); D04f, K11k frames; Reception draft cue.
-
-## Phase 3 — Patient app
-
-| Finding IDs | File:line | What changed | Status |
-|---|---|---|---|
-| F02 / R04 / T04 / V03 (doctor name) | src/ask.jsx:43, :47, src/care.jsx:145 | `visitCard` takes the booked doctor and shows their initials and name; Care's card and the appointment detail (`todayCard`) pass `S.appt.doc`. The follow-up card stays Dr. Sharma's, as it is. | Fixed |
-| F09 / T05 / V06 / W01 | src/booking.jsx:71, :248 | The Fee row says "NPR 800, to pay with Khalti" (or "to pay at reception") until the wallet confirms; it never says "paid" before paying. The doctor page says "Consultation fee. Pay at reception, or with eSewa, Khalti or Fonepay." instead of "paid at reception". | Fixed |
-| W01 / W14 (failure) | src/booking.jsx:71, failed screen | The taken, offline and no-reply screens add "You have not been charged." to the Fee row. No reply now says "Trying again is safe: if it did, you'll still be booked only once." | Fixed |
-| R13 / T05 / W02 | src/booking.jsx:78, :84, :478, :479, src/more.jsx:217, src/care.jsx:232, :308 | A booking carries `pay: { how, paid, ref }`. The visit shows one of Paid · NPR 800 with Khalti · Receipt KHALTI-48213 / Not paid · Pay now / Pay at reception (`payCard`) on Confirmed, on Home (wallet bookings) and on the appointment detail. Cancelling the wallet sheet leaves it Not paid; Pay now reopens the hand-off. "Pay with X" on the (mocked) system sheet marks it paid, with a toast and a made-up receipt. Profile › Payments lists each payment with its receipt. The "with" visit-day line no longer says to pay at reception when it's paid. | Fixed (cancel from the appointment: not added) |
-| W14 | src/booking.jsx:341, :470, :116 | A retry that finds the booking shows "You're booked once — Trying again didn't make a second booking." The reason box says "Saved…" only when it has text; the booking keeps the reason, so the no-reply screen no longer clears it. | Fixed |
-| R10 | src/booking.jsx:307, :463, src/core.jsx:77 | Nothing is preselected: Pay at reception is a tile beside the wallets. Confirm reads "Choose how to pay" and is disabled until a choice; a line above it ("NPR 800, to pay at reception.") lifts it off the spot where Book was. `go()` records when the screen changed and Confirm ignores taps for 400 ms after that. | Fixed |
-| F25 / R26 | src/health.jsx:432 | Digits tapped while the fourth one is moving on are buffered and replayed on the next PIN screen, so a fast create → confirm keeps every digit. | Partial: per-digit live announcement (R26) not added |
-| V14 | src/booking.jsx (confirm, `bookedDone`), src/care.jsx:232, src/core.jsx:35 | The appointment detail has "Your booking": the reason given ("None given" if empty) and the payment card. The demo visit carries Anisha's reason, matching the doctor's queue. | Fixed |
-| R23 / T14 | src/care.jsx:228 | The appointment detail offers Reschedule beside Get directions for a booked or back-on-time visit, including today's (it was only offered when running late). | Fixed |
-| W11 | src/health.jsx:309, :525, src/booking.jsx:89, :457 | Book follow-up on a report (`report-fu`) opens Dr. Sharma with the reason pre-filled ("Follow-up on my HbA1c blood test from Aug 24. Dr. Sharma asked to see me."), a Follow-up tag on Review, and a warning on the doctor page and Review when a visit with her is already booked ("You already have a visit with Dr. Sharma · Today, 4:30 PM…"). The booking records `fu`. | Fixed |
-| W10 | src/care.jsx:20, src/doctor.jsx:399 | In-app lab notifications name the test and reviewing doctor: "Your HbA1c blood test is ready — Dr. Sharma wants to see you" and, on release, "Your CBC blood test is ready — Dr. Sharma wants to see you" (without the second half when no follow-up is asked). The two are no longer identical. The lock-screen notification still names nothing. | Fixed |
-| F22 / R22 / T22 | src/app.jsx:21, :512, :514, src/care.jsx:318, src/more.jsx:25 | The demo family belongs to 9841234412. Any other number goes from the SMS code straight to Create profile; Switch person and "Who is this visit for?" list only that number's people. (A jumped-to demo state with no number keeps the family, so the Figma frames still show.) | Partial: T22's "lock appointments too" not done |
-| W16 | src/health.jsx:398, :409 | Leaving Clinica remembers the open Health screen and its back stack; unlocking returns there (e.g. the report), not Health's main screen. | Fixed |
-| W15 | src/care.jsx:256, :290 | Profile's Notifications row reads "Off. You chose Not now" after Not now (still "Off in phone settings" when the phone blocks it). The Notifications screen says so, with "Turn on notifications". | Fixed |
-| R25 / V16 | src/app.jsx:235, :241, :395, src/styles.css:272, src/care.jsx (pfdetails) | The date wheels run Year · Month · Day and the year wheel has focus when the picker opens. Sex options are one per row, 48 px tall. An optional Pronouns group (She/her, He/him, They/them, Prefer not to say) shows in Your details when chosen. | Partial: the typed field stays DD / MM / YYYY |
+| F01 · R01 | src/desk.jsx:155, src/doctor.jsx:39, :493 | `k-rep` sets `S.drRep` as well as `S.kRep`. `d-choice` no longer copies text into the comment: the suggestion is computed at render time from the report on screen (`drSuggest`), so another patient's comment can't land in it, on phone or desktop. | Fixed |
+| F23 · W06 · T10 | src/doctor.jsx:28, :37, :42, :114, :194, :492, src/desk.jsx:155 | A report opens undecided with an empty comment, and Release stays disabled until a decision is picked. The suggested text is only a "Suggested: …" placeholder ("Leave it blank to send the suggested text"). A visit note starts empty, with the prepared note as a placeholder. Each lab value shows its reference range ("Range 12.0–15.5 g/dL"), and the Normal/High/Low flag is worked out from the value. The ranges are fictional but plausible. | Fixed |
+| T15 | src/doctor.jsx:364, :495, :500 | Changing the decision after writing your own comment opens "Keep your comment?" with "Keep my comment" and "Use the suggested text". | Fixed |
+| W05 | src/doctor.jsx:355, :398, src/desk.jsx:198 | Both release sheets name the patient and ID and quote the exact comment she'll see. The follow-up sheet says she'll be asked to book a follow-up. "Will be told to expect a call" is gone. | Fixed |
+| T03 | src/booking.jsx:197, src/health.jsx:524 | Home's "Lab report ready" sets `S.report` to the newest released report (HbA1c) before opening Health, as the notification already did. | Fixed |
+| F04 · R02 · T01 · V01 | src/doctor.jsx:99, :194, :439, :468 | A visit starts with no medicines, and nothing is pre-filled from the booking reason. Each medicine card has Edit (the same form, filled in) and Remove. Phone and desktop share these pieces. | Fixed |
+| R24 | src/doctor.jsx:178, :202, :449 | Add medicine has a required "Dose each time" field, so a card reads "1 tablet, twice a day", and the quantity travels with it. "In 2 weeks" shows its date while you choose ("In 2 weeks · Fri, Sep 11"). | Fixed |
+| F03 · R03 · T02 · V02 | src/doctor.jsx:206, :469, src/desk.jsx:148 | The draft lives in `drKept` from `d-start`, so every way out of the phone visit keeps it. A restored draft shows "Draft kept — your note, medicines and follow-up are as you left them." | Fixed |
+| T21 | src/staff.jsx:502, :798 | Coming back to a half-filled walk-in form shows the same "Draft kept" cue. | Fixed |
+| F05 · R08 · T12 · V17 | src/doctor.jsx:367, :478, src/desk.jsx:154, :199 | Complete visit opens a review sheet built on the release-sheet pattern. It shows the note, each medicine with dose, duration and quantity, the follow-up as a real date, and a "Same medicine twice" warning. "Back to editing" loses nothing. Same on desktop. | Fixed |
+| F24 · R20 · T11 · W07 · V09 | src/core.jsx:96, src/app.jsx:742, src/doctor.jsx:53, :211, :402, :507, src/desk.jsx:77 | One shared `toast()` live region. Release shows "CBC blood test released to Anisha Sharma." with Undo for 5 s, and Undo fully reverts it. Reports (phone and desktop) lists "Released today" with who released it and when. | Fixed |
+| T25 | src/doctor.jsx:147, :432, :433, src/desk.jsx:77 | "View Anisha's history" is on the report. The tag reads "Seen by you". Every entry opens. | Partial: lab results and trends aren't listed in history |
+| R30 | src/doctor.jsx:86, src/desk.jsx:22 | The Reports nav item shows the pending count (and " waiting" for screen readers), on phone and desktop. | Fixed |
+| V21 | src/doctor.jsx:237, :476 | "You're with … now." is a link that opens that visit, with its kept draft. | Fixed |
+| F02 · R04 · T04 · V03 | src/ask.jsx:42, src/care.jsx:144, :145 | `visitCard` shows the booked doctor's initials and name. Care groups visits by their real date, so only a visit today sits under "Today". | Fixed |
+| F09 · R13 · T05 · V06 · W01 · W02 | src/booking.jsx:68, :77, :248, :342, :481, src/care.jsx:232, :254, :307, src/more.jsx:217 | The fee says "to pay with Khalti" until the wallet confirms, and "You have not been charged" on any failure. A booking carries `pay`, and the visit shows Paid · receipt ref, Not paid · Pay now, or Pay at reception (Confirmed, Home, appointment detail). A cancelled hand-off can be retried. Profile › Payments lists receipts. The doctor page no longer says "paid at reception". Reschedule is offered (see R23 · T14). | Partial: R13's "cancel" isn't offered on today's visit (the follow-up has Cancel) |
+| W14 | src/booking.jsx:116, :341, :473 | A retry that finds the booking says "You're booked once — Trying again didn't make a second booking." The reason box says "Saved" only when it has text, and the reason survives the failure. | Fixed |
+| R10 | src/booking.jsx:306, :466, src/core.jsx:76 | Nothing is preselected: Confirm reads "Choose how to pay" and stays disabled until a choice is made. A line above it lifts it off the spot where Book was. Confirm ignores taps for 400 ms after a screen change. | Fixed |
+| F25 · R26 | src/health.jsx:83, :432 | Digits tapped during the PIN screen change are buffered and replayed. A hidden live line says "n of 4 digits entered". | Fixed |
+| V14 | src/booking.jsx:472, src/care.jsx:232, src/core.jsx:35 | The appointment detail has "Your booking": the reason given ("None given" if empty) and the payment card. | Fixed |
+| R23 · T14 | src/care.jsx:228 | Today's appointment offers Reschedule beside Get directions. | Fixed |
+| W11 | src/health.jsx:310, :525, src/booking.jsx:88, :300 | Book follow-up pre-fills the reason from the report, tags the booking as a follow-up, and warns when a visit with the same doctor is already booked. | Fixed |
+| W10 | src/care.jsx:20, src/doctor.jsx:399 | In-app lab notifications name the test and the reviewing doctor, and the two are no longer identical. | Fixed |
+| F22 · R22 · T22 | src/app.jsx:20, :515, src/care.jsx:318, src/more.jsx:25 | The demo family belongs to 9841234412 only. Any other number goes from the SMS code straight to Create profile. Switch person and "Who is this visit for?" list only that number's people. | Partial: T22's "lock appointments too, or let each person choose" isn't done (needs product input) |
+| W16 | src/health.jsx:399, :409 | Unlocking after leaving the app returns to the screen that was open, with its back stack. | Fixed |
+| W15 | src/care.jsx:256, :290 | Profile's Notifications row reflects the user's choice ("Off. You chose Not now"). | Fixed |
+| R25 · V16 | src/app.jsx:235, :241, :395, src/styles.css:275 | The date wheels run Year · Month · Day, and the year has focus when the picker opens. Sex options are one per row, 48 px tall. There's an optional Pronouns group with "Prefer not to say". | Partial: the typed field stays DD / MM / YYYY |
 | V18 | src/booking.jsx:238 | The doctor page's dead "more" icon is removed. | Fixed |
-| F15 / R12 | src/booking.jsx:13 | `tr()` and a Nepali string map for the booking flow: Find doctor, the doctor page, Review, the failure screens and Confirmed (titles, buttons, labels, specialty tiles). English stays the default; names, dates and times aren't translated; other flows stay English. | Partial: booking flow only, as scoped |
-| F14 / R11 | src/app.jsx:19, src/health.jsx:349, :382, :465, :472, src/care.jsx:318 | Ramesh's profile is "Managed by Anisha Sharma". Anisha's own Clinica PIN switches to him, and on his profile Health asks for "your PIN, or Anisha's own Clinica PIN" (no new PIN to create). Same PIN screen. | Fixed (decision) |
-| T28 class (HbA1c date) | src/health.jsx:25, :44 | The HbA1c report is dated Aug 24 (reviewed Aug 26), before the Aug 28 demo day; the list runs CBC, HbA1c, Thyroid, newest first. | Fixed |
+| F15 · R12 | src/booking.jsx:12 | `tr()` and Nepali strings for the booking flow (Find doctor, the doctor page, Review, failures, Confirmed). | Partial: booking flow only, as scoped; other flows stay English |
+| F14 · R11 | src/app.jsx:19, src/health.jsx:382, :466, :473 | Caregiver path: Ramesh's profile is "Managed by Anisha Sharma", and Anisha's own Clinica PIN switches to him and unlocks his Health. The lock screen already says what's behind it ("your visits and prescriptions"). | Fixed (decision) |
+| F20 | src/data.js:6, src/booking.jsx:25, src/ask.jsx:25, :329, :357, src/care.jsx:29, :37, :404, src/more.jsx:111, src/meds.jsx:121, src/desk.jsx:9 | Weekday labels are generated from real dates around the demo day, Fri Aug 28, 2026. | Fixed |
+| T28 | src/staff.jsx:47, src/health.jsx:25 | Prasant's request is dated Aug 27, and the HbA1c report is dated Aug 24, both before the demo day. Full doctor names replace "Dr. Shrestha" (see R29). | Fixed |
+| F07 · R05 · T06 · V07 | src/data.js:52, :73, src/staff.jsx:94, :307, src/doctor.jsx:16 | Every count comes from one arrivals list that covers all five departments. The dashboard, Departments and Reception agree. V07's per-department waiting is in the F13 row. | Fixed |
+| R07 · T08 | src/data.js:42, src/staff.jsx:130 | A department's doctors are whoever on the roster has that specialty, so a doctor added in admin joins her department at once. | Partial: T08's "explain Not in today" isn't done; the page still says "Not in today" without her working days |
+| W20 | src/data.js:22, :34, src/booking.jsx:27, src/staff.jsx:26, src/health.jsx:35 | One `DOCTORS` record per doctor. Dr. Sunita Rai is Paediatrics everywhere. | Fixed |
+| R29 | src/staff.jsx:351, :353 | The header reads "5 departments · 7 OPDs", counted from the data. The cards use full names ("Dr. Maya Shrestha on leave"). | Fixed |
+| F10 · R09 · T19 · V08 | src/data.js:82, src/staff.jsx:469 | Every booking for today is in arrivals from the start. Search matches name, phone digits, CH- ID, doctor and department. | Fixed (decision: reverses Figma R06/R07) |
+| F11 | src/data.js:87, src/staff.jsx:281, :735, :861 | Rows show age and "phone ending 8821". Check in opens a confirm sheet naming the patient, age, sex, ID, last 4 digits and doctor. | Fixed |
+| F21 | src/staff.jsx:281 | Each arrival row gives doctor · department · OPD. It's a list, so the department is a field, not a column. | Fixed |
+| W12 · R15 | src/data.js:44, src/staff.jsx:495, :712, :873 | A typed department or symptom lists that department's doctors on duty to choose from. Nothing is picked silently, and unknown text isn't accepted ("Choose one of the … doctors below"). | Fixed |
+| T09 · V10 | src/staff.jsx:483, :710, :890 | A matched walk-in says "Matched to CH-1187". The booking's reason, "Told the desk today" and a "Note for doctor" are all kept. | Fixed |
+| F12 · R14 · T20 | src/staff.jsx:504, :768, :773 | Age and Sex are required, a new walk-in gets a CH- number, and saving shows a toast and highlights the new row. | Fixed |
+| F26 | src/staff.jsx:500, :351, src/doctor.jsx:237 | Polish batch: Enter submits the walk-in form; "7 OPDs" is explained ("5 departments · 7 OPDs"); the "You're with…" banner opens the visit. A new staff member gets a confirmation and a toast, not a highlighted row. | Partial: tapping the date-of-birth text field doesn't open the picker (the calendar button does), and a new staff row isn't highlighted |
+| F18 · R19 · T13 | src/staff.jsx:101, :549, :559, :806, :906 | Add staff has a start date (required), grade and council number. Required and optional fields are marked. The hire shows Pending until the start date, and every record has Edit. New staff join Attendance from their start date. | Partial: T13's payroll export isn't added |
+| F16 · R18 · T16 · V11 · W08 | src/staff.jsx:622, :672, :739, :897 | The request shows the reason. A prominent, accurate coverage warning is worked out from the staff list. Approve and Deny each confirm, Deny takes an optional reason that is sent to the employee, and a toast offers Undo for 5 s. The approver and time are recorded. The page says who can decide. | Fixed (no Reopen after the Undo window) |
+| W19 | src/staff.jsx:612 | Leave rows read "Nurse · Cardiology · Annual leave". | Fixed |
+| F17 · R17 · T17 · V12 | src/staff.jsx:114, :651, :685 | Attendance is worked out day by day from the requests. There's one "Absent" label, every leave day links to its request, and requests say "8 calendar days · 6 working days". Attendance counts working days in the month shown only, and Recent days stops at the demo day. | Fixed |
+| V13 | src/staff.jsx:603, :635 | The dashboard's leave rows have status chips. There's one Sort control, and the period stays visible while searching. | Fixed |
+| F06 · R06 · T24 | src/staff.jsx:106, :344, :754, :844 | Fallbacks are gone: a blank field shows "Not set · Add". Specialty and OPD are pick-lists. Saving without an OPD or working days asks first. | Fixed |
+| W09 | src/staff.jsx:401, :540, :549 | The Staff column is "Job title", and the record shows "Access: …" with a Change link. Role changes are logged. | Fixed |
+| F08 · F19 · R16 · T18 | src/staff.jsx:19, :31, :401, :439, :748, :838 | New Nurse access role, given to the nurses and the lab technician. Assign role states the one-role rule, and a switch lists what access will be lost. Every role change goes to an audit log (Settings › Role changes). | Fixed |
+| W04 | src/staff.jsx:67, :107, :439 | An "Also approves leave" add-on with an optional end date. Whoever has it gets Leave requests and keeps their own pages. | Fixed |
+| F13 · R21 · T07 | src/staff.jsx:139, :316, :364 | The dashboard has "Waiting by department". A closed department is flagged with the reason, the cover and the reopening time. | Fixed |
+| T27 | src/staff.jsx:140, :308 | "Waiting on doctor review" is now "Reports awaiting review". The closure reason and reopening time are in the F13 row. | Fixed |
+| T23 | src/data.js:44, src/staff.jsx:138 | Plain-language subtitles ("Cardiology · heart"). | Partial: the read-only view for trustees isn't done (needs product input) |
+| T26 | src/app.jsx:357 | No change. The policy is placeholder legal text, marked "Draft wording" in the UI on purpose for City Hospital's legal team to replace. | Not a code defect: content owned by legal |
+| W03 · W17 | src/app.jsx:678, :705, src/core.jsx:96 | When the screen, app or sheet changes, focus moves to the new screen's h1 (`tabindex="-1"`). Closing a sheet returns focus to its trigger. Every success state goes through the one toast live region, and duplicate `role="status"` notices are removed. The SMS code's 6th digit lands on the next heading. | Fixed |
+| W13 | src/booking.jsx:55, src/app.jsx:65, :67, src/doctor.jsx:80, src/desk.jsx:30, src/staff.jsx:231, src/ask.jsx:54, src/meds.jsx:66 | Titled app bars render an h1. Untitled screens and desktop detail pages get their own h1. Every one of the 332 Figma frames has exactly one h1 (MT09 is a push-notification stand-in). | Fixed |
+| V05 | src/app.jsx:700 | While an `aria-modal` dialog is open, everything behind it is `inert` (the scrim, home indicator and toast stay live). | Fixed |
+| A2 · R28 · V19 | src/staff.jsx:264, :275 | `sTable` uses table › rowgroup › row › columnheader/cell roles. Each row's name is a real link. | Fixed |
+| R27 · W18 | src/staff.jsx:226, :230, :265, src/booking.jsx:227, src/app.jsx:237, :772, src/styles.css:68 | `aria-sort` on sorted columns, live result counts, unique back-link names, a skip link, avatar initials hidden, Sex read once. Day and time picks were already `role="radio"` with `aria-checked` (the right pattern, so no `aria-pressed`). Tabs already had `aria-current`. The code auto-submit is covered by W17. | Fixed |
+| A1 | src/styles.css:5 | `--text-tertiary` is #646a72. | Fixed |
+| A3 | src/staff.jsx:270 | `items.length > 0 &&`, so aria-checked is never "0". | Fixed |
+| A4 | src/app.jsx:329 | Onboarding step dots have `role="img"`. | Fixed |
+| A5 | src/app.jsx:692 | A `.body` that actually scrolls gets `tabindex="0"`, `role="region"` and the screen's heading as its name. | Fixed |
+| A6 | src/app.jsx:698, :779 | `main.stage` is a div. It takes `role="main"` only when the app has no `<main>` of its own. | Fixed |
+| V04 | src/styles.css:814, :1033, src/app.jsx:718 | The `scale(var(--k))` frame is gone. The desktop apps fill the width up to 1440 px and fit the window's height (600–900 px). Below 1024 CSS px, the side nav becomes a wrapping top bar, columns stack, the page grows to its content, and data tables scroll sideways in their own container. Sheets and the toast are pinned to the viewport. At 720×450 (200% zoom), 13 desktop screens have no page-level horizontal scroll, median text is 14 CSS px, and nothing is transformed. | Fixed |
 
-### Decisions taken (Phase 3)
-- Wallets stay mocked: "Pay with X" on the phone's sheet marks the fee Paid with a made-up receipt reference (KHALTI-48213, …); Cancel leaves it Not paid.
-- Pay at reception is no longer a silent default: it's a tile chosen like a wallet. The B04 Figma frame now shows it chosen.
-- Home shows the fee only for wallet bookings (Paid / Not paid · Pay now), so the B01 Home stays as designed; Confirmed and the appointment detail show all three states.
-- The double-tap guard is the shared `go()` timestamp, used only by Confirm booking (a global tap block would slow every other screen).
-- Health PIN caregiver path: a family record can be "Managed by" another person on the same number; that person's own Clinica PIN switches to the profile and opens its Health.
-- Lab notifications in the app name the test and doctor (W10); the lock screen, the most public surface, still names neither.
+Also fixed, outside the catalogue:
+- **Phase 3 regression, fixed in Phase 5a** (src/health.jsx:45). Phase 3 left the default `visit`, `rx` and `rxNone` inside a trailing comment, so H04 Visit detail threw. They're restored, and all 332 Figma frames render without errors.
+- **"Closed today" chip contrast** (WCAG 1.4.11, run 4) (src/styles.css:515, src/staff.jsx:320, :355). The chip has a 1 px `--border-strong` edge at 3.09:1.
+
+## Decisions taken
+
+From the spec:
+- **Booked patients in arrivals.** Every booking for today shows in Reception's arrivals from the start. This reverses Figma R06/R07, whose captions were rewritten. R07 now shows the "Matched to CH-1187" path.
+- **Health PIN caregiver path.** A family record can be "Managed by" another person on the same number. That person's own Clinica PIN switches to the profile and unlocks its Health, with no second PIN.
+- **Reload** (src/app.jsx:601, Phase 5b). After a reload, the drafts come back from sessionStorage: the doctor's visit drafts (`drKept`), the reception walk-in (`S.wk`, shown with "Draft kept") and the patient's booking reason. Staff stay in their own app, signed in, on its home screen: a doctor on the queue, Reception on arrivals. Only a real reload restores. A plain navigation starts the demo fresh, so tests and links are unaffected. Blocked storage is ignored. Real persistence is out of scope. The run 5 report filed reload as a prototype limit, not a W finding.
+- **Wallets stay mocked.** "Pay with X" on the mocked sheet marks the fee Paid with a made-up receipt reference (KHALTI-48213…). Cancel leaves it Not paid.
+
+Data (Phase 0):
+- Specialties and OPDs follow the staff app.
+- Saturday is the closed day. Aug 28, 2026 is a Friday, so the slots and edge-case states that pointed at Saturdays moved by one day (Dr. Joshi's next slot is Sun, Aug 30; C03/C04/K05/SC03 are on Sun, Sep 13).
+- Doctors work Sun–Fri. Dr. Suman KC works Sun–Thu, which is why he is off today.
+
+Doctor apps (Phase 2):
+- Follow-up still defaults to "No follow-up". The review sheet shows it before anything is saved.
+- "Released by" is the signed-in doctor, at the demo's moving clock.
+- Figma frames D04, D04b, K11b and the history frames keep the prepared medicines, so those states stay reviewable. Start visit itself begins empty. The D06/K20 frames still preset a decision.
+
+Patient app (Phase 3):
+- Pay at reception is a tile you choose, like a wallet, not a silent default. The B04 frame shows it chosen.
+- Home shows the fee only for wallet bookings. Confirmed and the appointment detail show all three states.
+- The double-tap guard is the shared `go()` timestamp, used only by Confirm booking.
+- Lab notifications in the app name the test and the doctor. The lock screen, the most public surface, still names neither.
 - The demo family (Anisha, Ramesh) belongs to 9841234412 only.
 
-### check.cjs changes (Phase 3)
-- Changed: bookings pick "Pay at reception" before Confirm and wait 450 ms after reaching Review (the R10 guard); the B04/B04b asserts read "to pay at reception" / "to pay with eSewa"; the Notification centre clicks the named HbA1c and CBC notifications; the no-reply retry also asserts "You're booked once".
-- Added (38; 399 → 437 "ok"): Confirm waits for a payment choice; Khalti + no reply → not charged → booked once → paid with receipt → Home and Profile › Payments; Fonepay + taken → not charged → cancel hand-off → Not paid → Pay now → paid; Pay now on the appointment detail; double-tap ignored; fast PIN typing across create → confirm; Care and detail name Dr. Suman KC; reason, payment and Reschedule on today's visit; HbA1c dated Aug 24; follow-up clash warning, tag and pre-filled reason; a new number goes straight to Create profile; pronouns; picker starts at the year; unlock returns to the report; W15 Not now; caregiver PIN switches and unlocks; no "more" icon; Nepali booking strings.
-
-## Phase 4 — Reception, HR, Admin
-
-| Finding IDs | File:line | What changed | Status |
-|---|---|---|---|
-| F10 / R09 / T19 / V08 | src/data.js:84, src/staff.jsx:462 | Sunita Thapa's 5:15 PM booking is in today's arrivals from the start (21 patients). Search matches name, phone digits (e.g. the last 4), CH- ID, doctor and department. | Fixed (decision: reverses Figma R06/R07) |
-| F11 / T19 | src/data.js:88, src/staff.jsx:277, :729, :856 | Each arrival row shows age and "phone ending 8821". Every patient has a masked phone with real last-4 digits (`PHONE_END`). Check in opens a sheet naming the patient, sex, age, CH- ID, last 4 and doctor; the check-in happens only after confirming. | Fixed |
-| F21 | src/staff.jsx:277 | Each arrival row gives doctor · department · OPD. It's a list, not a table, so the department is a field on the row rather than a column header. | Fixed |
-| W12 / R15 | src/staff.jsx:484, :706, src/data.js:45 | The doctor field takes a doctor, a department or a symptom. A department (or a symptom such as "fever", "rash" or "heart", via `SYMPTOMS`) lists that department's doctors on duty, with how many are waiting, as radio choices. Nothing is picked for you: Add to queue says "Choose one of the General medicine doctors below." A closed department says who covers it and when it reopens. | Fixed |
-| T09 / V10 | src/staff.jsx:69, :882, scheck, wkHist | A walk-in matched to a booking opens that booking with a "Matched to CH-1187" notice. The booking's reason stays, and below it are "Told the desk today" (what was typed) and the "Note for doctor". A match without a booking keeps the typed reason and note on the queue entry; Dr. Sharma's queue gets the note appended. The follow-up history reads "Matched to CH-1956 · Kiran Basnet". | Fixed |
-| F12 / R14 / T20 | src/staff.jsx:484, :755, :767 | Age (required) and Sex (required) fields. A new walk-in gets the next CH- number (CH-2508…). Saving shows a toast ("Kamal Thapa (CH-2508) added to Dr. Anita Joshi's queue."), and the new row is highlighted (`.k-row.sel`) and scrolled into view (`mount.sarr`). | Fixed |
-| F26 (walk-in Enter) | src/staff.jsx:484 | Enter in any walk-in field submits the form. | Fixed |
-| F18 / R19 / T13 | src/staff.jsx:542, :900, :102, sperson | Add staff asks for a start date (required), grade and council number (both optional). Required fields are marked * and optional ones say "(optional)". A future start date shows as Pending (in Staff, the status filter and the record) until that day; Joined comes from the start date. Every staff record has Edit (the same form); doctors edit through Add a doctor. New staff join Attendance from their start date, and a pending hire doesn't count as cover. | Fixed (payroll export: not added) |
-| F16 / R18 / V11 | src/staff.jsx:45, :615, :667 | The request shows the reason given. A warning notice is worked out from the staff list: Prasant Khadka is Cardiology's only nurse, so it reads "Cardiology will have no nurse on Sep 5 – Sep 7". The old "one nurse" note contradicted the Staff list. | Fixed |
-| F16 / V11 / W08 / T16 | src/staff.jsx:733, :891 | Approve and Deny each open a confirm sheet. Deny has an optional reason ("Reason for Prasant"). After confirming, a toast offers Undo for 5 s. The decided request shows "Approved/Denied by Anjali Basnet, today, 4:52 PM", and for a denial "Sent to Prasant: “…”" (or "no reason was given"). The page says who can decide and that it can be undone. | Fixed (no Reopen after the Undo window) |
-| W19 | src/staff.jsx:605 | Leave rows read "Nurse · Cardiology · Annual leave". | Fixed |
-| F17 / R17 / T17 / V12 | src/staff.jsx:45, :116, :644, attCal | Attendance is worked out day by day from the leave requests and recorded absences (`dayKind`/`monthAtt`), so the table, stats, calendar and Recent days agree. There's one label, "Absent", and "Non-requested leave" is gone. Each leave day's popover, and Recent days, link to the request. Maya's Aug 17–21 leave now has its own Annual leave request, and Dr. Shrestha's and Dr. Rai's single leave days have requests too. Requests show "8 calendar days · 6 working days", and Attendance says it counts working days in the month shown only (Maya's August leave = 8 working days: Aug 17–21 + Aug 26–28). Recent days now covers Aug 22–28, so no future Aug 31. | Fixed |
-| V13 | src/staff.jsx:596, :628 | The HR dashboard's leave rows carry status chips (the 3 latest requests). Attendance has one Sort control (most/fewest present/absent). The period stays in the subtitle while searching. | Fixed |
-| F06 / R06 / T24 | src/staff.jsx:106, :410, :839, :748, sdoc, sperson | No fallbacks: a blank phone, email, working days, OPD or NMC shows "Not set · Add", and Add opens the doctor's details form (edit mode). Specialty and OPD are pick-lists from data.js. Saving without an OPD or working days asks first ("Save without an OPD or working days?"). Add staff no longer gives a new doctor "Sun–Thu, 9 AM–5 PM". Seed staff keep their hospital email; a missing phone is "Not set". | Fixed |
-| W09 | src/staff.jsx:534, sperson, sroles | The Staff column and filter are "Job title". The staff record shows "Access: Front desk + approves leave until Sep 30", with a Change link for the administrator (F19's route to roles). Assign roles lists Access and Job title · department separately. | Fixed |
-| F08 / R16 / T18 | src/staff.jsx:20, :29–31, :207 | A Nurse access role: their department's arrivals and check-in, with "Not included: prescriptions and releasing lab reports". Maya Tuladhar, Prasant Khadka and Nirmala Lama (lab) have it, and Add staff gives Nurse / Lab technician this access. | Fixed (nurse sign-in IDs don't exist in the demo) |
-| W04 | src/staff.jsx:432, :207, :826 | Assign role has an "Also approves leave" add-on (checkbox) with an optional end date. It isn't offered for HR manager, who already has it. Anyone with it gets Leave requests in their nav while keeping their own pages, and is recorded as the approver. | Fixed |
-| F19 / T18 | src/staff.jsx:432, :742 | Assign role states the one-role rule. Saving a switch opens a sheet that lists what access they lose and points to the add-on. Saving the add-on alone doesn't warn. | Fixed |
-| R16 / T18 / W09 (audit) | src/staff.jsx:395, :826 | Every role change is logged as who, from → to, changed by, and time. The log shows in Settings › Role changes. Saving shows a toast. | Fixed |
-| F13 / R21 / T07 | src/staff.jsx:310, :147 | The dashboard has "Waiting by department". Closed departments are flagged with the reason ("Dr. Suman KC works Sun–Thu, not Fridays"), the cover and the reopening time ("Sun, Aug 30, 9 AM"). The same appears on the Departments card and as a notice on the department page. | Fixed |
-| T27 | src/staff.jsx:301 | "Reports pending / Waiting on doctor review" is now "Reports awaiting review / Lab reports doctors haven't released". | Fixed |
-| R29 | src/staff.jsx:346 | Departments cards use full doctor names ("Dr. Maya Shrestha on leave"). | Fixed |
-| T23 | src/data.js:45, src/staff.jsx | Plain-language subtitles: "Cardiology · heart", "Dermatology · skin", "Paediatrics · children", "Gynaecology · women's health", "General medicine · everyday illness" on the dashboard, the Departments cards and the department page. | Partial: the "read-only view" half of T23 isn't done |
-
-### Decisions taken (Phase 4)
-- Booked patients show in arrivals from the start. This reverses Figma R06/R07, whose captions are rewritten; R07 now shows the "Matched to CH-1187" path.
-- Cardiology's cover while it's closed is Dr. Ramesh Shrestha, General medicine, OPD 1 (`COVER` in data.js). Reopening is the next day a department doctor works, never a Saturday.
-- Masked phone numbers with last-4 digits were added for every patient on record (`PHONE_END`). Anisha's is 4412, matching her number.
-- Leave requests for Aug 17–21 (Maya, annual), Aug 19 (Dr. Ramesh Shrestha) and Aug 7 (Dr. Sunita Rai) were added, so every leave day has a request. Earlier approvals are recorded as Anjali Basnet's.
-- Attendance working days are Mon–Fri, as the calendar already had it. The hospital opens Sun–Fri, so a Sunday is a hospital day but not an HR working day (needs product input). Prasant's Sat–Mon leave is "3 calendar days · 1 working day".
+Reception, HR, Admin (Phase 4):
+- Cardiology's cover while it's closed is Dr. Ramesh Shrestha, General medicine, OPD 1 (`COVER` in data.js). It reopens on the next day a department doctor works.
+- Every patient has a masked phone with real last-4 digits (`PHONE_END`).
+- Leave requests were added for Aug 17–21 (Maya), Aug 19 (Dr. Ramesh Shrestha) and Aug 7 (Dr. Sunita Rai), so every leave day has a request. Earlier approvals are recorded as Anjali Basnet's.
+- HR working days are Mon–Fri. Prasant's Sat–Mon leave is "3 calendar days · 1 working day".
 - Age and Sex are required for walk-ins. Phone stays optional.
-- Searching arrivals by "sunita" also returns Dr. Sunita Rai's patients (5 results), because search covers doctors.
-- The nurse view reuses today's arrivals, filtered to the nurse's department. There's no nurse-specific queue screen.
+- Searching arrivals covers doctors, so "sunita" also returns Dr. Sunita Rai's patients.
+- The nurse view reuses today's arrivals, filtered to the nurse's department.
 
-### Needs product input (Phase 4)
-- Sunday: the OPDs work Sun–Fri, but HR attendance counts Mon–Fri.
-- Who covers a closed department, and whether that belongs in the roster rather than data.js.
-- Whether nurses should check patients in.
+Accessibility and the shell (Phase 5):
+- A role-tab click leaves focus on the tab. The skip link gets into the app, and in-app navigation moves focus to the new heading.
+- Booking confirmed is announced both by the toast and by focusing "Appointment booked".
+- A5, A6 and V05 are applied in the shell's layout effect, so new screens get them automatically.
+- V04: the desktop breakpoint is 1024 CSS px. Above it the layout matches Figma, with the frame up to 1440 px wide and 600–900 px tall. Below it, the top bar and stacked columns don't have a Figma design.
 
-### check.cjs changes (Phase 4)
-- Changed: arrivals 20 → 21 (and 21 → 22 after the walk-in); "Not yet arrived" 3 → 4; "Reports pending" → "Reports awaiting review"; "sunita" finds 5 (both Sunitas and Dr. Sunita Rai's patients); Check in, Approve and Add doctor (no OPD/days) confirm in a sheet; the walk-in fills age and sex; Add doctor picks the specialty from a select; leave history "1 already approved" → "4"; the approval names the approver; one Sort control (`st-menu:sort`); Maya's attendance asserts the working-days note; Add staff fills a start date.
-- Added (30; 437 → 467 "ok"): last-4, CH- ID and doctor search; age, last 4 and department on rows; check-in sheet; department → choose doctor; no silent pick; Enter submits with toast and highlight; symptom hint; Matched to CH-1187 with both reasons; leave reason, coverage, calendar vs working days; deny with reason, approver and Undo; role · department rows; dashboard status chips; one Sort; period kept; one Absent label; leave day linked to its request; Pending hire; editable record; Add doctor warning; Not set; Nurse role; switch warning; leave add-on toast; audit log; waiting by department with closure; full names; Job title column.
+## Needs product input
 
-## Phase 5 — Accessibility and the shell (Part A)
+- **Sunday.** The OPDs work Sun–Fri, but HR attendance counts Mon–Fri.
+- **Cover for a closed department.** Who covers it, and whether that belongs in the roster rather than data.js.
+- **Nurses checking patients in.** Whether nurses should do it (the Nurse role currently can).
+- **Family privacy (T22).** Whether appointments and medicines should lock too, or each person should choose.
+- **Trustee view (T23).** A read-only view for trustees.
+- **Payroll (T13).** Whether a payroll export belongs in HR.
+- **Cancelling today's visit (R13).** Can the patient cancel in the app, or is it "call reception"?
+- **Reopening leave (W08).** Should a decided leave request be reopenable after the Undo window?
+- **Nepali (F15 · R12).** Translation beyond the booking flow.
+- **Privacy policy (T26).** The legal text itself.
+- **Narrow desktop layout (V04).** Design the below-1024 px layout in Figma.
 
-| Finding IDs | File:line | What changed | Status |
-|---|---|---|---|
-| W03 / W17 | src/app.jsx:666, :692 | When the screen, the app or a sheet changes, focus moves to the new screen's `<h1>` (given `tabindex="-1"` by `focusHeading()`). Never on a paint, so typing keeps its place. A screen whose mount hook focuses a field keeps that field (Phone number, date-of-birth wheel). Focus left on the page's own controls (role tabs, skip link, edge-case panel) isn't taken away. The SMS code's 6th digit now lands on the next screen's heading (W17). A device stand-in with no heading (the push notification, MT09) focuses its own root. | Fixed |
-| W03 (sheets) | src/app.jsx:692 | Opening a sheet moves focus into the dialog unless it focused a field itself (the date-of-birth picker). Closing it returns focus to the control that opened it, or to the heading if that control is gone. | Fixed |
-| W13 | src/booking.jsx:52, src/app.jsx:62–68, src/doctor.jsx:80, src/desk.jsx:30, src/staff.jsx:231, src/ask.jsx:52, src/meds.jsx:64 | Titled app bars (patient, sign-in, doctor phone, Ask, Add a medicine) render an `<h1>`. An untitled bar stays a `<div>`, and the screen's own title becomes the h1: `heading()`, `empty(…, 'h1')` on full-screen states, onboarding, Language, splash wordmark, sign-in wordmarks, the doctor's name on Doctor profile and the doctor's Patient screen, "Appointment booked", "Know if Dr. … is running late". Home and the lock screen get a visually hidden h1. Desktop: `kHead` titles, Profile name and a hidden "Account settings" h1 on the doctor dashboard. Staff detail pages (doctor, patient, arrival, person, leave request, attendance, assign role) use the person's name (`sWho`). Section titles under a titled bar stay h2. All 332 Figma presets were checked: one h1 each, except MT09 (a push-notification link) and H04/H06, whose presets throw on load in HEAD too. | Fixed |
-| W03 / toast | src/core.jsx:93, src/booking.jsx:476, src/care.jsx:378, :383, :407, src/doctor.jsx:488, :517, src/staff.jsx, src/app.jsx:510, src/health.jsx:464, src/meds.jsx:145 | Every success state uses the one `toast()` live region: booking confirmed, visit moved, visit cancelled, added to calendar, check-in, walk-in added (Phase 4), leave decided (Phase 4), staff added, doctor added, department added, role saved (Phase 4), hospital details saved, report released (Phase 2), visit completed, password changed, payment (Phase 3), mobile number changed, PIN changed, dose logged. The inline success notices are still shown, but they no longer have `role="status"` (Visit moved, number/PIN changed, `sOk`, `.st-done`, Dose logged), so nothing is announced twice. `aria-live="polite"` was taken off the whole `#phone`, which re-announced every change. The toast message lets taps through and only its action catches them (styles.css:1017), so it never blocks a button beneath it. | Fixed |
-| V05 | src/app.jsx:687 | Whenever an `aria-modal` dialog is open, every sibling on the path from it up to `#phone` gets `inert`. The scrim, the home indicator and the toast region are left out, so Undo stays reachable. This covers every sheet type: `csheet`, the sys/action sheet, the filter, booking-for and PIN sheets, the OS alerts, the biometric prompt, the date picker, the doctor sheets and the staff sheets. It is cleared on the next commit after the sheet closes. | Fixed |
-| A2 / R28 / V19 | src/staff.jsx:268, :276 | `sTable` is `role="table"` (named: Doctors, Patient visits, Staff, Staff access, Attendance) › two `rowgroup`s › `row`s of `columnheader`s and `cell`s. The select checkboxes sit in their own cell, and spacer spans are `aria-hidden`. Each row's name is a real link (`a.st-nm`) that opens the row. The row stays clickable by mouse, but it is no longer a tab stop, and its Enter handler is removed. | Fixed |
-| W18 (aria-sort) | src/staff.jsx:331, :378, :643 | `aria-sort` on the sorted column: Patients today (Doctors), Name (Patients, the toggle), Present/Absent (Attendance). Other headers say `none`. | Fixed |
-| W18 (aria-current) | src/booking.jsx:107, src/doctor.jsx:82, src/desk.jsx:20, src/staff.jsx:218 | Already present on the bottom tabs and side-nav items. Checked, and now covered by check.cjs. | Fixed (no change) |
-| W18 (live counts) | src/staff.jsx:226, src/booking.jsx:227, :384 | Staff list subtitles ("2 results for “maya”", "n of m · filtered by …") are `aria-live="polite"`. Find doctor has a hidden live region with the count, or "No doctors match". | Fixed |
-| W18 (unique links) | src/staff.jsx:230 | Back links are named "Back to Leave requests" etc. (`aria-label`, so the visible text is still part of the name). There's no second "Leave requests" link. | Fixed |
-| W18 (skip link) | src/app.jsx:762, src/styles.css:69 | "Skip to the app" is the first tab stop and moves focus to the screen's h1. It is visible only on focus. | Fixed |
-| R27 (day/time) | src/booking.jsx:253, src/care.jsx:187, src/ask.jsx:260 | Day and time picks were already `role="radio"` with `aria-checked`, inside a named `radiogroup`. That's the correct role, so `aria-pressed` isn't added. | Fixed (no change) |
-| R27 (avatars) | src/*.jsx (every `.avatar`) | Avatar initials are `aria-hidden`, so a card reads "Dr. Priya Sharma", not "PS Dr. Priya Sharma". | Fixed |
-| W18 (Sex radios) | src/app.jsx:236 | Each radio is named by `aria-label`, and its visible text is `aria-hidden`, so it's read once. Clicking the label still selects it. | Fixed |
-| R26 | src/health.jsx:81 | A hidden `aria-live` line under the PIN dots says "n of 4 digits entered" after each digit (PIN screens and the Ask PIN sheet). | Fixed (was Partial in Phase 3) |
-| A5 | src/app.jsx:679 | A `.body` that actually scrolls gets `tabindex="0"`, `role="region"` and the screen's heading as its label. It is removed again when it stops scrolling. This is done once in the shell, rather than at 53 call sites. | Fixed |
-| A6 | src/app.jsx:685, :769 | `main.stage` is now `div.stage`. It takes `role="main"` only when the app hasn't drawn its own `<main>` (the staff apps and the doctor profile do), so there's exactly one main. | Fixed |
-| 1.4.11 ("Closed today") | src/staff.jsx:320, :355, src/styles.css:515 | The "Closed today" chip has a 1 px `--border-strong` inset edge (#838991 on #eff0f0 = 3.09:1), on the Departments cards and the dashboard. | Fixed |
-| (regression) | src/health.jsx:45 | Phase 3 put the default `visit`, `rx` and `rxNone` inside a trailing comment, so H04 Visit detail threw. Restored; all 332 Figma frames now render without errors. | Fixed |
-| V04 | src/styles.css:808 | Responsive desktop layout in place of the scaled 1440×900 frame. | Deferred to Part B |
+## check.cjs changes
 
-### Decisions taken (Phase 5)
-- A role-tab click switches the app but leaves focus on the tab, as a tab control should. The skip link gets into the app. In-app navigation always moves focus to the new heading.
-- Booking confirmed is announced both by the toast and by focusing "Appointment booked". W03 asks for both: the heading for orientation, the live region for the status.
-- A5 and A6 are applied in the shell's layout effect rather than in each screen's JSX, so new screens get them automatically.
-
-### check.cjs changes (Phase 5)
-- Added (13; 467 → 480 "ok"): skip link; one main and no `main.stage`; focus on h1 after phone navigation; one h1 per screen; typing keeps focus and the count is live; aria-current on bottom tabs; PIN progress announced; table/rowgroup/columnheader/cell roles and a name link; Enter on a row name opens it with focus on the h1 (desktop); aria-sort; inert + focus in the sheet; inert cleared and focus returned on close; check-in toast.
+- **Phase 0:** weekday labels and Reception counts follow the real dates and the single arrivals list (13 → 20 patients).
+- **Phase 1:** release flows pick a decision first, and the follow-up button is "Release with follow-up request". 11 new assertions.
+- **Phase 2:** D04 asserts an empty draft with a placeholder suggestion, and Complete visit goes through the review sheet. About 30 new assertions (medicines, draft cue, ranges, history, toast + Undo, badge).
+- **Phase 3:** bookings choose a payment and wait 450 ms on Review (R10). 38 new assertions; 399 → 437 "ok".
+- **Phase 4:** arrivals 20 → 21; check-in, approve and Add doctor confirm in sheets. 30 new assertions; 437 → 467.
+- **Phase 5a:** 13 new assertions (skip link, one main, focus to the h1, table roles, aria-sort, inert, toast); 467 → 480.
+- **Phase 5b:** no change, still 480 "ok", exit 0. V04 and the reload decision are checked by scratchpad scripts (`v04/reflow.cjs`, `v04/reload.cjs`).

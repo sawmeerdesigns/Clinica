@@ -598,9 +598,22 @@ FLOW.push(
 );
 export let ALL = [];
 
+// Decision (reload): a reload keeps the drafts and leaves staff in their own app, signed in. sessionStorage, this tab only;
+// real persistence is out of scope. Drafts: the phone/desktop visit (drKept), the reception walk-in (wk), the booking reason.
+const KEEP = 'clinica-reload';
 export function boot() {
   ALL = FLOW.flatMap(([, items]) => items); // each screen's caption, for the note; the presets are test fixtures
   start('full');
+  let k = null;
+  try { if (performance.getEntriesByType('navigation')[0]?.type === 'reload') k = JSON.parse(sessionStorage.getItem(KEEP)); } catch { k = null; }
+  if (k) {
+    if (k.app !== 'patient') start(k.app);
+    Object.assign(S, { drKept: k.drKept || {}, wk: k.wk || S.wk, reason: k.reason || '' });
+    if (k.app === 'staff' && k.stMe) { staffTab = k.staffTab || staffTab; S.stMe = k.stMe; S.screen = stHome(); }
+    if ((k.app === 'doctor' || k.app === 'desk') && k.drSigned) Object.assign(S, { drSigned: true, screen: k.app === 'doctor' ? 'dqueue' : 'kqueue' });
+    render();
+  }
+  addEventListener('pagehide', () => { try { sessionStorage.setItem(KEEP, JSON.stringify({ app: S.app, stMe: S.stMe, staffTab, drSigned: S.drSigned, drKept: S.drKept, wk: S.wk, reason: S.reason })); } catch { /* storage blocked: start fresh */ } });
 }
 
 // Two ways in: a returning patient with everything, or a new patient with nothing yet.
@@ -702,9 +715,8 @@ export function Phone() {
     }
     w.dlg = !!dlg; w.key = key;
   });
-  const desk = S.app === 'desk' || S.app === 'staff'; // the desktop apps (desk.jsx, staff.jsx) render at 1440 × 900
-  // The desktop apps are drawn at their real size and scaled to fit between the tab bars; the phones are 1:1.
-  const k = desk ? Math.max(.3, Math.min(1, (window.innerWidth - 48) / 1440, (window.innerHeight - 160) / 900)) : 1;
+  // V04: the desktop apps (desk.jsx, staff.jsx) are laid out responsively in CSS (styles.css .phone.desk), not scaled to fit.
+  const desk = S.app === 'desk' || S.app === 'staff';
   const el = SCREENS[S.screen](), ov = OVERLAY[S.sheet]?.(); // bottom sheets any screen can open (care.jsx)
   const screen = cloneElement(el, { key: S.screen }, ...[].concat(el.props.children), ...(ov ? [ov] : []));
   const onClick = e => {
@@ -723,7 +735,7 @@ export function Phone() {
     phoneListeners.keydown.forEach(f => f(e));
   };
   return (
-    <div className={`phone${desk ? ' desk' : ''}`} id="phone" ref={ref} style={{ '--k': k.toFixed(3) }} onClick={onClick} onKeyDown={onKeyDown}
+    <div className={`phone${desk ? ' desk' : ''}`} id="phone" ref={ref} onClick={onClick} onKeyDown={onKeyDown}
       onSubmit={e => e.preventDefault()}>{/* a form never navigates; buttons inside one would submit it */}
       {screen}
       {S.picker && <DobSheet />}
@@ -750,7 +762,6 @@ export const pnChoose = (key, text, options) => pnField(text, <select data-s={ke
 export function Shell() {
   const [, force] = useReducer(x => x + 1, 0);
   useEffect(() => subscribe(force), []);
-  useEffect(() => { window.addEventListener('resize', paint); return () => window.removeEventListener('resize', paint); }, []);
   const openAsRef = useRef();
   const tab = S.app !== 'staff' ? S.app : ({ admin: 'admin', desk: 'reception', hr: 'hr' })[stMe()?.access] || staffTab;
   const kind = casesOpen ? 'edge' : (S.app === 'patient' ? S.careEmpty : S.app === 'staff' ? S.stHoliday : S.drNoPatients) ? 'empty' : 'full';
