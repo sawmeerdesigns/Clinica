@@ -152,7 +152,7 @@ Object.assign(ACTIONS, {
     Object.assign(S, { kSel: null, kView: 'visit' }); render();
   },
   'k-view': v => { S.kView = v; render(); },
-  'k-start': () => { S.dp = S.kSel; ACTIONS['d-start'](); Object.assign(S, { screen: 'kqueue', stack: [], kView: 'complete' }); render(); }, // the note is written inline
+  'k-start': () => { S.dp = S.kSel; ACTIONS['d-start'](); }, // the note is written inline (doctor.jsx); Run 6 Y04: it may ask first
   'k-complete': () => { S.dp = S.kSel; ACTIONS['d-complete'](); }, // F05: the review sheet; confirming completes (doctor.jsx d-complete-ok)
   'k-rep': k => { S.kRep = S.drRep = k; S.drRel = drRelNew(); render(); }, // F01/R01: the open report is drRep too; W06/F23: undecided
   'k-release': () => { S.drRep = S.kRep; ACTIONS['d-release'](); }, // asks first; confirming releases (doctor.jsx)

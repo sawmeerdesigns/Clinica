@@ -415,6 +415,8 @@ button.card:hover { background: var(--surface-secondary); }
 .pick.day { flex: none; width: 66px; height: 56px; padding: 0; white-space: nowrap; }
 .pick.day .d1 { font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 .pick.time { width: calc((100% - 16px) / 3); height: 40px; padding: 0 16px; }
+.pick.time.mine { height: auto; min-height: 40px; padding: 4px 8px; border-color: var(--border-action); } /* Run 6 Y02: her own visit */
+.pick.time.mine .d1 { font-weight: 400; font-size: 12px; line-height: 16px; }
 .times { display: flex; flex-wrap: wrap; gap: 8px; }
 .pick[aria-checked="true"] { background: var(--surface-action); border-color: var(--border-action); color: var(--text-on-action); }
 .pick:disabled { background: var(--surface-disabled); border-color: var(--border-disabled); color: var(--text-disabled); cursor: not-allowed; }

@@ -4,7 +4,7 @@
 import { Fragment } from 'react';
 import { AD_SHORT, Phone, RECORDS, bsText, family, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
 import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
-import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, payCard, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
+import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, openVisit, payCard, rel, row, surname, tag, takeSlot, visits, when } from './booking.jsx';
 import { $phone, A, ACTIONS, FLOW, NE, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, nd, ne, render, reset, toast, tr } from './core.jsx';
 import { drShort } from './doctor.jsx';
 import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
@@ -102,7 +102,21 @@ export const EXTRA_STATE_CARE = () => ({
   cal: { appt: false, fu: false }, calFor: 'appt', calOff: false, notifOff: false,
   nset: { remind: true, late: true, fu: false, labs: true },
   notifs: NOTIFS.map(n => ({ ...n })), switchTo: 1,
+  more: [], vOpen: null, people: { 'Ramesh Sharma': RAMESH() }, ptWho: null, // Run 6 Y01/Y02: her other visits, the one open, everyone else's record
 });
+// Run 6 Y01: what belongs to one person on a shared phone. The person using the app has theirs in S; everyone else's waits in S.people.
+export const OWN = ['appt', 'more', 'visitDay', 'homeState', 'careEmpty', 'healthEmpty', 'followup', 'cancelled', 'moved', 'cal', 'notifs', 'payments', 'meds', 'labs', 'pin', 'finger'];
+// Ramesh, managed by Anisha: nothing booked, no reports in the app yet, and the blood-pressure tablets he tracks himself. His PIN is 1961.
+export const RAMESH = () => ({ appt: { doc: 'ps', day: 0, time: '4:30 PM', reason: '' }, more: [], visitDay: 'booked', homeState: 'default', careEmpty: true, healthEmpty: true,
+  followup: null, cancelled: null, moved: null, cal: { appt: false, fu: false }, notifs: [], payments: [], labs: [], pin: '1961', finger: null,
+  meds: [{ title: 'Amlodipine 5 mg', name: 'Amlodipine', strength: '5 mg', form: 'Tablet', generic: 'Amlodipine besylate tablets', each: '1 tablet', often: 'Once a day',
+    sched: 'Once daily', sub: '1 tablet, once a day', left: 24, total: 30, unit: 'tablets', perDay: 1, since: '6 months' }] });
+// Switching saves this person's record and loads the other's.
+export function usePerson(name) {
+  if (name === S.fullName || !S.people[name]) return;
+  const mine = Object.fromEntries(OWN.map(k => [k, S[k]])), people = { ...S.people, [S.fullName]: mine };
+  Object.assign(S, people[name], { people, fullName: name, first: name.split(' ')[0], vOpen: null });
+}
 extraState(EXTRA_STATE_CARE, ORDER.care);
 // F20: the moved follow-up in C04/K05 — Sun, Sep 13, since Sat, Sep 12 is closed.
 const MOVED_FU = { day: dayLabel(new Date(2026, 8, 13)), time: '11:00 AM', iso: [2026, 8, 13] };
@@ -140,12 +154,12 @@ export function addMin(t, m) {
   const x = ((+h % 12) + (ap === 'PM' ? 12 : 0)) * 60 + +mm + m, H = Math.floor(x / 60) % 24;
   return `${H % 12 || 12}:${pad(x % 60)} ${H < 12 ? 'AM' : 'PM'}`;
 }
-export const pinOf = i => RECORDS[i].name === 'Ramesh Sharma' ? '1961' : S.pin || '1234'; // demo PINs
+export const pinOf = i => { const n = RECORDS[i].name; return n === 'Ramesh Sharma' ? '1961' : (n === S.fullName ? S.pin : S.people[n]?.pin) || '1234'; }; // demo PINs; Run 6 Y01: each person's own
 
 // What the phone's add-event sheet is pre-filled with. Names the clinic, never the doctor or specialty.
 export function calEvent(key) {
   if (key === 'fu') { const f = S.followup; return { starts: `${f.day}, ${f.time}`, ends: addMin(f.time, 30), iso: f.iso, time: f.time, loc: 'OPD 2, City Hospital, Maharajgunj' }; }
-  const a = S.appt;
+  const a = openVisit(); // Run 6 Y02
   return { starts: when(a.day, a.time), ends: addMin(a.time, 30), iso: DAYS[a.day].iso, time: a.time, loc: `${DOCTORS[a.doc].opd}, City Hospital, Maharajgunj` };
 }
 
@@ -157,7 +171,7 @@ export function reschedOpts() {
       days: FOLLOW_DAYS.slice(0, 5).map(([wd, date, off], i) => ({ i, wd, date, off })),
       times: i => FOLLOW_TIMES.map(([t, off]) => ({ t, off: off || (i === cur && t === f.time) || S.rsTaken.includes(`fu|${i}|${t}`) })) };
   }
-  const a = S.appt, d = DOCTORS[a.doc], mine = (i, t) => i === a.day && t === a.time;
+  const a = openVisit(), d = DOCTORS[a.doc], mine = (i, t) => i === a.day && t === a.time; // Run 6 Y02: whichever visit is open
   return { cur: a.day, now: nd(when(a.day, a.time)), who: `${d.name}, ${tr(d.spec)}`,
     days: DAYS.map((x, i) => ({ i, wd: x.wd, date: x.date, off: !freeTimes(a.doc, i).some(t => !mine(i, t)) })).slice(1),
     times: i => d.times.map(t => ({ t, off: isTaken(a.doc, i, t) || mine(i, t) })) }; // a slot taken meanwhile goes into S.taken
@@ -180,15 +194,18 @@ export const csheet = (title, body, primary, secondary) => <>
 export const signoutSheet = (body, act) => csheet('Sign out of Clinica?', body,
   btn(<><img src={`${A}icon-check-white-14.svg`} width="14" height="14" alt="" />{tr('Sign out')}</>, act), btn('Cancel', 'sheet-close', { kind: 'secondary' }));
 
+// Run 6 Y10: on a phone more than one person uses, the visit says whose it is.
+const whose = () => family().length > 1 ? S.first : null;
+const forRow = () => whose() ? [row('icon-person.svg', 'Booking for', S.fullName)] : [];
 Object.assign(OVERLAY, {
-  cancel: () => csheet(ne() ? `${nd(S.followup.day)} को भेट रद्द गर्ने?` : `Cancel your visit on ${S.followup.day}?`, S.cancelSoon // within 2 hours: nothing is prepaid, so nothing to charge
+  cancel: () => csheet(ne() ? `${whose() ? `${whose()} को ` : ''}${nd(S.followup.day)} को भेट रद्द गर्ने?` : `Cancel ${whose() ? `${whose()}'s` : 'your'} visit on ${S.followup.day}?`, S.cancelSoon // within 2 hours: nothing is prepaid, so nothing to charge
     ? "It's soon, but cancelling still helps — someone else can have the time. You won't be charged."
     : 'The time goes back to other patients. You can book again whenever you need to.',
     btn('Cancel visit', 'cancel-fu', { kind: 'destructive' }), btn('Keep my visit', 'sheet-close', { kind: 'secondary' })),
   // R13: today's visit can be cancelled in the app until check-in, with the follow-up's sheet. A wallet fee goes back to the wallet (mocked).
-  cancelt: () => { const a = S.appt, w = a.pay?.paid && WALLETS[a.pay.how]?.[0];
-    return csheet(...(ne() ? [`आज ${nd(a.time)} को भेट रद्द गर्ने?`, `यो समय अरू बिरामीहरूलाई फर्किन्छ। ${w ? `तपाईंको NPR ${FEE} ${w} वालेटमा फर्किन्छ।` : 'तपाईंबाट पैसा लिइँदैन।'}`]
-      : [`Cancel your visit today at ${a.time}?`, `The time goes back to other patients. ${w ? `Your NPR ${FEE} goes back to your ${w} wallet.` : "You won't be charged."}`]),
+  cancelt: () => { const a = openVisit(), w = a.pay?.paid && WALLETS[a.pay.how]?.[0], who = whose(); // Run 6 Y02: any visit she has open, today or later
+    return csheet(...(ne() ? [`${who ? `${who} को ` : ''}${a.day === 0 ? `आज ${nd(a.time)}` : nd(dayName(a.day))} को भेट रद्द गर्ने?`, `यो समय अरू बिरामीहरूलाई फर्किन्छ। ${w ? `तपाईंको NPR ${FEE} ${w} वालेटमा फर्किन्छ।` : 'तपाईंबाट पैसा लिइँदैन।'}`]
+      : [`Cancel ${who ? `${who}'s` : 'your'} visit ${a.day === 0 ? `today at ${a.time}` : `on ${dayName(a.day)}`}?`, `The time goes back to other patients. ${w ? `Your NPR ${FEE} goes back to your ${w} wallet.` : "You won't be charged."}`]),
       btn('Cancel visit', 'cancel-fu:today', { kind: 'destructive' }), btn('Keep my visit', 'sheet-close', { kind: 'secondary' })); },
   signout: () => csheet('Sign out of Clinica?', "You'll need a code by SMS to sign back in. Your records stay safe with City Hospital.",
     btn('Sign out', 'sign-out'), btn('Stay signed in', 'sheet-close', { kind: 'secondary' })), // reversible, so Brand, not red
@@ -219,24 +236,26 @@ Object.assign(SCREENS, {
   care: () => {
     const a = S.appt, f = S.followup;
     // R04/T04/V03: grouped by the visit's real date — only a visit today sits under Today; a later one joins Coming up.
-    const card = visitCard(nd(when(a.day, a.time)), place(`${DOCTORS[a.doc].opd}, City Hospital`), 'appt:today', a.doc), isToday = a.day === 0; // F02/R04
-    const today = <div className="inset stack8">{lbl(isToday ? 'Today' : 'Coming up')}{card}</div>;
-    const coming = f ? <div className="inset stack8">{lbl('Coming up')}{isToday ? null : card}{fuCard('appt:fu')}</div> : null;
+    // Run 6 Y02: every visit she has booked, soonest first, each opening its own page. A missed visit shows as the notice instead.
+    const vs = visits().filter(v => v.i != null || S.visitDay !== 'missed'), now = vs.filter(v => v.day === 0), soon = vs.filter(v => v.day > 0);
+    const card = v => visitCard(nd(when(v.day, v.time)), place(`${DOCTORS[v.doc].opd}, City Hospital`), v.i == null ? 'appt:today' : `appt:${v.i}`, v.doc); // F02/R04
+    const today = now.length ? <div className="inset stack8">{lbl('Today')}{now.map(card)}</div> : null;
+    const coming = soon.length || f ? <div className="inset stack8">{lbl('Coming up')}{soon.map(card)}{f ? fuCard('appt:fu') : null}</div> : null;
     let body;
     if (S.visitDay === 'missed') body = <><div className="inset">{notice('warn', ne() ? `${nd(a.time)} मा हामीले तपाईंलाई भेट्न पाएनौं` : `We missed you at ${a.time}`, "Things come up. Book again when you're ready, or call the clinic to be seen today.",
-      <>{btn('Book again', 'go:finddoctor', { size: 'l' })}{callBtn('l')}</>)}</div>{coming}</>;
+      <>{btn('Book again', 'go:finddoctor', { size: 'l' })}{callBtn('l')}</>)}</div>{today}{coming}</>;
     else if (S.cancelled) body = <><div className="inset">{S.cancelled.byClinic // done to the patient: Error. Their own choice: Neutral.
       ? notice('error', ne() ? `क्लिनिकले तपाईंको ${nd(S.cancelled.date)} को भेट रद्द गर्‍यो` : `The clinic cancelled your ${S.cancelled.date} visit`, "Dr. Sharma can't see patients that day. We're sorry for the change.",
         <>{tag('Cancelled', 'neutral')}{btn('Book another time', 'doctor:ps', { size: 'l' })}</>)
       : notice('', ne() ? `तपाईंको ${nd(S.cancelled.date)} को भेट रद्द भयो` : `Your ${S.cancelled.date} visit is cancelled`, 'The time has gone back to other patients. Book again whenever you need to.',
         <>{tag('Cancelled', 'neutral')}{btn('Book again', 'go:finddoctor', { size: 'l' })}</>)}</div>
       {S.cancelled.cal ? <div className="inset">{notice('warn', 'Remove it from your calendar', "If you added this visit to your calendar, it's still there. We can't delete it for you.",
-        btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{S.careEmpty ? coming : today}</>; // R13: today's own visit is gone
+        btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{today}{coming}</>; // R13: the cancelled visit is gone
     else if (S.careErr) body = centred(empty('icon-info-secondary-28.svg', 'Something went wrong', // not the patient's fault, and nothing has changed
       "We couldn't load your appointments. It's not something you did, and nothing has changed.",
       <>{btn('Try again', 'care-refresh', { size: 'l' })}{clinicCall()}</>));
-    else if (S.careEmpty && !f) body = centred(empty('icon-event-secondary-28.svg', 'No upcoming visits', 'When you book a visit, it will show up here.', btn('Book a visit', 'go:finddoctor', { size: 'l' })));
-    else body = <>{S.refreshing ? <div className="refresh" role="status"><img src={`${A}icon-spinner-24.svg`} width="24" height="24" alt="" />{tr('Updating…')}</div> : null}{isToday || !f ? today : null}{coming}
+    else if (!vs.length && !f) body = centred(empty('icon-event-secondary-28.svg', 'No upcoming visits', 'When you book a visit, it will show up here.', btn('Book a visit', 'go:finddoctor', { size: 'l' })));
+    else body = <>{S.refreshing ? <div className="refresh" role="status"><img src={`${A}icon-spinner-24.svg`} width="24" height="24" alt="" />{tr('Updating…')}</div> : null}{today}{coming}
       <div><div className="inset">{lbl('Earlier')}</div>{list([listItem('lt-followup.svg', 'Past visits', "Kept in Health with your doctor's notes", 'health-go:hvisits')])}</div>
       <div className="inset"><button className="btn secondary" data-act="go:finddoctor"><img src={`${A}icon-add-24.svg`} width="24" height="24" alt="" />{tr('Book a visit')}</button></div></>;
     return frame('Care', body, { back: false, tab: 'Care' });
@@ -245,20 +264,20 @@ Object.assign(SCREENS, {
   cappt: () => frame('Appointment', <>
     <div className="inset">{fuCard()}</div>
     <div className="inset stack8">{lbl('Before you come')}<p className="body-m">{tr("Arrive 15 minutes early and check in at reception. Bring any medicines you're taking.")}</p></div>
-    {sect('Details', list([linkRow('lt-location.svg', place('OPD 2, City Hospital'), 'Ground floor. Get directions', MAPS), row('lt-fee.svg', 'Fee', ne() ? `NPR ${FEE}, रिसेप्सनमा तिर्ने` : `NPR ${FEE}, paid at reception`),
+    {sect('Details', list([...forRow(), linkRow('lt-location.svg', place('OPD 2, City Hospital'), 'Ground floor. Get directions', MAPS), row('lt-fee.svg', 'Fee', ne() ? `NPR ${FEE}, रिसेप्सनमा तिर्ने` : `NPR ${FEE}, paid at reception`),
       S.cal.fu ? calRow() : listItem('lt-calendar.svg', 'Add to calendar', 'So you get a reminder too', 'add-cal:fu')]), 8)}</>,
     { cta: <>{btn('Reschedule', 'resched:fu', { kind: 'secondary' })}{btn('Cancel visit', 'sheet:cancel', { kind: 'secondary' })}</> }), // red waits for the confirmation
 
   cresched: () => {
     const o = reschedOpts(), sel = S.rsDay, times = sel == null ? [] : o.times(sel);
     const can = S.rsTime && times.some(x => x.t === S.rsTime && !x.off), day = o.days.find(x => x.i === sel);
-    const N = ne(), whichNe = S.rsKey === 'fu' ? `तपाईंको ${nd(S.followup.day)} को भेट` : `${relNe(S.appt.day)} तपाईंको भेट`; // Phase 8
-    const still = N ? `${S.rsKey === 'fu' ? `तपाईंको ${nd(S.followup.day.split(', ')[1])} को भेट` : `${relNe(S.appt.day)} तपाईंको भेट`} बुक नै छ।`
-      : S.rsKey === 'fu' ? `Your ${S.followup.day.split(', ')[1]} visit is still booked.` : `Your visit ${rel(S.appt.day)} is still booked.`;
+    const N = ne(), a = openVisit(), whichNe = S.rsKey === 'fu' ? `तपाईंको ${nd(S.followup.day)} को भेट` : `${relNe(a.day)} तपाईंको भेट`; // Phase 8
+    const still = N ? `${S.rsKey === 'fu' ? `तपाईंको ${nd(S.followup.day.split(', ')[1])} को भेट` : `${relNe(a.day)} तपाईंको भेट`} बुक नै छ।`
+      : S.rsKey === 'fu' ? `Your ${S.followup.day.split(', ')[1]} visit is still booked.` : `Your visit ${rel(a.day)} is still booked.`;
     const now = sect('Currently', list([row('lt-calendar.svg', o.now, o.who)]), 0);
     if (S.rsNone || o.days.every(x => x.off)) return frame('Reschedule', <>{now}{empty('icon-event-secondary-28.svg', 'No other times this week',
       N ? `${whichNe} बुक नै छ। अर्को हप्ताबारे सोध्न क्लिनिकमा फोन गर्नुहोस्।`
-      : `${S.rsKey === 'fu' ? `Your ${S.followup.day} visit` : `Your visit ${rel(S.appt.day)}`} is still booked. Call the clinic to ask about next week.`,
+      : `${S.rsKey === 'fu' ? `Your ${S.followup.day} visit` : `Your visit ${rel(a.day)}`} is still booked. Call the clinic to ask about next week.`,
       <>{btn('Keep my visit', 'back', { size: 'l' })}{clinicCall()}</>)}</>);
     return frame('Reschedule', <>
       {S.rsErr ? <div className="inset" role="alert">{notice('error', N ? `${nd(S.rsErr.wd)} ${nd(S.rsErr.t)} को समय भर्खरै अरू कसैले लियो` : `${S.rsErr.t} on ${S.rsErr.wd} was just taken`,
@@ -279,13 +298,13 @@ Object.assign(SCREENS, {
     return frame('Appointment', <>
       <div className="inset">{notice('success', 'Visit moved', N ? `तपाईंको ${fromNe()} छोडियो। नयाँ समय SMS बाट पठाइएको छ।` : `Your ${m.from} has been released. We've sent the new time by SMS.`)}</div>
       {m.stale ? <div className="inset">{notice('warn', N ? `क्यालेन्डरमा अझै ${nd(m.stale.replace(/^t(oday|omorrow)/, 'T$1'))} देखिन्छ` : `Calendar still shows ${m.stale}`, "We can't change events in your calendar. Add the new time, then delete the old one.")}</div> : null}
-      <div className="inset">{m.key === 'fu' ? fuCard() : todayCard(false)}</div>{added ? calRow() : null}</>,
+      <div className="inset">{m.key === 'fu' ? fuCard() : todayCard(false, openVisit())}</div>{added ? calRow() : null}</>,
       { cta: added ? null : calBtn(m.key, m.stale ? 'Add the new time' : 'Add to calendar') });
   },
 
-  // Visit day: a state, never an estimate — booked, running late, checked in, done.
+  // Visit day: a state, never an estimate — booked, running late, checked in, done. Run 6 Y02: also any other visit she booked (always 'booked').
   cday: () => {
-    const v = S.visitDay, a = S.appt, d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor';
+    const a = openVisit(), v = S.vOpen == null ? S.visitDay : 'booked', d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor';
     const N = ne(), u = a.doc === 'ps' ? 'उहाँ' : 'डाक्टर', tm = nd(a.time); // Phase 8: Nepali, honorific for the doctor
     const top = (N ? {
       late: () => notice('info', `${dr} ढिला हुनुहुन्छ`, `तपाईंको ${tm} को समय कायम छ। ${u} तयार हुनासाथ हामी सन्देश पठाउँछौं।`),
@@ -317,13 +336,13 @@ Object.assign(SCREENS, {
         : notice('', 'Follow-up in 2 weeks', 'Around Sep 11. Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' }))}</div>,
     }[v]?.() || arrive;
     // R23/T14: today's visit (or a later one) can be moved from here too, not only when running late.
-    const cancel = a.day === 0 ? btn('Cancel visit', 'sheet:cancelt', { kind: 'secondary' }) : null; // R13: until she's checked in
+    const cancel = btn('Cancel visit', 'sheet:cancelt', { kind: 'secondary' }); // R13: until she's checked in; Run 6 Y02: a later visit too
     const cta = { booked: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}{cancel}</>, ontime: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}{cancel}</>,
       late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}{cancel}</>,
       done: () => btn('Go to Health', 'health-tab', { kind: 'secondary' }) }[v]?.() || null;
     // V14: the reason given and how the fee is paid (F09/W02: Paid · receipt / Not paid · Pay now / Pay at reception).
-    const booking = v === 'done' ? null : <div className="stack8">{sect('Your booking', list([row('lt-clipboard.svg', 'Reason for visit', a.reason || 'None given')]), 0)}<div className="inset">{payCard(a)}</div></div>;
-    return frame('Appointment', <>{top ? <div className="inset">{top}</div> : null}<div className="inset">{todayCard(false)}</div>{rest}{booking}</>, { cta });
+    const booking = v === 'done' ? null : <div className="stack8">{sect('Your booking', list([...forRow(), row('lt-clipboard.svg', 'Reason for visit', a.reason || 'None given')]), 0)}<div className="inset">{payCard(a)}</div></div>; // Run 6 Y10
+    return frame('Appointment', <>{top ? <div className="inset">{top}</div> : null}<div className="inset">{todayCard(false, a)}</div>{rest}{booking}</>, { cta });
   },
 
   notifs: () => {
@@ -451,7 +470,7 @@ Object.assign(SCREENS, {
 
 // ---------- behaviour ----------
 export function openCal(key) { S.calFor = key; S.sheet = S.calOff ? 'calno' : 'cal'; render(); }
-export function switchTo(i) { S.fullName = RECORDS[i].name; S.first = S.fullName.split(' ')[0]; S.pinEntry = ''; S.pinErr = false; toHome(); S.unlocked = true; render(); } // opens their Home, not Health; T22: their PIN just opened it
+export function switchTo(i) { usePerson(RECORDS[i].name); S.pinEntry = ''; S.pinErr = false; toHome(); S.unlocked = true; render(); } // opens their Home, not Health; T22: their PIN just opened it
 export const tabRoot = screen => { Object.assign(S, { stack: [], sheet: null, screen }); render(); };
 
 Object.assign(mount, {
@@ -466,18 +485,20 @@ Object.assign(ACTIONS, {
     after(() => { S.refreshing = false; render(); }, 1200);
   },
   'pf-tab': () => tabRoot('pf'),
-  appt: arg => arg === 'fu' ? go('cappt') : S.visitDay === 'missed' ? ACTIONS['care-tab']() : go('cday'),
+  appt: arg => { if (arg === 'fu') return go('cappt'); S.vOpen = arg === 'today' ? null : +arg; // Run 6 Y02: appt:i opens S.more[i]
+    S.vOpen == null && S.visitDay === 'missed' ? ACTIONS['care-tab']() : go('cday'); },
   sheet: arg => { S.sheet = arg; render(); },
   os: arg => SYS_OS[arg] ? openSys(SYS_OS[arg]()) : endScreen(arg, 'On a phone this hands off to the system or to a screen outside these Figma sections.'),
   'add-cal': openCal,
   'cal-add': () => { S.cal[S.calFor] = true; downloadIcs(calEvent(S.calFor)); S.sheet = null; toast(tr('Added to your calendar.')); render(); }, // W03 // iOS reports the save
   'cancel-fu': key => {
-    if (key === 'today') { // R13: her visit today, before check-in
-      const a = S.appt, w = a.pay?.paid && WALLETS[a.pay.how]?.[0];
-      S.cancelled = { date: dayLabel(TODAY).split(', ')[1], day: dayLabel(TODAY), cal: S.cal.appt };
-      Object.assign(S, { careEmpty: true, sheet: null, stack: [], screen: 'care' }); S.cal.appt = false;
-      toast(ne() ? `आज ${nd(a.time)} को तपाईंको भेट रद्द भयो।${w ? ` NPR ${FEE} तपाईंको ${w} वालेटमा फर्किँदैछ।` : ''}` // Phase 8
-        : `Your visit today at ${a.time} is cancelled.${w ? ` NPR ${FEE} is going back to your ${w} wallet.` : ''}`);
+    if (key === 'today') { // R13: her visit today, before check-in. Run 6 Y02: or whichever visit is open; only that one goes.
+      const a = openVisit(), w = a.pay?.paid && WALLETS[a.pay.how]?.[0], day = a.day === 0 ? null : dayName(a.day);
+      S.cancelled = { date: DAYS[a.day].date, day: dayName(a.day), cal: S.vOpen == null && S.cal.appt };
+      if (S.vOpen == null) { S.careEmpty = true; S.cal.appt = false; } else S.more = S.more.filter((_, i) => i !== S.vOpen);
+      Object.assign(S, { vOpen: null, sheet: null, stack: [], screen: 'care' });
+      toast(ne() ? `${day ? nd(day) : `आज ${nd(a.time)}`} को तपाईंको भेट रद्द भयो।${w ? ` NPR ${FEE} तपाईंको ${w} वालेटमा फर्किँदैछ।` : ''}` // Phase 8
+        : `Your visit ${day ? `on ${day}` : `today at ${a.time}`} is cancelled.${w ? ` NPR ${FEE} is going back to your ${w} wallet.` : ''}`);
       return render();
     }
     S.cancelled = { date: S.followup.day.split(', ')[1], day: S.followup.day, cal: S.cal.fu }; // a calendar copy would now be stale
@@ -495,7 +516,7 @@ Object.assign(ACTIONS, {
   'rs-day': arg => { S.rsDay = +arg; S.rsTime = null; render(); },
   'rs-time': arg => { S.rsTime = arg; render(); },
   'rs-move': () => {
-    const key = S.rsKey, x = reschedOpts().days.find(d => d.i === S.rsDay), a = S.appt;
+    const key = S.rsKey, x = reschedOpts().days.find(d => d.i === S.rsDay), a = openVisit(); // Run 6 Y02
     if (S.failNext === 'taken') { // someone else took it while choosing: the current visit stays booked
       S.failNext = '';
       if (key === 'fu') S.rsTaken.push(`fu|${x.i}|${S.rsTime}`); else takeSlot(a.doc, x.i, S.rsTime);
@@ -505,6 +526,7 @@ Object.assign(ACTIONS, {
     const from = key === 'fu' ? `${S.followup.day} slot` : a.day === 0 ? `slot today at ${a.time}` : `${dayName(a.day)} slot`;
     const stale = S.cal[key] ? (key === 'fu' ? S.followup.day : when(a.day, a.time).replace(/^T(oday|omorrow)/, 't$1')) : null;
     if (key === 'fu') S.followup = { day: `${x.wd}, ${x.date}`, time: S.rsTime, iso: FOLLOW_DAYS[x.i][3] }; // F20
+    else if (S.vOpen != null) { takeSlot(a.doc, x.i, S.rsTime); Object.assign(a, { day: x.i, time: S.rsTime }); } // Run 6 Y02: another visit moves on its own
     else { takeSlot(a.doc, x.i, S.rsTime); S.appt = { ...a, day: x.i, time: S.rsTime }; S.visitDay = 'booked'; }
     S.cal[key] = false; S.moved = { key, from, stale };
     toast(ne() ? `भेट ${nd(x.wd)}, ${nd(S.rsTime)} मा सारियो।` : `Visit moved to ${x.wd}, ${S.rsTime}.`); // W03: announced once, by the shared toast
@@ -556,10 +578,10 @@ Object.assign(ACTIONS, {
 later(() => { ACTIONS['sheet-close'] = () => { S.sheet = null; render(); }; }, ORDER.care); // the safe choice; keeps the scroll under the sheet (over health.jsx's)
 
 Object.assign(NUM, {
-  care: s => s.careErr ? 'GX07' : s.refreshing ? 'GX05' : s.offline ? 'GX02' : s.visitDay === 'missed' ? 'C11' : s.cancelled ? (s.cancelled.byClinic ? 'SC06' : s.cancelled.cal ? 'K06' : 'C06') : s.careEmpty && !s.followup ? 'C12' : 'C01',
+  care: s => s.careErr ? 'GX07' : s.refreshing ? 'GX05' : s.offline ? 'GX02' : s.visitDay === 'missed' ? 'C11' : s.cancelled ? (s.cancelled.byClinic ? 'SC06' : s.cancelled.cal ? 'K06' : 'C06') : s.careEmpty && !s.more.length && !s.followup ? 'C12' : 'C01',
   cappt: s => s.sheet === 'cancel' ? (s.cancelSoon ? 'SC07' : 'C05') : 'C02',
   cresched: s => s.rsNone ? 'SC04' : s.rsErr ? 'SC03' : 'C03', cmoved: s => s.moved.stale ? 'K05' : 'C04',
-  cday: s => s.sheet === 'cancelt' ? 'C05' : ({ booked: 'C07', late: 'C08', checkedin: 'C09', done: 'C10', turn: 'SC01', with: 'SC02', ontime: 'SC05' })[s.visitDay],
+  cday: s => s.sheet === 'cancelt' ? 'C05' : ({ booked: 'C07', late: 'C08', checkedin: 'C09', done: 'C10', turn: 'SC01', with: 'SC02', ontime: 'SC05' })[s.vOpen == null ? s.visitDay : 'booked'],
   notifs: s => s.healthEmpty ? 'N02' : s.notifOff ? 'N03' : 'N01',
   pf: s => ({ signout: 'P08', close: 'P10' })[s.sheet] || 'P01',
   pfdetails: s => s.phoneChanged ? 'PM08' : 'P02', pflang: () => 'P03', pfnotif: s => s.notifOff ? 'P09' : 'P04',

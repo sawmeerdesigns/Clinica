@@ -3,13 +3,13 @@
 import { cloneElement, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { ask, say, src } from './ask.jsx';
 import { backTo, bar, label, row, rows, tag, when } from './booking.jsx';
-import { emergency, setting } from './care.jsx';
+import { emergency, setting, usePerson } from './care.jsx';
 import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast, tr, NE, nd, ne } from './core.jsx';
 import { DESK_START } from './desk.jsx';
 import { DOCTOR_START, drOffline, showApp } from './doctor.jsx';
-import { centred, field, lead, list, unlock } from './health.jsx';
+import { HEALTH_SCREENS, PIN_SCREENS, centred, field, lead, list, unlock } from './health.jsx';
 import { interceptLink, notifSet, openAs } from './more.jsx';
-import { SA, STAFF_START, cell, checks, counts, img, now, patients, person, stHome, stMe } from './staff.jsx';
+import { SA, STAFF_START, cell, checks, counts, img, now, patients, person, drJoin, stHome, stMe, wkFilled } from './staff.jsx';
 
 // Phase 8: Nepali for this module's own lines (sign-in, onboarding, create profile, the date picker)
 Object.assign(NE, {
@@ -610,7 +610,7 @@ export function createProfile() {
   if (S.nameErr || S.dobErr || S.sexErr) return render(); // every missing field says what it needs, all at once
   if (/sharma/i.test(S.name)) return go('match'); // demo: a close, not exact, match
   S.fullName = S.name.trim(); S.first = S.fullName.split(' ')[0];
-  S.healthEmpty = true; S.careEmpty = true; S.followup = null; // a new patient has no visits yet
+  S.healthEmpty = true; S.careEmpty = true; S.followup = null; S.meds = []; // a new patient has no visits yet; Run 6 Y01: nor anyone else's medicines
   toHome(); // notifications are asked for later, after the first booking
 }
 
@@ -627,7 +627,7 @@ Object.assign(ACTIONS, {
   'send-code': sendCode,
   verify,
   'new-code': () => { S.code = ''; S.codeState = 'typing'; S.resend = 42; render(); },
-  pick: arg => { S.fullName = arg; S.first = arg.split(' ')[0]; toHome(); }, // choosing yourself goes straight to Home
+  pick: arg => { usePerson(arg); toHome(); }, // choosing yourself goes straight to Home; Run 6 Y01: with your own record
   'open-picker': openPicker,
   'close-picker': () => { S.picker = null; paint(); },
   cal: arg => switchCal(arg),
@@ -681,22 +681,33 @@ FLOW.push(
 );
 export let ALL = [];
 
-// Decision (reload): a reload keeps the drafts and leaves staff in their own app, signed in. sessionStorage, this tab only;
-// real persistence is out of scope. Drafts: the phone/desktop visit (drKept), the reception walk-in (wk), the booking reason.
-const KEEP = 'clinica-reload';
+// Decision (reload), Run 6 Y05: a real reload restores this tab's whole demo state — all of S (every app's data, and where each app was)
+// and the staff tab. sessionStorage, this tab only; a plain navigation starts fresh, and blocked storage is ignored. Real persistence is
+// out of scope. Left out, because they'd misbehave after a reload: open sheets, menus and the date picker, toasts, a PIN being typed,
+// passwords, Ask's conversation and the Health unlock — Health is locked again.
+const KEEP = 'clinica-reload', ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/; // dates (a new hire's start) come back as dates
+const DROP = { sheet: null, sys: null, toast: null, picker: null, bio: null, stMenu: null, drMenu: null, loading: null, refreshing: false, listening: false,
+  pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, unlocked: false, askUnlocked: false, chat: [], drPw: '', drPw0: '', drPw1: '', drPw2: '', 'st-pw': '' };
+// A PIN being typed goes back to where it was asked for; a records screen opens on the lock, and unlocking returns to it (W16).
+const relock = v => {
+  if (PIN_SCREENS.includes(v.screen)) v.screen = v.stack.pop() || 'home';
+  if (HEALTH_SCREENS.includes(v.screen)) { Object.assign(S, { afterUnlock: v.screen, lockStack: v.stack, lockWhy: null }); Object.assign(v, { screen: 'hlocked', stack: [] }); }
+};
 export function boot() {
   ALL = FLOW.flatMap(([, items]) => items); // each screen's caption, for the note; the presets are test fixtures
   start('full');
   let k = null;
-  try { if (performance.getEntriesByType('navigation')[0]?.type === 'reload') k = JSON.parse(sessionStorage.getItem(KEEP)); } catch { k = null; }
-  if (k) {
-    if (k.app !== 'patient') start(k.app);
-    Object.assign(S, { drKept: k.drKept || {}, wk: k.wk || S.wk, reason: k.reason || '' });
-    if (k.app === 'staff' && k.stMe) { staffTab = k.staffTab || staffTab; S.stMe = k.stMe; S.screen = stHome(); }
-    if ((k.app === 'doctor' || k.app === 'desk') && k.drSigned) Object.assign(S, { drSigned: true, screen: k.app === 'doctor' ? 'dqueue' : 'kqueue' });
+  try { if (performance.getEntriesByType('navigation')[0]?.type === 'reload') k = JSON.parse(sessionStorage.getItem(KEEP), (_, v) => typeof v === 'string' && ISO.test(v) ? new Date(v) : v); } catch { k = null; }
+  if (k?.S) {
+    Object.assign(S, k.S, DROP); staffTab = k.staffTab || staffTab;
+    if (k.draftOf) S.drDraft = Object.assign(S.drKept[k.draftOf], { restored: true }); // the visit being written is still its kept draft (F03), and says so
+    const b = S.booked; if (b) [S.appt, ...S.more].forEach(v => { if (v.doc === b.doc && v.day === b.day && v.time === b.time) v.pay = b.pay; }); // one pay record (V14)
+    relock(S.app === 'patient' ? S : S.saved.patient || { stack: [] });
+    Object.entries(S.walk).forEach(([x, w]) => { if (w.doc === 'ps') drJoin(x, w); }); // Dr. Sharma's walk-ins rejoin her queue's list
+    if (S.screen === 'swalk') S.wkKept = wkFilled(); // T21: the walk-in form came back, and says so
     render();
   }
-  addEventListener('pagehide', () => { try { sessionStorage.setItem(KEEP, JSON.stringify({ app: S.app, stMe: S.stMe, staffTab, drSigned: S.drSigned, drKept: S.drKept, wk: S.wk, reason: S.reason })); } catch { /* storage blocked: start fresh */ } });
+  addEventListener('pagehide', () => { try { sessionStorage.setItem(KEEP, JSON.stringify({ S, staffTab, draftOf: Object.keys(S.drKept).find(x => S.drKept[x] === S.drDraft) })); } catch { /* storage blocked: start fresh */ } });
 }
 
 // Two ways in: a returning patient with everything, or a new patient with nothing yet.

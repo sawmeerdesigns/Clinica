@@ -82,6 +82,7 @@ export const EXTRA_STATE_ST = () => ({
   stCalM: 7, stCalDay: null, // attendance calendar: month shown (0 = Jan) and the day tapped
 });
 extraState(EXTRA_STATE_ST, ORDER.staff);
+export const wkFilled = () => ['name', 'phone', 'age', 'h', 'w', 'doc', 'reason', 'note'].some(k => String(S.wk[k] || '').trim()); // T21: a half-filled walk-in
 export const STAFF_START = () => ({ app: 'staff', screen: 'ssignin', signedIn: true, visitDay: 'checkedin', followup: null });
 
 // ---------- the shared world ----------
@@ -783,10 +784,12 @@ Object.assign(OVERLAY, {
 // Re-render in place. React keeps the page's scroll and the search caret, since the elements survive.
 export const sRe = () => render();
 // The walk-in becomes a patient in today's list — and, for Dr. Sharma, in her own queue.
+// Run 6 Y05: her queue's patient list is module data, so a reload adds her walk-ins back from S.walk (app.jsx boot).
+export const drJoin = (k, w) => { DR_PATIENTS[k] = { name: w.name, ini: w.ini, info: w.info, reason: w.note ? `${w.reason}. Desk note: ${w.note}` : w.reason, short: w.reason, time: w.time, hist: '' }; DR_HISTORY[k] = w.hist; };
 export function addWalkIn(rec) {
   const k = `w${Object.keys(S.walk).length + 1}`, w = { ...rec, time: now(), walkin: true };
   S.walk[k] = w;
-  if (w.doc === 'ps') { DR_PATIENTS[k] = { name: w.name, ini: w.ini, info: w.info, reason: w.note ? `${w.reason}. Desk note: ${w.note}` : w.reason, short: w.reason, time: w.time, hist: '' }; DR_HISTORY[k] = w.hist; S.drq[k] = 'waiting'; }
+  if (w.doc === 'ps') { drJoin(k, w); S.drq[k] = 'waiting'; }
   else S.rq[k] = 'waiting';
   S.wk = { type: 'new' }; S.wkErr = {}; S.stQ = ''; S.stF = {}; // back to the full list, with the new row in it
   // F12/R14/T20: say who was added to whose queue, with their ID, and highlight the row (mount.sarr scrolls it into view).
@@ -821,7 +824,7 @@ Object.assign(ACTIONS, {
   'st-signout': () => { Object.assign(S, { stMenu: null, sheet: 'stsignout' }); render(); },
   'st-signout-ok': () => { Object.assign(S, { stMe: null, stMenu: null, sheet: null, stack: [], screen: 'ssignin' }); render(); },
   'st-go': sc => { // T21: coming back to a half-filled walk-in form says it was kept
-    if (sc === 'swalk') S.wkKept = ['name', 'phone', 'age', 'h', 'w', 'doc', 'reason', 'note'].some(k => String(S.wk[k] || '').trim());
+    if (sc === 'swalk') S.wkKept = wkFilled();
     if (sc === 'sadd') Object.assign(S, { stEdit: null, stAdded: null, stAdd: {}, stAddErr: {} });
     sGo(sc); },
   'st-adddoc': () => { Object.assign(S, { stAdded: null, stEdit: null, stAdd: {}, stAddErr: {} }); sGo('sadd', 'sdocs'); },

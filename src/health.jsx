@@ -3,7 +3,7 @@
 // and reuses pieces from booking.jsx (bar, label, tag, rows, callBtn, backTo).
 import { RECORDS, appBar, btn, digits, empty, heading, homeInd, listItem, masked, mmss, start, statusBar, support } from './app.jsx';
 import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
-import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
+import { backTo, bar, callBtn, homeLockRow, homeLocked, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
 import { csheet, notice, pinOf, switchTo } from './care.jsx';
 import { A, ACTIONS, FLOW, NE, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, nd, ne, onLeave, paint, render, reset, sepJoin, toast, tr } from './core.jsx';
 import { labOf, labTrend } from './doctor.jsx';
@@ -140,6 +140,7 @@ export const docCard = (ini, name, l2, l3) => <div className="card appt">
 export const reportRow = (title, sub, status, act) => <button className="list-item" data-act={act}>{lead('lt-lab.svg')}
   <span className="report-t"><span className="text"><span className="h-s">{tr(title)}</span><span className="body-s">{tr(sub)}</span></span>{status}</span>{chev}</button>;
 
+const medsItem = () => listItem('lt-rx.svg', 'Medicines', (n => n ? (ne() ? `${n} वटा सकिन लागेको` : `${n} running low`) : 'All stocked up')(S.meds.filter(lowStock).length), 'go:mtlist');
 export const centred = inner => <div className="body" style={{ justifyContent: 'center' }}>{inner}</div>;
 
 // ---------- PIN ----------
@@ -244,7 +245,7 @@ Object.assign(SCREENS, {
           {list([
             listItem('lt-followup.svg', 'Visit history', 'Last visit Aug 28, General medicine', 'go:hvisits'),
             listItem('lt-rx.svg', 'Prescriptions', '2 medicines to take now', 'go:hrx'),
-            S.offline ? null : listItem('lt-rx.svg', 'Medicines', (n => n ? (ne() ? `${n} वटा सकिन लागेको` : `${n} running low`) : 'All stocked up')(S.meds.filter(lowStock).length), 'go:mtlist'), // stock needs a live count
+            S.offline ? null : medsItem(), // stock needs a live count
             listItem('lt-lab.svg', 'Lab reports', (r => [r.filter(k => !labOf(k).reviewing).length && `${r.filter(k => !labOf(k).reviewing).length} ${ne() ? 'तयार' : 'ready'}`,
               r.filter(k => labOf(k).reviewing).length && `${r.filter(k => labOf(k).reviewing).length} ${ne() ? 'जाँच हुँदै' : 'being reviewed'}`].filter(Boolean).join(', ') || 'None yet')(S.labs), 'go:hlabs'),
             listItem('lt-clipboard.svg', 'Follow-ups', '1 due around Sep 11', 'go:hfollow'),
@@ -260,6 +261,7 @@ Object.assign(SCREENS, {
       {centred(empty('qa-book.svg', 'Nothing here yet',
         'After your first visit, what your doctor tells you, your prescriptions and your reports will appear here.',
         btn('Book a visit', 'go:finddoctor', { size: 'l' })))}
+      {S.meds.length ? homeLocked() ? homeLockRow() : <div className="inset" style={{ paddingBottom: 16 }}>{list([medsItem()])}</div> : null}{/* Run 6 Y01: medicines someone tracks themselves, like Ramesh's; behind his Home lock when it's on */}
       {navBar('Health')}
     </div>),
 
@@ -652,7 +654,7 @@ FLOW.push(
   ]],
   ['Health — unhappy paths', [
     ['H10', 'Report being reviewed', 'Branch from 08 — a report not yet released', 'Results reach the patient after the doctor sees them. The screen says why, and points to the phone if they feel worse.', () => ({ screen: 'hreviewing', stack: ['health', 'hlabs'], ...U })],
-    ['H11', 'No visits yet', 'Replaces 02 for a new patient', 'Nothing to lock yet, and one way forward: book the first visit.', () => ({ screen: 'hempty', healthEmpty: true })],
+    ['H11', 'No visits yet', 'Replaces 02 for a new patient', 'Nothing to lock yet, and one way forward: book the first visit.', () => ({ screen: 'hempty', healthEmpty: true, meds: [] })],
   ]],
   ['Health — unlock, first time', [
     ['H12', 'Create PIN', 'From 01 Unlock, first time', 'Asked for on the first unlock, not at sign-up — at the moment it protects something. The fourth digit moves on; there is no button.', () => ({ screen: 'pincreate', stack: ['hlocked'], pinEntry: '12' })],
