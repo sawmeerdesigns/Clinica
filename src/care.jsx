@@ -5,12 +5,12 @@ import { Fragment } from 'react';
 import { AD_SHORT, Phone, RECORDS, bsText, family, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
 import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
 import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, payCard, rel, row, surname, tag, takeSlot, when } from './booking.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, render, reset, toast } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, render, reset, toast, tr } from './core.jsx';
 import { drShort } from './doctor.jsx';
 import { centred, chev, errLine, keypad, lbl, lead, list, openHealth, pinScreen, unlock } from './health.jsx';
 import { med } from './meds.jsx';
 import { SYS_OS, openSys } from './more.jsx';
-import { FEE, FU_DAY, dayLabel, isoOf } from './data.js';
+import { FEE, FU_DAY, TODAY, WALLETS, dayLabel, isoOf } from './data.js';
 import { counts, img, now, patients, people, person } from './staff.jsx';
 
 export const MAPS = 'https://www.google.com/maps/search/?api=1&query=City+Hospital+Maharajgunj+Kathmandu';
@@ -41,9 +41,9 @@ const MOVED_FU = { day: dayLabel(new Date(2026, 8, 13)), time: '11:00 AM', iso: 
 export const unread = () => !S.healthEmpty && S.notifs.some(n => !n.read);
 export const sect = (label, inner, gap = 4) => <div className="sect" style={{ gap }}><div className="inset">{lbl(label)}</div>{inner}</div>;
 export const listP = items => <div className="list">{items.map((x, i) => <Fragment key={i}>{i > 0 && <div className="sep page" aria-hidden="true" />}{x}</Fragment>)}</div>; // Separator, Page inset
-export const notice = (tone, title, body, extra = null) => <div className={`card notice ${tone}`}><div className="text"><p className="h-s">{title}</p><p className="body-s">{body}</p></div>{extra}</div>;
+export const notice = (tone, title, body, extra = null) => <div className={`card notice ${tone}`}><div className="text"><p className="h-s">{tr(title)}</p><p className="body-s">{tr(body)}</p></div>{extra}</div>; // F15/R12
 export const linkRow = (icon, title, sub, href) => <a className="list-item" href={href} {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}>
-  {lead(icon)}<span className="text"><span className="item-title">{title}</span><span className="body-s">{sub}</span></span>{chev}</a>;
+  {lead(icon)}<span className="text"><span className="item-title">{tr(title)}</span><span className="body-s">{tr(sub)}</span></span>{chev}</a>;
 export let inCal; // iOS reports the save; Android can't
 later(() => { inCal = row('lt-followup.svg', 'In your calendar', 'Alerts 1 day and 2 hours before'); }, ORDER.care);
 export const calBtn = (key, label = 'Add to calendar') => <button className="btn secondary" data-act={`add-cal:${key}`}><img src={`${A}icon-calendar-add.svg`} width="24" height="24" alt="" />{label}</button>;
@@ -51,7 +51,7 @@ export const dirBtn = (opd = 'OPD 2') => <a className="btn primary" href={MAPS} 
 export const fuCard = (act = '') => visitCard(`${S.followup.day}, ${S.followup.time}`, 'Follow-up, OPD 2', act);
 export const switchEl = (on, off) => <span className={`switch ${on ? 'on' : ''}`} aria-hidden="true"><span className="thumb">{on ? <img src={`${A}icon-tick-${off ? 'disabled' : 'action'}-16.svg`} width="16" height="16" alt="" /> : null}</span></span>;
 export const setting = (title, body, on, act, off, tile = null) => <button className="list-item setting" role="switch" aria-checked={on} data-act={act} disabled={!!off}>
-  {tile}<span className="text st"><span className="st-t">{title}</span><span className="body-s">{body}</span></span>{switchEl(on, off)}</button>;
+  {tile}<span className="text st"><span className="st-t">{tr(title)}</span><span className="body-s">{tr(body)}</span></span>{switchEl(on, off)}</button>;
 
 // body: the screen's content, or a whole .body (e.g. centred()) used as it is
 export const frame = (title, body, { cta = null, actions = null, back = true, tab = '', gap = 20 } = {}) => (
@@ -100,7 +100,7 @@ export const csheet = (title, body, primary, secondary) => <>
   <div className="scrim" data-act="sheet-close"></div>
   <div className="csheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
     <span className="handle"></span>
-    <div className="cs-text"><h2 className="cs-t" id="cs-t">{title}</h2><p className="lede">{body}</p></div>
+    <div className="cs-text"><h2 className="cs-t" id="cs-t">{tr(title)}</h2><p className="lede">{tr(body)}</p></div>
     <div className="cs-acts">{primary}{secondary}</div>
   </div><div className="sheet-home"></div></>;
 
@@ -113,6 +113,10 @@ Object.assign(OVERLAY, {
     ? "It's soon, but cancelling still helps — someone else can have the time. You won't be charged."
     : 'The time goes back to other patients. You can book again whenever you need to.',
     btn('Cancel visit', 'cancel-fu', { kind: 'destructive' }), btn('Keep my visit', 'sheet-close', { kind: 'secondary' })),
+  // R13: today's visit can be cancelled in the app until check-in, with the follow-up's sheet. A wallet fee goes back to the wallet (mocked).
+  cancelt: () => { const a = S.appt, w = a.pay?.paid && WALLETS[a.pay.how]?.[0];
+    return csheet(`Cancel your visit today at ${a.time}?`, `The time goes back to other patients. ${w ? `Your NPR ${FEE} goes back to your ${w} wallet.` : "You won't be charged."}`,
+      btn('Cancel visit', 'cancel-fu:today', { kind: 'destructive' }), btn('Keep my visit', 'sheet-close', { kind: 'secondary' })); },
   signout: () => csheet('Sign out of Clinica?', "You'll need a code by SMS to sign back in. Your records stay safe with City Hospital.",
     btn('Sign out', 'sign-out'), btn('Stay signed in', 'sheet-close', { kind: 'secondary' })), // reversible, so Brand, not red
   close: () => csheet('Close your Clinica account?', 'Your login and PIN are deleted. Your medical records stay with City Hospital, as the law requires. Ask at reception for a copy.',
@@ -154,7 +158,7 @@ Object.assign(SCREENS, {
       : notice('', `Your ${S.cancelled.date} visit is cancelled`, 'The time has gone back to other patients. Book again whenever you need to.',
         <>{tag('Cancelled', 'neutral')}{btn('Book again', 'go:finddoctor', { size: 'l' })}</>)}</div>
       {S.cancelled.cal ? <div className="inset">{notice('warn', 'Remove it from your calendar', "If you added this visit to your calendar, it's still there. We can't delete it for you.",
-        btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{today}</>;
+        btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{S.careEmpty ? coming : today}</>; // R13: today's own visit is gone
     else if (S.careErr) body = centred(empty('icon-info-secondary-28.svg', 'Something went wrong', // not the patient's fault, and nothing has changed
       "We couldn't load your appointments. It's not something you did, and nothing has changed.",
       <>{btn('Try again', 'care-refresh', { size: 'l' })}{clinicCall}</>));
@@ -226,8 +230,9 @@ Object.assign(SCREENS, {
         : notice('', 'Follow-up in 2 weeks', 'Around Sep 11. Book now to get a time that suits you.', btn('Book follow-up', 'cday-fu', { size: 'l' }))}</div>,
     }[v]?.() || arrive;
     // R23/T14: today's visit (or a later one) can be moved from here too, not only when running late.
-    const cta = { booked: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}</>, ontime: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}</>,
-      late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}</>,
+    const cancel = a.day === 0 ? btn('Cancel visit', 'sheet:cancelt', { kind: 'secondary' }) : null; // R13: until she's checked in
+    const cta = { booked: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}{cancel}</>, ontime: () => <>{dirBtn(d.opd)}{btn('Reschedule', 'resched:appt', { kind: 'secondary' })}{cancel}</>,
+      late: () => <>{dirBtn(d.opd)}{btn('Reschedule instead', 'resched:appt', { kind: 'secondary' })}{cancel}</>,
       done: () => btn('Go to Health', 'health-tab', { kind: 'secondary' }) }[v]?.() || null;
     // V14: the reason given and how the fee is paid (F09/W02: Paid · receipt / Not paid · Pay now / Pay at reception).
     const booking = v === 'done' ? null : <div className="stack8">{sect('Your booking', list([row('lt-clipboard.svg', 'Reason for visit', a.reason || 'None given')]), 0)}<div className="inset">{payCard(a)}</div></div>;
@@ -301,6 +306,8 @@ Object.assign(SCREENS, {
       {listItem('lt-lock.svg', 'Change PIN', 'Choose a new 4-digit PIN', 'pf-pin')}<div className="sep" aria-hidden="true"></div>
       {S.noSensor ? setting('Use fingerprint', 'This phone has no fingerprint sensor.', false, '', true, lead('lt-fingerprint.svg')) // disabled, with the reason
         : setting('Use fingerprint', S.finger === 'on' ? 'Fingerprint data saved on this phone could open your records' : 'Off. Your PIN opens your records.', S.finger === 'on', 'pf-finger', false, lead('lt-fingerprint.svg'))}</div>)}
+    {family().length > 1 ? sect('On this shared phone', list([setting('Also lock appointments and medicines', S.homeLock[S.fullName] !== false ? 'Home shows them after your PIN' : 'Off. Anyone with this phone sees them on Home',
+      S.homeLock[S.fullName] !== false, 'pf-homelock', false, lead('lt-calendar.svg'))])) : null}{/* T22: each person chooses */}
     {sect('If you forget', list([listItem('lt-sms.svg', 'Reset your PIN', 'With a code sent by SMS', 'pf-reset')]))}
     <div className="inset"><p className="body-s">Your Clinica PIN isn't your phone's PIN. On a shared phone, it's the one thing only you know.</p></div></>),
 
@@ -356,7 +363,7 @@ Object.assign(SCREENS, {
 
 // ---------- behaviour ----------
 export function openCal(key) { S.calFor = key; S.sheet = S.calOff ? 'calno' : 'cal'; render(); }
-export function switchTo(i) { S.fullName = RECORDS[i].name; S.first = S.fullName.split(' ')[0]; S.pinEntry = ''; S.pinErr = false; toHome(); } // opens their Home, not Health
+export function switchTo(i) { S.fullName = RECORDS[i].name; S.first = S.fullName.split(' ')[0]; S.pinEntry = ''; S.pinErr = false; toHome(); S.unlocked = true; render(); } // opens their Home, not Health; T22: their PIN just opened it
 export const tabRoot = screen => { Object.assign(S, { stack: [], sheet: null, screen }); render(); };
 
 Object.assign(mount, {
@@ -376,7 +383,14 @@ Object.assign(ACTIONS, {
   os: arg => SYS_OS[arg] ? openSys(SYS_OS[arg]()) : endScreen(arg, 'On a phone this hands off to the system or to a screen outside these Figma sections.'),
   'add-cal': openCal,
   'cal-add': () => { S.cal[S.calFor] = true; downloadIcs(calEvent(S.calFor)); S.sheet = null; toast('Added to your calendar.'); render(); }, // W03 // iOS reports the save
-  'cancel-fu': () => {
+  'cancel-fu': key => {
+    if (key === 'today') { // R13: her visit today, before check-in
+      const a = S.appt, w = a.pay?.paid && WALLETS[a.pay.how]?.[0];
+      S.cancelled = { date: dayLabel(TODAY).split(', ')[1], day: dayLabel(TODAY), cal: S.cal.appt };
+      Object.assign(S, { careEmpty: true, sheet: null, stack: [], screen: 'care' }); S.cal.appt = false;
+      toast(`Your visit today at ${a.time} is cancelled.${w ? ` NPR ${FEE} is going back to your ${w} wallet.` : ''}`);
+      return render();
+    }
     S.cancelled = { date: S.followup.day.split(', ')[1], day: S.followup.day, cal: S.cal.fu }; // a calendar copy would now be stale
     Object.assign(S, { followup: null, sheet: null, stack: [], screen: 'care' });
     S.cal.fu = false;
@@ -430,6 +444,8 @@ Object.assign(ACTIONS, {
   'notif-on': () => { S.notif = 'on'; render(); }, // W15
   // Off at once — safer and reversible. On goes through the opt-in, which restates the trade-off.
   'pf-finger': () => { if (S.finger === 'on') { S.finger = 'off'; return render(); } S.afterUnlock = 'pflock'; go('finger'); },
+  'pf-homelock': () => { S.homeLock = { ...S.homeLock, [S.fullName]: S.homeLock[S.fullName] === false }; render(); }, // T22
+  'home-unlock': () => { Object.assign(S, { afterUnlock: 'home', pinEntry: '', pinErr: false }); go('pin'); }, // T22: the same PIN as Health
   'pf-lock': () => { S.pinChanged = false; go('pflock'); },
   'pf-phone': () => { // the number is how someone signs in, so changing it needs the PIN
     Object.assign(S, { codeFor: 'newphone', newPhone: '', phoneErr: false, afterUnlock: 'pfphone', pinEntry: '', pinErr: false });
@@ -454,7 +470,7 @@ Object.assign(NUM, {
   care: s => s.careErr ? 'GX07' : s.refreshing ? 'GX05' : s.offline ? 'GX02' : s.visitDay === 'missed' ? 'C11' : s.cancelled ? (s.cancelled.byClinic ? 'SC06' : s.cancelled.cal ? 'K06' : 'C06') : s.careEmpty && !s.followup ? 'C12' : 'C01',
   cappt: s => s.sheet === 'cancel' ? (s.cancelSoon ? 'SC07' : 'C05') : 'C02',
   cresched: s => s.rsNone ? 'SC04' : s.rsErr ? 'SC03' : 'C03', cmoved: s => s.moved.stale ? 'K05' : 'C04',
-  cday: s => ({ booked: 'C07', late: 'C08', checkedin: 'C09', done: 'C10', turn: 'SC01', with: 'SC02', ontime: 'SC05' })[s.visitDay],
+  cday: s => s.sheet === 'cancelt' ? 'C05' : ({ booked: 'C07', late: 'C08', checkedin: 'C09', done: 'C10', turn: 'SC01', with: 'SC02', ontime: 'SC05' })[s.visitDay],
   notifs: s => s.healthEmpty ? 'N02' : s.notifOff ? 'N03' : 'N01',
   pf: s => ({ signout: 'P08', close: 'P10' })[s.sheet] || 'P01',
   pfdetails: s => s.phoneChanged ? 'PM08' : 'P02', pflang: () => 'P03', pfnotif: s => s.notifOff ? 'P09' : 'P04',

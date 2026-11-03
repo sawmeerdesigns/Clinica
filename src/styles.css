@@ -865,7 +865,7 @@ a.chip { text-decoration: none; color: var(--text-primary); }
 .st-arr .st-hd > .st-search { margin-left: auto; }
 .st-sec { font: 700 16px/20px "Open Sans"; color: var(--text-secondary); }
 .st-nm { font: 600 14px/20px "Open Sans"; color: var(--text-primary); }
-.st-a { font: 600 14px/20px "Open Sans"; color: var(--text-action); text-decoration: none; }
+.st-a { font: 600 14px/20px "Open Sans"; color: var(--text-action); text-decoration: underline; text-underline-offset: 2px; } /* axe link-in-text-block (T02c): told apart from body text by more than colour */
 .st-sp { height: 20px; }
 .st-cta { display: flex; justify-content: flex-end; }
 .st-cta .btn { width: 240px; }
@@ -912,6 +912,7 @@ a.chip { text-decoration: none; color: var(--text-primary); }
 .st-tr > span { flex: none; }
 .st-tr[data-act] { cursor: pointer; }
 .st-tr[data-act]:hover { background: var(--surface-secondary); }
+.st-tr.hi, .st-tr.hi:hover { background: var(--surface-info); } /* F26: the staff member just added, like a new walk-in (.k-row.sel) */
 .st-tr:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
 :is(.st-th, .st-tr) > .sp { flex: 1; }
 .st-tr .nm { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary); }

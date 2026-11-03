@@ -20,6 +20,8 @@ export const ROLES = {
   nurse: ['Nurse', "Works their department's queue; can't prescribe or release reports", ["Their department's arrivals today", 'Checking patients in for their doctors', 'Not included: prescriptions and releasing lab reports']],
   desk: ['Front desk', 'Checks patients in and registers walk-ins', ["Today's arrivals across every doctor", 'Check patients in and register walk-ins', 'Search and match returning patients']],
   hr: ['HR manager', 'Manages the staff directory and leave requests', ['The whole staff directory, not just doctors', 'Leave requests and approvals', 'Individual staff records and contact details']],
+  // T23: a trustee reads the dashboard and departments and changes nothing. Trustees aren't staff, so they're not in the directory or Assign roles.
+  trustee: ['Trustee', 'Reads the hospital dashboard and departments; changes nothing', ['Hospital-wide dashboard', 'Departments, with who covers a closed one', 'Not included: adding, editing or registering anything']],
   admin: ['Hospital administrator', 'Sees hospital-wide dashboards, doctors and departments', ['Hospital-wide dashboard and reports', 'Full doctor roster and departments', 'Settings, including adding doctors and assigning roles']],
 };
 // id: initials, name, job title, department, access role, employee ID, joined
@@ -49,15 +51,18 @@ export const LEAVES = {
   rs1: { who: 'rs', type: 'Casual leave', from: D(7, 19), to: D(7, 19), asked: 'Aug 14, 2026', why: "Child's school meeting." },
   sr1: { who: 'sr', type: 'Casual leave', from: D(7, 7), to: D(7, 7), asked: 'Aug 4, 2026', why: 'Bank appointment.' },
 };
-// T17: a request counts calendar days; attendance counts working days (Mon–Fri) in the month shown.
-const isWork = d => d.getDay() % 6 !== 0;
+// T17: a request counts calendar days; attendance counts working days in the month shown.
+// Phase 6: the working week is Sun–Fri, as the OPDs keep it (Nepal's week); only Saturday is off.
+const isWork = d => d.getDay() !== 6;
 const spanDays = (a, b, f = () => true) => { let n = 0; for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) if (f(d)) n++; return n; };
 export const leaveSpan = l => `${mdOf(l.from)}${+l.from === +l.to ? '' : ` – ${mdOf(l.to)}`}, 2026`;
 export const leaveDays = l => { const c = spanDays(l.from, l.to), w = spanDays(l.from, l.to, isWork);
   return `${c} calendar day${c === 1 ? '' : 's'} · ${w} working day${w === 1 ? '' : 's'}`; };
 // Days missed in August with no leave request behind them (the only days not worked out from requests).
 export const ABSENT = { sk: [25, 27], nl: [27] };
-export const SIGN_IDS = { 'CH-ADM-04': 'rk', 'CH-FD-12': 'sbr', 'CH-HR-03': 'ab' };
+export const SIGN_IDS = { 'CH-ADM-04': 'rk', 'CH-FD-12': 'sbr', 'CH-HR-03': 'ab', 'CH-TRS-01': 'tb' };
+// T23: the board's read-only sign-in, kept off the staff list.
+export const TRUSTEES = [{ id: 'tb', ini: 'BK', name: 'Bimala Karki', title: 'Trustee', dept: 'Board of trustees', access: 'trustee', emp: 'CH-TRS-01', joined: 'Jan 2020' }];
 
 export const EXTRA_STATE_ST = () => ({
   stMe: null, stErr: false, stForgot: false, stHoliday: false, stAccess: {}, stDocs: [], walk: {}, ckAt: {},
@@ -73,6 +78,7 @@ export const EXTRA_STATE_ST = () => ({
   stFrom: null, // where Add a doctor was opened from, for its back link
   stDepts: [], stMoved: {}, stDept: { docs: [] }, stDeptErr: {}, stDeptAdded: null, // Add a department
   stStaff: [], stNew: {}, stNewErr: {}, // Add staff
+  stCover: {}, // Phase 6: who covers a closed department (department → doctor id); COVER in data.js is the default
   stCalM: 7, stCalDay: null, // attendance calendar: month shown (0 = Jan) and the day tapped
 });
 extraState(EXTRA_STATE_ST, ORDER.staff);
@@ -82,11 +88,12 @@ export const STAFF_START = () => ({ app: 'staff', screen: 'ssignin', signedIn: t
 export const people = () => [...STAFF, ...S.stDocs.map(d => ({ ...d, title: 'Doctor', dept: d.spec, access: 'doctor', emp: d.emp, joined: d.joined || 'Aug 2026' })), ...S.stStaff]
   .map(p => ({ ...p, ...S.stEdits[p.id] })) // F18/R19/T13, F06: a record's later edits
   .map(p => ({ ...p, access: S.stAccess[p.id] || p.access, dept: S.stMoved[p.id] ? deptName(S.stMoved[p.id]) : p.dept }));
-export const person = id => people().find(p => p.id === id);
+export const person = id => people().find(p => p.id === id) || TRUSTEES.find(p => p.id === id);
+export const readOnly = () => stMe()?.access === 'trustee'; // T23: every data-changing control is hidden
 export const isSeed = p => STAFF.some(x => x.id === p.id);
 export const seedEmail = p => `${p.name.replace(/^Dr\.\s*/, '').toLowerCase().replace(/\s+/g, '.')}@cityhospital.np`; // the hospital's own address for staff on its books
 export const stMe = () => person(S.stMe);
-export const stHome = () => ({ admin: 'sdash', desk: 'sarr', nurse: 'sarr', hr: 'shdash' })[stMe()?.access] || 'ssignin';
+export const stHome = () => ({ admin: 'sdash', trustee: 'sdash', desk: 'sarr', nurse: 'sarr', hr: 'shdash' })[stMe()?.access] || 'ssignin';
 export const roster = () => people().filter(p => p.title === 'Doctor');
 // OPD, (unused), duty, NMC registration, next free slot, reports waiting on them — from the one doctor list (data.js).
 export const docOf = id => { const d = S.stDocs.find(x => x.id === id), r = DOCTORS[id], e = S.stEdits[id] || {};
@@ -144,16 +151,28 @@ const backOn = id => { const lk = leaveOn(id, TODAY), m = (DOCTORS[id]?.days || 
   const [a, b] = [WD.indexOf(m[1]), WD.indexOf(m[2])];
   for (let n = 1; n < 30; n++) { const d = dayAt(n), w = d.getDay(); if (w !== 6 && w >= a && w <= b && !(lk && d <= LEAVES[lk].to)) return [d, `${dayLabel(d)}, ${m[3]}`]; }
   return null; };
+// T08: why a doctor isn't in, from her own working days and TODAY: "Not in today · works Sun–Thu · next in Sun, Aug 30".
+export const notIn = id => { const p = person(id), m = ((S.stDocs.some(x => x.id === id) ? p.days : p.days || DOCTORS[id]?.days) || '').match(/(\w{3})\s*[–-]\s*(\w{3})/);
+  const [a, b] = m ? [WD.indexOf(m[1]), WD.indexOf(m[2])] : [-1, -1];
+  if (a < 0 || b < 0) return 'Not in today';
+  const next = Array.from({ length: 7 }, (_, n) => dayAt(n + 1)).find(d => d.getDay() !== 6 && d.getDay() >= a && d.getDay() <= b);
+  return `Not in today · works ${m[1]}–${m[2]}${next ? ` · next in ${dayLabel(next)}` : ''}`; };
+// Who covers a closed department: admin's choice on its page, else the default in data.js (COVER).
+export const coverOf = k => S.stCover[k] || COVER[k];
+// Phase 6: the cover can be changed on the department's page, from the doctors on duty in other departments.
+export const coverPick = k => { const ids = deptOf(k)[2], opts = roster().filter(p => duty(p.id) === 'on' && !ids.includes(p.id)).map(p => p.id);
+  return <div style={{ maxWidth: 343 }}>{sSelect('st-cover', 'Who covers it today', 'Choose a doctor', dname(coverOf(k)), opts.map(dname), '', e => {
+    S.stCover = { ...S.stCover, [k]: opts.find(i => dname(i) === e.target.value) }; toast(`${e.target.value} now covers ${deptName(k)}.`); render(); })}</div>; };
 export function closure(k) {
   const [, , ids] = deptOf(k);
   if (!ids.length || isNewDept(k) || ids.some(i => duty(i) === 'on')) return null;
   const why = ids.map(i => duty(i) === 'leave' ? `${dname(i)} is on leave` : `${dname(i)} works ${(DOCTORS[i]?.days || '').split(',')[0] || 'other days'}, not ${WD[TODAY.getDay()]}days`).join('; ');
-  const back = ids.map(backOn).filter(Boolean).sort((x, y) => x[0] - y[0])[0], c = COVER[k];
+  const back = ids.map(backOn).filter(Boolean).sort((x, y) => x[0] - y[0])[0], c = coverOf(k);
   return { why, cover: c ? `${dname(c)}, ${person(c).dept} (${docOf(c)[0]})` : 'No cover set', reopen: back ? back[1] : 'Not set' };
 }
 // Who can sign in to what follows the job: the same access the existing staff with that title have.
 export const ACCESS_OF = { Doctor: 'doctor', 'Front desk': 'desk', 'HR manager': 'hr', Administrator: 'admin', Nurse: 'nurse', 'Lab technician': 'nurse' }; // F08
-export const signoutBody = { desk: "You'll need to sign in again to see today's check-ins.", nurse: "You'll need to sign in again to see today's check-ins.", hr: "You'll need to sign in again to see staff and leave requests.", admin: "You'll need to sign in again to manage the hospital." };
+export const signoutBody = { trustee: "You'll need to sign in again to see the dashboard.", desk: "You'll need to sign in again to see today's check-ins.", nurse: "You'll need to sign in again to see today's check-ins.", hr: "You'll need to sign in again to see staff and leave requests.", admin: "You'll need to sign in again to manage the hospital." };
 
 // A patient as reception sees them today. Dr. Sharma's take their place in the queue from her app.
 export function arr(k) {
@@ -200,6 +219,7 @@ export const NAV = {
     ['Reception', 'dnav-reception', 'snav-checkin-active', 'sarr'], ['Staff', 'dnav-staff', 'icon-group-filled-action-20', 'sstaff'], ['Settings', 'dnav-settings', 'dnav-settings-active', 'sset']],
   desk: [['Check-in', 'snav-checkin-active', 'snav-checkin-active', 'sarr'], ['Patients', 'snav-profile', 'snav-profile-active', 'spats']],
   nurse: [['Check-in', 'snav-checkin-active', 'snav-checkin-active', 'sarr']], // F08: their department's arrivals
+  trustee: [['Dashboard', 'dnav-dashboard-secondary', 'dnav-dashboard-active', 'sdash'], ['Departments', 'dnav-departments', 'dnav-departments-active', 'sdepts']], // T23
   hr: [['Dashboard', 'dnav-dashboard-secondary', 'dnav-dashboard-active', 'shdash'], ['Staff', 'dnav-staff-primary', 'icon-group-filled-action-20', 'sstaff'],
     ['Leave requests', 'icon-schedule-secondary-20', 'dnav-leave-active', 'sleave'], ['Attendance', 'icon-calendar-month-secondary-20', 'dnav-attendance-active', 'satt']],
 };
@@ -270,7 +290,7 @@ export function sTable(cols, items, cells, act, label) {
   const all = items.length > 0 && items.every(x => S.stSel.includes(x.id)); // A3: an empty list is not "all selected" (0 leaked into aria-checked)
   return <div className="st-tbl" role="table" aria-label={label}><div role="rowgroup"><div className="st-th" role="row"><span role="columnheader">{cbBtn(all, 'st-cball', 'Select all')}</span>
     {cols.map(([l, w, sort], i) => w ? <span key={i} role="columnheader" aria-sort={sort} style={{ width: w }}>{l}</span> : <Fragment key={i}><span className="sp" aria-hidden="true"></span><span role="columnheader" aria-sort={sort}>{l}</span></Fragment>)}</div></div>
-    <div className="st-rows" role="rowgroup">{sepJoin(items.map(x => <div className="st-tr" role="row" {...(act ? { 'data-act': `${act}:${x.id}` } : {})}><span role="cell">{cbBtn(S.stSel.includes(x.id), `st-cb:${x.id}`, `Select ${x.name}`)}</span>{asCells(cells(x))}</div>))}</div></div>;
+    <div className="st-rows" role="rowgroup">{sepJoin(items.map(x => <div className={`st-tr ${S.stHi === x.id ? 'hi' : ''}`} id={`st-row-${x.id}`} role="row" {...(act ? { 'data-act': `${act}:${x.id}` } : {})}><span role="cell">{cbBtn(S.stSel.includes(x.id), `st-cb:${x.id}`, `Select ${x.name}`)}</span>{asCells(cells(x))}</div>))}</div></div>;
 }
 // R28/V19: the name opens the row (a link, so it's announced as one). R27: initials are decoration.
 export const nmCell = (x, w, act) => <span className="nm" style={{ width: w }}><span className="avatar" aria-hidden="true">{x.ini}</span>{act ? <a href="#" className="st-nm" data-act={`${act}:${x.id}`}>{x.name}</a> : x.name}</span>;
@@ -303,16 +323,16 @@ Object.assign(SCREENS, {
 
   // ----- Administrator -----
   sdash: () => {
-    const docs = roster(), on = docs.filter(d => duty(d.id) === 'on'), h = S.stHoliday;
+    const docs = roster(), on = docs.filter(d => duty(d.id) === 'on'), h = S.stHoliday, Row = readOnly() ? 'div' : 'button'; // T23: a trustee's rows only read
     const stats = [[arrivals().length, 'Patients today', 'Across all departments'] /* F07/R05/T06/V07: the same list Reception shows */, [h ? 0 : on.length, 'Doctors on duty', `Of ${docs.length} on the roster`],
       [h ? 0 : docs.reduce((s, d) => s + repsOf(d.id), 0), 'Reports awaiting review', "Lab reports doctors haven't released"] /* T27: about reports, not patients */, [arrivals().filter(k => arrSt(k) === 'notarrived').length, 'Not yet arrived', 'Booked, not checked in']];
     return sPage(<>{sHead('Today', 'Aug 28, 2026 · City Hospital')}
       <div className="st-stats">{stats.map(([v, l, c]) => <div key={l} className="st-stat"><p className="k-h2">{v}</p><p className="st-sl">{l}</p><p className="dr-body">{c}</p></div>)}</div>
-      <section className={`stack8 ${h ? 'st-grow' : ''}`}><div className="st-hd"><h2 className="dr-h1" style={{ fontSize: 20, lineHeight: '24px' }}>Doctors on duty</h2><a href="#" className="st-a" data-act="st-go:sdocs">View all doctors</a></div>
+      <section className={`stack8 ${h ? 'st-grow' : ''}`}><div className="st-hd"><h2 className="dr-h1" style={{ fontSize: 20, lineHeight: '24px' }}>Doctors on duty</h2>{readOnly() ? null : <a href="#" className="st-a" data-act="st-go:sdocs">View all doctors</a>}</div>
         {h ? sEmpty('icon-event-available-tertiary-32', 'No doctors on duty', 'Public holiday — check back tomorrow.')
-          : <div className="st-rows">{sepJoin(on.map(d => <button className="list-item st-dr" data-act={`st-doc:${d.id}`}><span className="avatar" aria-hidden="true">{d.ini}</span>
+          : <div className="st-rows">{sepJoin(on.map(d => <Row className="list-item st-dr" data-act={readOnly() ? undefined : `st-doc:${d.id}`}><span className="avatar" aria-hidden="true">{d.ini}</span>
             <span className="dq-t"><span className="st-nm">{d.name}</span><span className="dr-body">{d.dept} · {docOf(d.id)[0]}</span></span>
-            <span className="dr-body">{ptToday(d.id)} patients today</span>{sTag(DUTY.on)}</button>))}</div>}</section>
+            <span className="dr-body">{ptToday(d.id)} patients today</span>{sTag(DUTY.on)}</Row>))}</div>}</section>
       {/* F13/R21/T07: who is waiting in each department, and closed departments flagged with why, cover and reopening */}
       {h ? null : sSec('Waiting by department', <div className="st-rows">{sepJoin(depts().map(([k, [, opd]]) => { const c = closure(k);
         return <button className="list-item st-dr" data-act={`st-dept:${k}`}><span className="dq-t"><span className="st-nm">{deptLabel(k)}</span>
@@ -345,11 +365,11 @@ Object.assign(SCREENS, {
     const v = x => x || <>{NOT_SET} · <a href="#" className="st-a" data-act={`st-editdoc:${d.id}`}>Add</a></>;
     return sPage(<>{sBack('Doctors', 'sdocs')}{sWho(d.ini, d.name, `${d.dept}${opd ? ` · ${opd}` : ''}`, sTag(DUTY[st]))}
       {sSec('Details', sKV([['NMC registration', v(nmc)], ['OPD', v(opd)], ['Phone', v(d.phone)], ['Email', v(extra ? d.email : d.email || seedEmail(d))], ['Working days', v(extra ? d.days : d.days || DOCTORS[d.id]?.days)]]))}
-      {sSec('Today', sKV([['Patients today', ptToday(d.id)], ['Reports pending', repsOf(d.id)], ['Next available slot', st === 'on' ? slot : st === 'leave' ? 'On leave' : 'Not in today']]))}</>);
+      {sSec('Today', sKV([['Patients today', ptToday(d.id)], ['Reports pending', repsOf(d.id)], ['Next available slot', st === 'on' ? slot : st === 'leave' ? 'On leave' : notIn(d.id)]]))}</>);
   },
 
   sdepts: () => sPage(<>{sHead('Departments', `${depts().length} departments · ${new Set([...roster().map(d => docOf(d.id)[0]), ...S.stDepts.map(d => d.opd)].filter(Boolean)).size} OPDs · City Hospital`, // R29/F26: both counted, not typed
-      <button className="btn primary l hug" data-act="st-newdept">{img('icon-add-white-24', 24)}Add department</button>)}<div className="st-grid">{depts().map(([k, [name, opd, ids]]) => {
+      readOnly() ? null : <button className="btn primary l hug" data-act="st-newdept">{img('icon-add-white-24', 24)}Add department</button>)}{/* T23 */}<div className="st-grid">{depts().map(([k, [name, opd, ids]]) => {
     const on = ids.filter(i => duty(i) === 'on'), sur = dname /* R29: full names — there are two Dr. Shresthas */, run = on.length || isNewDept(k), c = closure(k);
     const who = on.length ? [on.map(sur).join(', '), ...ids.filter(i => duty(i) === 'leave').map(i => `${sur(i)} on leave`)].join(' · ') : ids.length ? `${ids.map(sur).join(', ')} — not in today` : null;
     return <a key={k} href="#" className="st-dept" data-act={`st-dept:${k}`}><span className="st-hd"><span className="st-nm">{PLAIN[k] ? deptLabel(k) : name}</span>{tag(run ? 'Running' : 'Closed today', `${run ? 'success' : 'neutral edge'} s12 sm`)}{/* 1.4.11: a 3:1 edge on the grey card */}</span>
@@ -362,9 +382,11 @@ Object.assign(SCREENS, {
     const c = closure(S.stId);
     return sPage(<>{sBack('Departments', 'sdepts')}{sHead(PLAIN[S.stId] ? deptLabel(S.stId) : name, `${opd} · ${ids.length} doctor${ids.length === 1 ? '' : 's'}`, sTag(on.length || isNewDept(S.stId) ? ['Running', 'success'] : ['Closed today', 'neutral']))}
       {c ? notice('warn', 'Closed today', `${c.why}. Cover: ${c.cover}. Reopens ${c.reopen}.`) : null /* R21/T27 */}
+      {c && !readOnly() ? coverPick(S.stId) : null}{/* T23: a trustee sees the cover in the notice, not the control */}
       {sSec('Doctors', <div className="mt-list">{sepJoin(ids.map(i => { const st = duty(i); return <div className="st-kv"><span className="st-who"><span className="avatar" aria-hidden="true">{person(i).ini}</span><b>{dname(i)} · {docOf(i)[0]}</b></span>
-        <span className="dr-body">{st === 'on' ? `${ptToday(i)} patients today` : st === 'leave' ? 'On leave' : 'Not in today'}</span></div>; }))}</div>)}
-      {sSec('Today', sKV([['Patients seen', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'done').length], // F07: completed rows, as Reception shows them ['OPDs running', `${onOpds.size} of ${opds.size}`],
+        <span className="dr-body">{st === 'on' ? `${ptToday(i)} patients today` : st === 'leave' ? 'On leave' : notIn(i)}</span></div>; }))}</div>)}
+      {/* F07: Patients seen counts completed rows, as Reception shows them. Phase 6: 'OPDs running' was lost inside this comment in Phase 0; restored. */}
+      {sSec('Today', sKV([['Patients seen', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'done').length], ['OPDs running', `${onOpds.size} of ${opds.size}`],
         leave ? ['Staff on leave', leave] : ['Not yet arrived', arrivals().filter(k => ids.includes(arr(k).doc) && arrSt(k) === 'notarrived').length]]))}</>);
   },
 
@@ -398,8 +420,8 @@ Object.assign(SCREENS, {
     return sPage(<><h1 className="k-h2">Settings</h1>
       {g('Staff & roles', [['icon-person.svg', 'Add a doctor', 'New doctor, specialty and department', 'st-go:sadd'], ['lt-lock.svg', 'Assign roles', 'Change what a staff member can access', 'st-go:sroles']])}
       {g('Hospital', [['lt-hospital.svg', 'Hospital details', 'Name, address and working hours', 'st-go:shosp'], ['lt-document.svg', 'Departments', "OPDs and who's assigned to them", 'st-go:sdepts']])}
-      {/* R16/T18/W09: every role change — who, when, from → to, and who made it */}
-      {sSec('Role changes', S.stAudit.length ? <div className="mt-list">{sepJoin(S.stAudit.map(a => row('lt-lock.svg', `${a.who}: ${a.from} → ${a.to}`, `Changed by ${a.by} · Today, ${a.at}`)))}</div>
+      {/* R16/T18/W09: every role change — who, when, from → to, and who made it. W08: a reopened leave request too */}
+      {sSec('Role and leave changes', S.stAudit.length ? <div className="mt-list">{sepJoin(S.stAudit.map(a => row('lt-lock.svg', `${a.who}: ${a.from} → ${a.to}`, `Changed by ${a.by} · Today, ${a.at}`)))}</div>
         : <p className="dr-body tertiary">No role changes yet. Changes made in Assign roles are listed here with who made them and when.</p>)}
       {g('Account', [['lt-bell.svg', 'Notifications', 'New reports and staff requests', 'st-go:sacct'], ['lt-lock.svg', 'Change password', 'Last changed 2 months ago', 'st-go:sacct']])}
       <div className="st-sp"></div><div><button className="btn secondary l hug" data-act="st-signout">Sign out</button></div></>);
@@ -438,7 +460,7 @@ Object.assign(SCREENS, {
     return sPage(<>{sBack('Assign roles', 'sroles')}{sWho(one ? one.ini : who.length, one ? one.name : who.map(p => p.name).join(' and '), sub, null, 'dr-h1')}
       {/* F19/W04: the one-role rule, stated; leave approvals are an add-on instead of a switch */}
       <section className="stack16"><h2 className="st-sec">Access role</h2><p className="dr-body">One access role each — switching replaces what they can do now. To let someone approve leave without switching, tick “Also approves leave”.</p>
-        <div className="mt-list" role="radiogroup" aria-label="Access role">{sepJoin(Object.entries(ROLES).map(([k, [l, d]]) =>
+        <div className="mt-list" role="radiogroup" aria-label="Access role">{sepJoin(Object.entries(ROLES).filter(([k]) => k !== 'trustee').map(([k, [l, d]]) =>
         <button className="st-role" role="radio" aria-checked={pick === k} data-act={`st-pick:${k}`}><span className="dq-t"><span className="st-nm">{l}</span><span className="dr-body">{d}</span></span><span className="ring"></span></button>))}</div>
         {pick === 'hr' ? null : <div className="stack8"><label className="st-acc" style={{ cursor: 'pointer' }}>{cbBtn(S.stLv.on, 'st-lvok', 'Also approves leave')}<span className="dq-t"><span className="st-nm">Also approves leave</span>
           <span className="dr-body">Leave requests only — not the staff directory or contact details</span></span></label>
@@ -532,7 +554,7 @@ Object.assign(SCREENS, {
     const by = ['role', 'dept', 'status'].filter(k => (S.stF[k] || []).length).map(k => ({ role: 'role', dept: 'department', status: 'status' })[k]).join(' and ');
     const pend = all.filter(p => status(p) === 'Pending').length;
     return sPage(<>{sHead('Staff', fil ? results(list.length, all.length, by) : `${all.length} people · ${all.filter(p => status(p) === 'On leave').length} on leave${pend ? ` · ${pend} starting soon` : ''}`,
-      <>{sSearch('Search staff')}<button className="btn primary l hug" data-act="st-addst">{img('icon-add-white-24', 24)}Add staff</button></>)}
+      <>{sSearch('Search staff')}{btn('Export for payroll', 'st-payroll', { size: 'l', kind: 'secondary hug' })}{/* T13 */}<button className="btn primary l hug" data-act="st-addst">{img('icon-add-white-24', 24)}Add staff</button></>)}
       {S.stDone ? sOk(S.stDone) : null}
       <div className="st-chips">{chip('role', fLabel('role', 'Job title'), (S.stF.role || []).length, () => checks('role', counts(all, p => p.title)))}
         {chip('dept', fLabel('dept', 'Department'), (S.stF.dept || []).length, () => checks('dept', counts(all, p => p.dept)))}
@@ -629,7 +651,9 @@ Object.assign(SCREENS, {
       {sSec('Decision', st === 'pending' ? <div className="st-act"><p className="dr-body">HR managers, and staff who also approve leave, can decide. You can undo for a few seconds after.</p>
         <div className="st-chips">{btn('Approve', 'st-leave:approved', { size: 'l', kind: 'primary hug' })}{btn('Deny', 'st-leave:denied', { size: 'l', kind: 'destructive hug' })}</div></div>
         : <div className="stack8">{sOk(`${st === 'approved' ? 'Approved' : 'Denied'} by ${by?.[0] || 'HR'}${by ? `, ${by[1]}` : ''} — ${first} has been notified`, st === 'denied')}
-          {st === 'denied' ? <p className="dr-body">Sent to {first}: {S.lvWhy[k] ? `“${S.lvWhy[k]}”` : 'no reason was given.'}</p> : null}</div>)}</>);
+          {st === 'denied' ? <p className="dr-body">Sent to {first}: {S.lvWhy[k] ? `“${S.lvWhy[k]}”` : 'no reason was given.'}</p> : null}
+          {/* W08: Reopen, once the Undo window has gone */}
+          {S.toast?.action?.[1] === `st-lvundo:${k}` ? null : <div>{btn('Reopen', 'st-lvreopen', { size: 'l', kind: 'secondary hug' })}</div>}</div>)}</>);
   },
 
   // V13: one Sort control; the period stays in the subtitle while searching. T17: says these are working days.
@@ -639,7 +663,7 @@ Object.assign(SCREENS, {
     const [k, dir] = S.stSort.split('-');
     if (k) list = [...list].sort((a, b) => (monthAtt(b.id)[k] - monthAtt(a.id)[k]) * (dir === 'asc' ? -1 : 1));
     const SORTS = [['present-desc', 'Most days present'], ['present-asc', 'Fewest days present'], ['absent-desc', 'Most days absent'], ['absent-asc', 'Fewest days absent']];
-    const period = 'August 2026 · 20 working days so far (Mon–Fri)';
+    const period = `August 2026 · ${spanDays(new Date(2026, 7, 1), TODAY, isWork)} working days so far (Sun–Fri)`; // Phase 6
     return sPage(<>{sHead('Attendance', S.stQ ? `${period} · ${results(list.length, all.length, '')}` : period, sSearch('Search staff'))}
       <div className="st-chips">{chip('sort', S.stSort ? `Sort: ${SORTS.find(x => x[0] === S.stSort)[1]}` : 'Sort', !!S.stSort, () => radios(SORTS, 260))}</div>
       {sTable([['Name', 280], ['Working days', 140], ['Present', 140, k === 'present' ? `${dir}ending` : 'none'], ['On leave', 140], ['Absent', 140, k === 'absent' ? `${dir}ending` : 'none']], list, p => { const a = monthAtt(p.id);
@@ -769,6 +793,7 @@ export function addWalkIn(rec) {
   toast(`${w.name} (${pid(k)}${w.isNew ? '' : ', matched record'}) added to ${dname(w.doc)}'s queue.`);
   sGo('sarr'); S.stHi = k; sRe();
 }
+mount.sstaff = () => { if (S.stHi) document.getElementById(`st-row-${S.stHi}`)?.scrollIntoView({ block: 'center' }); }; // F26
 mount.sarr = () => { if (S.stHi) document.getElementById(`arr-${S.stHi}`)?.scrollIntoView({ block: 'center' }); };
 // R14/T20: a new patient gets the next CH- number; a matched record keeps its own (base).
 export const wkRecord = (base = {}) => {
@@ -898,6 +923,16 @@ Object.assign(ACTIONS, {
   'st-leave-ok': () => { const k = S.stId, v = S.lvAsk;
     S.leave[k] = v; S.lvBy[k] = [stMe().name, `today, ${now()}`]; S.lvWhy[k] = v === 'denied' ? S.lvNote.trim() : '';
     S.sheet = null; toast(`${person(LEAVES[k].who).name}'s leave ${v}.`, ['Undo', `st-lvundo:${k}`]); render(); },
+  // T13: a CSV for payroll — start date, grade, and August's working, present, leave and absent days — through the browser's own download.
+  'st-payroll': () => { const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [['Name', 'Employee ID', 'Job title', 'Department', 'Start date', 'Grade', 'Working days (Aug 2026)', 'Present', 'Leave days', 'Absent'],
+      ...people().map(p => { const a = monthAtt(p.id); return [p.name, p.emp, p.title, p.dept, p.start ? isoDate(p.start) : p.joined, p.grade, a.total, a.present, a.leave, a.absent]; })];
+    const url = URL.createObjectURL(new Blob([rows.map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv' }));
+    Object.assign(document.createElement('a'), { href: url, download: 'clinica-payroll-2026-08.csv' }).click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Payroll export downloaded: clinica-payroll-2026-08.csv.'); render(); },
+  'st-lvreopen': () => { const k = S.stId, l = LEAVES[k], was = LEAVE_TAG[S.leave[k]][0]; // W08: back to Pending after the Undo window, and logged
+    S.stAudit.unshift({ who: `${person(l.who).name}'s ${l.type.toLowerCase()} (${leaveSpan(l)})`, from: was, to: 'Pending (reopened)', by: stMe().name, at: now() });
+    S.leave[k] = 'pending'; delete S.lvBy[k]; delete S.lvWhy[k]; toast(`${person(l.who).name}'s leave request is open again.`); render(); },
   'st-lvundo': k => { S.leave[k] = 'pending'; delete S.lvBy[k]; delete S.lvWhy[k]; toastClear(); render(); },
   'st-calm': d => { S.stCalM += +d; S.stCalDay = null; sRe(); },
   'st-calday': d => { S.stCalDay = S.stCalDay === +d ? null : +d; sRe(); },
@@ -924,7 +959,8 @@ Object.assign(ACTIONS, {
     } else S.stStaff.push({ id: `s${S.stStaff.length + 1}`, ini: initials(v('name')), name: v('name'), title: f.role, dept: f.dept, access: ACCESS_OF[f.role], emp: `CH-STF-0${270 + n}`, ...base });
     const who = f.role === 'Doctor' ? S.stDocs.at(-1).name : v('name'), pend = start > TODAY;
     Object.assign(S, { stNew: {}, stQ: '', stF: {} });
-    sGo('sstaff'); S.stDone = `${who} has been added${pend ? ` — Pending until ${dayLabel(start)}` : ''}`; toast(`${S.stDone}.`); sRe(); // W03 // back to the directory, with the new row in it
+    sGo('sstaff'); S.stDone = `${who} has been added${pend ? ` — Pending until ${dayLabel(start)}` : ''}`; toast(`${S.stDone}.`); // W03: back to the directory, with the new row in it
+    S.stHi = f.role === 'Doctor' ? S.stDocs.at(-1).id : S.stStaff.at(-1).id; sRe(); // F26: highlighted and scrolled into view, as a new walk-in is
   },
   // Add a department
   'st-newdept': () => { Object.assign(S, { stDept: { docs: [] }, stDeptErr: {}, stDeptAdded: null }); sGo('sadddept'); },

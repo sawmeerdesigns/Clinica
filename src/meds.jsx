@@ -6,7 +6,7 @@ import { btn, homeInd, statusBar } from './app.jsx';
 import { ask, say, src, words } from './ask.jsx';
 import { bar, label, row, rows, tag, when } from './booking.jsx';
 import { frame, notifRow } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, fresh, go, later, mount, render, sepJoin, toast } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, fresh, go, later, mount, render, sepJoin, toast, tr } from './core.jsx';
 import { field, firstNum, lbl, list, lowStock, openHealth, saveMed } from './health.jsx';
 import { checks, chip, clock, img, now } from './staff.jsx';
 
@@ -95,9 +95,9 @@ Object.assign(SCREENS, {
       {low ? <div className="mt-alert" role="status"><p className="mt-at"><img src={`${A}icon-warning-error-18.svg`} width="18" height="18" alt="" />{m.left ? `Only ${m.left} ${m.unit} remain` : `No ${m.unit} left`}</p>
         <p>Please restock soon — missing doses can affect your recovery.</p></div> : null}
       <div className="mt-stats">{[[m.since, 'Tracking since'], [m.sched, 'Schedule'], [`${m.left} ${m.unit}`, 'Stock left', low]].map(([v, l, red]) =>
-        <div key={l}><p className={`mt-v ${red ? 'low' : ''}`}>{v}</p><p className="body-s">{l}</p></div>)}</div>
-      {m.each ? <div className="stack8"><p className="mt-h">Instructions</p><p className="mt-instr"><img src={`${A}icon-schedule-secondary-16.svg`} width="16" height="16" alt="" />Take {m.each}{m.often ? `, ${m.often.toLowerCase()}` : ''}</p></div> : null}
-    </div>, { cta: <><button className="btn primary l" data-act="mt-restock"><img src={`${A}icon-add-white-24.svg`} width="24" height="24" alt="" />Add medicine</button>
+        <div key={l}><p className={`mt-v ${red ? 'low' : ''}`}>{v}</p><p className="body-s">{tr(l)}</p></div>)}</div>{/* F15/R12 */}
+      {m.each ? <div className="stack8"><p className="mt-h">{tr('Instructions')}</p><p className="mt-instr"><img src={`${A}icon-schedule-secondary-16.svg`} width="16" height="16" alt="" />Take {m.each}{m.often ? `, ${m.often.toLowerCase()}` : ''}</p></div> : null}
+    </div>, { cta: <><button className="btn primary l" data-act="mt-restock"><img src={`${A}icon-add-white-24.svg`} width="24" height="24" alt="" />{tr('Add medicine')}</button>
       {btn(out ? 'None left to take' : 'I took a dose', 'mt-dose', { kind: 'secondary', size: 'l', disabled: out })}</> });
   },
 
@@ -106,8 +106,8 @@ Object.assign(SCREENS, {
     return frame(m.title, <div className="inset stack24">
       <div className="mt-stock"><p className={`mt-n ${low ? 'low' : ''}`}>{m.left}</p><p className="lede">{m.unit} left</p>{low ? <p className="mt-low">Running low — buy more soon</p> : null}</div>
       <div className="mt-rows">{[['How much you take', m.each], ['How often', m.often], ['Last taken', 'Just now'], ['Added', m.since === 'Today' ? 'Today' : `${m.since} ago`]]
-        .map(([k, v], i) => <Fragment key={k}>{i > 0 && <div className="mt-sep" aria-hidden="true"></div>}<div className="mt-kv"><span>{k}</span><b>{v || '—'}</b></div></Fragment>)}</div>
-    </div>, { cta: <p className="mt-done"><img src={`${A}icon-check-circle-success-20.svg`} width="20" height="20" alt="" />Dose logged</p> });
+        .map(([k, v], i) => <Fragment key={k}>{i > 0 && <div className="mt-sep" aria-hidden="true"></div>}<div className="mt-kv"><span>{tr(k)}</span><b>{v || '—'}</b></div></Fragment>)}</div>
+    </div>, { cta: <p className="mt-done"><img src={`${A}icon-check-circle-success-20.svg`} width="20" height="20" alt="" />{tr('Dose logged')}</p> });
   },
 
   mtrestock: () => frame(`Restock ${med().name || med().title}`, <div className="inset">

@@ -5,7 +5,7 @@ import { RECORDS, appBar, btn, digits, empty, heading, homeInd, listItem, masked
 import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
 import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
 import { csheet, notice, pinOf, switchTo } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin, toast } from './core.jsx';
+import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin, toast, tr } from './core.jsx';
 import { labOf } from './doctor.jsx';
 import { med, ring } from './meds.jsx';
 import { openSys } from './more.jsx';
@@ -43,6 +43,7 @@ export const PRESCRIPTIONS = {
 extraState(() => ({
   unlocked: false, afterUnlock: null, healthEmpty: false, lockWhy: null, fingerChanged: false, pinChanged: false,
   labs: ['cbc', 'hba1c', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false, // labs newest first: CBC Aug 28, HbA1c Aug 24
+  homeLock: {}, // T22: name → false when that person turned off "Also lock appointments and medicines"
   pin: null, pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, pinTries: 5, pinWait: 30,
   finger: null, bio: null, bioFails: 0, sheet: null, codeFor: null,
   meds: [ // the Medicines tracker's data (meds.jsx)
@@ -57,7 +58,7 @@ extraState(() => ({
 }), ORDER.health);
 
 // ---------- pieces ----------
-export const lbl = t => <p className="sec-label lh20">{t}</p>;
+export const lbl = t => <p className="sec-label lh20">{tr(t)}</p>; // F15/R12
 export const chev = <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" />;
 export const lead = icon => <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>;
 export const list = items => <div className="list">{sepJoin(items)}</div>;
@@ -143,7 +144,7 @@ export function perDayOf(often, each) {
 export function field(key, labelText, ph) {
   const err = S.mErr[key];
   return <div key={key} className="field-wrap">
-    <label className="label" htmlFor={`mf-${key}`}>{labelText}</label>
+    <label className="label" htmlFor={`mf-${key}`}>{tr(labelText)}</label>
     <div className={`field ${err ? 'err' : ''}`}><input id={`mf-${key}`} data-f={key} placeholder={ph} value={S.mform[key] || ''}
       onChange={e => { S.mform[key] = e.target.value; delete S.mErr[key]; paint(); }} /></div>
     {err ? support(err, 'err') : null}
@@ -348,7 +349,7 @@ Object.assign(SCREENS, {
     S.pinMismatch ? errLine(MISMATCH) : null),
   pinconfirm: () => pinScreen('Enter it again', "So we know it's right."),
   pin: () => pinScreen(...(managedBy() ? ['Enter your PIN', `Or ${managedBy().split(' ')[0]}'s own Clinica PIN — she manages this profile.`] : { pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
-      hreport: ['Enter your PIN', 'To open your lab report.'] }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
+      hreport: ['Enter your PIN', 'To open your lab report.'], home: ['Enter your PIN', 'To see your appointments and medicines.'] /* T22 */ }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
     <>{S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
       <button className="btn secondary l hug" data-act="forgot">Forgot your PIN?</button></>),
   pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null),
@@ -395,7 +396,8 @@ export function unlock() {
   S.lockWhy = null;
   if (t === 'pinnew') { S.afterUnlock = 'pflock'; S.stack = ['pf', 'pflock']; S.screen = 'pinnew'; return render(); } // Profile › Change PIN, after the current one
   if (t === 'pfphone') { S.stack = ['pf', 'pfdetails']; S.screen = 'phone'; return render(); } // Profile › change number, after the PIN
-  S.stack = t === 'health' || t === 'ask' ? [] : t === 'pflock' ? ['pf'] : t === 'mtmed' ? ['health', 'mtlist'] : t === 'hreport' ? ['health', 'hlabs'] : ['health'];
+  // T22: Home's locked row comes back to Home, with nothing behind it
+  S.stack = t === 'health' || t === 'ask' || t === 'home' ? [] : t === 'pflock' ? ['pf'] : t === 'mtmed' ? ['health', 'mtlist'] : t === 'hreport' ? ['health', 'hlabs'] : ['health'];
   if (S.lockStack) { S.stack = S.lockStack; S.lockStack = null; } // W16: back where they were when Clinica locked
   S.screen = t;
   if (t === 'ask') return resolveAskLock(); // ask.jsx: the locked answer now shows

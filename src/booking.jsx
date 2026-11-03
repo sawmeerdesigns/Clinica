@@ -1,26 +1,15 @@
 // Clinica — Patient flow: booking a visit, and its unhappy paths.
 // Figma: zw3saW6ot26E6gWH20K3ux, section 118:6257. Plugs into core.jsx: SCREENS, mount, ACTIONS, FLOW, NUM.
-import { btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
+import { btn, empty, endScreen, family, heading, homeInd, listItem, masked, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
 import { T, acts, answer, ask, src } from './ask.jsx';
 import { CAL_NOTE, calBtn, inCal, notice, unread } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, paint, render, sepJoin, shownAt, toast } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
 import { chev, field, lbl, lead, list } from './health.jsx';
 import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
 import { DAY_TIMES, DOCTORS, FEE, GM, TODAY, WALLETS, week } from './data.js';
 
-// F15/R12: Nepali for the booking flow's own words (titles, buttons, labels). Names, dates and times stay as they are; other flows stay English.
-const NE = {
-  'Find doctor': 'डाक्टर खोज्नुहोस्', 'Doctor, specialty or condition': 'डाक्टर, विशेषज्ञता वा समस्या', 'Search doctors': 'डाक्टर खोज्नुहोस्', 'Specialty': 'विशेषज्ञता',
-  'General medicine': 'सामान्य चिकित्सा', Cardiology: 'मुटु रोग', Dermatology: 'छाला रोग', Paediatrics: 'बाल रोग', Gynaecology: 'स्त्री रोग',
-  'Available today': 'आज उपलब्ध', 'Choose a day': 'दिन छान्नुहोस्', 'Choose a time': 'समय छान्नुहोस्', 'Closed on Saturdays': 'शनिबार बन्द',
-  Book: 'बुक गर्नुहोस्', 'Review booking': 'बुकिङ जाँच्नुहोस्', 'Booking for': 'कसका लागि', Fee: 'शुल्क', Confirmation: 'पुष्टि', Doctor: 'डाक्टर',
-  "How you'll pay": 'कसरी तिर्ने', 'Pay at reception': 'रिसेप्सनमा तिर्ने', 'Choose how to pay': 'कसरी तिर्ने छान्नुहोस्', 'Confirm booking': 'बुकिङ पक्का गर्नुहोस्',
-  'Reason for visit (optional)': 'आउनुको कारण (ऐच्छिक)', 'Appointment booked': 'अपोइन्टमेन्ट बुक भयो', Done: 'सकियो', 'Add to calendar': 'क्यालेन्डरमा थप्नुहोस्',
-  'Choose another time': 'अर्को समय छान्नुहोस्', 'Try again': 'फेरि प्रयास गर्नुहोस्', 'Check my appointments': 'मेरा अपोइन्टमेन्ट हेर्नुहोस्',
-  'Consultation fee': 'परामर्श शुल्क', 'You have not been charged.': 'तपाईंबाट कुनै पैसा काटिएको छैन।', 'Pay now': 'अहिले तिर्नुहोस्', 'Follow-up': 'फलो-अप',
-};
-export const tr = s => (S.lang === 'ne' && NE[s]) || s;
+// F15/R12: tr() and the Nepali strings now live in core.jsx, shared by the whole patient app.
 
 // F20: the booking week, labelled from real dates (Saturday closed).
 export const DAYS = week(TODAY).map((x, i) => ({ ...x, d: i === 0 ? 'Today' : x.wd }));
@@ -52,15 +41,15 @@ export const iconBtn = (icon, label, act, extra = {}) =>
 export const bar = ({ back = true, title = '', actions = null, big = false } = {}) => (
   <div className="appbar">
     {back ? iconBtn('icon-back.svg', 'Back', 'back') : null}
-    {title ? <h1 className="title" style={big ? { fontSize: 20 } : undefined}>{title}</h1> : <div className="title"></div>}{/* W13: a titled bar is the screen's heading */}
+    {title ? <h1 className="title" style={big ? { fontSize: 20 } : undefined}>{tr(title)}</h1> : <div className="title"></div>}{/* W13: a titled bar is the screen's heading */}
     <div className="bar-acts">{actions || <div className="slot"></div>}</div>
   </div>);
-export const label = t => <p className="sec-label">{t}</p>;
-export const tag = (text, tone = '') => <span className={`tag ${tone}`}>{text}</span>;
+export const label = t => <p className="sec-label">{tr(t)}</p>; // F15/R12
+export const tag = (text, tone = '') => <span className={`tag ${tone}`}>{tr(text)}</span>;
 export const row = (icon, title, sub) => (
   <div className="list-item static">
     <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>
-    <span className="text"><span className="item-title">{title}</span><span className="body-s">{sub}</span></span>
+    <span className="text"><span className="item-title">{tr(title)}</span><span className="body-s">{tr(sub)}</span></span>
   </div>);
 export const rows = items => <div className="list">{sepJoin(items)}</div>;
 
@@ -105,7 +94,7 @@ export function navBar(active) {
   const tabs = [['Home', 'nav-home'], ['Care', 'nav-care'], ['Health', 'nav-health'], ['Ask', 'nav-ask'], ['Profile', 'nav-profile']];
   return <div className="bottom"><nav className="bnav" aria-label="Main">
     {tabs.map(([l, i]) => <a key={l} href="#" data-act={{ Home: 'home', Care: 'care-tab', Health: 'health-tab', Ask: 'ask-tab', Profile: 'pf-tab' }[l]} aria-current={l === active ? 'page' : undefined}>
-      <span><img src={`${A}${i}${l === active ? '-active' : ''}.svg`} width="24" height="24" alt="" /></span>{l}</a>)}
+      <span><img src={`${A}${i}${l === active ? '-active' : ''}.svg`} width="24" height="24" alt="" /></span>{tr(l)}</a>)}
   </nav>{homeInd()}</div>;
 }
 
@@ -143,6 +132,11 @@ export function homeVisit() {
   if (!v) return <div className="inset stack8">{label('Your next appointment')}{apptCard(a, true)}{WALLETS[a.pay?.how] ? payCard(a) : null}</div>;
   return <div className="inset stack8">{label("Today's visit")}<button className={`card notice ${v[0]}`} data-act={v[3]}><div className="text"><p className="h-s">{v[1]}</p><p className="body-s">{v[2]}</p></div></button></div>;
 }
+
+// T22: on a shared number, a person with a Health PIN has Home's appointments and medicines locked too, unless they turned it off (Health lock).
+export const homeLocked = () => !!S.pin && family().length > 1 && S.homeLock[S.fullName] !== false && !S.unlocked;
+export const homeLockRow = () => <div className="inset stack8">{label('Appointments and medicines')}<div className="list">
+  {listItem('lt-lock.svg', 'Locked on this shared phone', 'Enter your Clinica PIN to see them', 'home-unlock')}</div></div>;
 
 // No connection: a slim line, and the saved content stays readable.
 export const offLine = () => S.offline ? <p className="off-line" role="status">You're offline. Showing what was saved at 9:12 AM.</p> : null;
@@ -185,15 +179,15 @@ Object.assign(SCREENS, {
       </div>
       {offLine()}
       {S.loading ? homeSkeleton() : <div className="body g20">
-        <div className="inset greet"><p>Good morning,</p><p className="name">{S.first}</p></div>
-        {st === 'default' ? <>{homeVisit()}{lowBanner()}</>
+        <div className="inset greet"><p>{tr('Good morning,')}</p><p className="name">{S.first}</p></div>
+        {st === 'default' ? homeLocked() ? homeLockRow() : <>{homeVisit()}{lowBanner()}</>
           : <div className="inset stack8">{label('Today')}{today}</div>}
         {st !== 'walkin' ? <div className="inset"><div className="qa">
-          <button className="tile" data-act="go:finddoctor"><img src={`${A}qa-book.svg`} width="28" height="28" alt="" />Book a visit</button>
-          <button className="tile" data-act="health-go:hlabs"><img src={`${A}qa-lab.svg`} width="28" height="28" alt="" />Lab reports</button>
-          <button className="tile" data-act="health-go:hrx"><img src={`${A}qa-rx.svg`} width="28" height="28" alt="" />Prescriptions</button>
+          <button className="tile" data-act="go:finddoctor"><img src={`${A}qa-book.svg`} width="28" height="28" alt="" />{tr('Book a visit')}</button>
+          <button className="tile" data-act="health-go:hlabs"><img src={`${A}qa-lab.svg`} width="28" height="28" alt="" />{tr('Lab reports')}</button>
+          <button className="tile" data-act="health-go:hrx"><img src={`${A}qa-rx.svg`} width="28" height="28" alt="" />{tr('Prescriptions')}</button>
         </div></div> : null}
-        {st === 'default' && !S.healthEmpty ? <div><div className="inset">{label('Recent')}</div><div className="list">
+        {st === 'default' && !S.healthEmpty && !homeLocked() ? <div><div className="inset">{label('Recent')}</div><div className="list">
             {sepJoin([listItem('lt-lab.svg', 'Lab report ready', 'Open Health to see it', 'lab-ready') /* T03 */,
                listItem('lt-rx.svg', 'Prescription updated', 'From Dr. Sharma, Aug 25', 'health-go:hrxd'),
                listItem('lt-followup.svg', 'Follow-up due', 'Dermatology, Sep 14', 'stub:Follow-up')])}

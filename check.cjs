@@ -10,6 +10,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.waitForTimeout(2200);
   assert(await p.isVisible('text=Choose your language'), 'splash auto-advances to language');
   await p.click('.tile[data-v="ne"]'); assert(await p.getAttribute('.tile[data-v="ne"]','aria-checked')==='true', 'Nepali tile selects');
+  // Phase 6 (F15/R12): Nepali now covers sign-in too, so this flow switches back to English before going on; Nepali is checked further down.
+  assert(await p.isVisible('.cta >> text=जारी राख्नुहोस्'), 'F15/R12: Continue in Nepali once chosen'); await p.click('.tile[data-v="en"]');
   await p.click('text=Continue'); await p.click('text=Next'); await p.click('text=Next'); await p.click('text=Get started');
   await p.fill('#tel', '98412 345'); await p.click('text=Send code');
   assert(await p.isVisible('text=Nepali mobile numbers are 10 digits'), 'invalid number error (11)');
@@ -35,7 +37,9 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await p.isVisible('text=Choose one.') && await p.isVisible('text=Enter your date of birth.'), 'all errors at once (18)');
   await p.click('label:has-text("Female")'); assert(!(await p.isVisible('text=Choose one.')), 'choosing sex clears its error');
   await p.fill('#name', 'Anisha Sharma');
-  await p.click('#dob'); await p.keyboard.type('01122050'); assert(await p.inputValue('#dob')==='01 / 12 / 2050', 'dob mask');
+  // Phase 6 (F26): tapping the empty field opens the picker; typing still works from the keyboard, so the mask is checked by focusing.
+  await p.click('#dob'); assert(await p.evaluate(() => !!S.picker), 'F26: tapping the empty date-of-birth field opens the picker'); await p.evaluate(() => { S.picker = null; render(); });
+  await p.focus('#dob'); await p.keyboard.type('01122050'); assert(await p.inputValue('#dob')==='01 / 12 / 2050', 'dob mask');
   await p.click('#name'); await p.waitForTimeout(100);
   assert(await p.isVisible("text=2050 is in the future in AD"), 'future date error (19)');
   await p.click('[aria-label="Choose date of birth"]'); await p.waitForTimeout(300);
@@ -170,7 +174,10 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.fill('#ask-in', 'When is my next visit?'); await p.press('#ask-in', 'Enter'); await p.waitForTimeout(800);
   assert(await p.isVisible('text=Saved at 9:12 AM'), 'offline answer (A16)');
   await p.uncheck('#offline');
-  await p.click('.back-l'); assert(await p.isVisible('text=Your next appointment'), '← Home leaves for Home');
+  // Phase 6 (T22): she has a Health PIN on a shared number, so Home's appointments and medicines are locked too, behind the same PIN.
+  await p.click('.back-l'); assert(await p.isVisible('text=Locked on this shared phone') && !(await p.isVisible('text=Your next appointment')), '← Home leaves for Home (T22: appointments locked)');
+  await p.click('text=Locked on this shared phone'); assert(await p.isVisible('text=To see your appointments and medicines.'), 'T22: the same PIN screen, saying why');
+  await pin('5678'); assert(await p.isVisible('text=Your next appointment'), 'T22: the PIN shows Home in full');
   // ---- Care: reschedule and calendar ----
   const box = await p.locator('#phone').boundingBox(), scrim = () => p.mouse.click(box.x + 180, box.y + 120);
   await p.evaluate(() => jumpTo('C02')); await p.click('#phone >> text=So you get a reminder too');
@@ -224,6 +231,9 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await p.isVisible('#phone >> text=Patient at City Hospital') && await p.isVisible('#phone >> text=Close account'), 'Profile tab (P01)');
   await p.click('#phone >> text=Your details'); assert(await p.isVisible('#phone >> text=14 Mar 1994, or 1 Chaitra 2050 BS'), 'details in AD and BS (P02)'); await p.click('[aria-label=Back]');
   await p.click('#phone >> text=Language'); await p.click('.tile[data-v="ne"]'); await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=नेपाली'), 'language follows (P03)');
+  // Phase 6 (F15/R12): the rest of the patient app's chrome follows the language, then this flow goes back to English.
+  assert(await p.isVisible('.bnav >> text=प्रोफाइल') && await p.isVisible('.bnav >> text=हेरचाह') && await p.isVisible('#phone >> text=तपाईंको विवरण') && await p.isVisible('#phone >> text=स्वास्थ्य लक'), 'F15/R12: Profile and the tab bar in Nepali');
+  await p.click('#phone >> text=भाषा'); await p.click('.tile[data-v="en"]'); await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=Your details'), 'back to English');
   await p.click('#phone >> text=Notifications'); await p.click('[role=switch]:has-text("Follow-up reminders")');
   assert(await p.getAttribute('[role=switch]:has-text("Follow-up reminders")', 'aria-checked') === 'true', 'switch toggles at once (P04)');
   assert(await p.isDisabled('[role=switch]:has-text("Delays and cancellations")'), 'delays always on');
@@ -236,6 +246,11 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await pin('2468'); assert(await p.isVisible('#phone >> text=Choose a new PIN'), 'then a new one'); await pin('1357'); await pin('1357');
   assert(await p.isVisible('#phone >> text=Locks automatically'), 'changed');
   assert(await p.isVisible('#phone >> text=PIN changed'), 'a Success note confirms it (PM04)');
+  // Phase 6 (T22): each person can choose whether Home's appointments and medicines lock too.
+  const homeLock = '[role=switch]:has-text("Also lock appointments and medicines")';
+  assert(await p.getAttribute(homeLock, 'aria-checked') === 'true', 'T22: Home lock is on by default on a shared number');
+  await p.click(homeLock); assert(await p.getAttribute(homeLock, 'aria-checked') === 'false' && await p.isVisible('#phone >> text=Off. Anyone with this phone sees them on Home'), 'T22: each person can turn it off');
+  await p.click(homeLock); assert(await p.getAttribute(homeLock, 'aria-checked') === 'true', 'T22: and back on');
   await p.click('[role=switch]:has-text("Use fingerprint")'); assert(await p.isVisible('#phone >> text=Use your fingerprint next time?'), 'turning it on goes through the opt-in (PM10)');
   await p.click('[data-act="finger:on"]'); await p.click('[aria-label=Back]'); assert(await p.isVisible('#phone >> text=PIN and fingerprint'), 'fingerprint on');
   await p.click('#phone >> text=Switch person'); await p.click('#phone >> text=Ramesh Sharma'); assert(await p.isVisible("#phone >> text=Enter Ramesh's PIN"), "Ramesh's PIN (P11)");
@@ -635,13 +650,13 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert((await p.textContent('.toast-region')).includes("Kamal Thapa (CH-2508) added to Dr. Anita Joshi's queue") && await P('.k-row.sel:has-text("Kamal Thapa")'), 'F12/R14/T20/F26: Enter submits; toast with ID; row highlighted');
   await J('R04'); await p.fill('#wk-doc', 'fever'); assert(await has('“fever” usually goes to General medicine'), 'R15: symptom → department');
   await J('R07'); assert(await has('Matched to CH-1187') && await has('BP follow-up – headaches this week') && await has('Follow-up, hypertension review'), 'T09/V10: matched, both reasons kept');
-  await J('HR04'); assert(await has("My sister's wedding") && await has('Cardiology will have no nurse') && await has('3 calendar days · 1 working day'), 'F16/T17: reason, coverage from the staff list, calendar vs working days');
+  await J('HR04'); assert(await has("My sister's wedding") && await has('Cardiology will have no nurse') && await has('3 calendar days · 2 working days'), 'F16/T17 (Phase 6: Sun–Fri week, was 1 working day): reason, coverage from the staff list, calendar vs working days');
   await p.click('#phone .btn:has-text("Deny")'); await p.fill('#sl-why', 'No cover'); await p.click('.csheet >> text=Deny request');
   assert(await has('Denied by Anjali Basnet') && await has('Sent to Prasant: “No cover”'), 'W08: deny confirmed, reason sent, approver shown');
   await p.click('.toast-act'); assert(!(await has('Denied by')), 'W08/V11: Undo');
   await J('HR03'); assert(await has('Nurse · Cardiology · Annual leave'), 'W19: role · department on leave rows');
   await J('HR10'); assert(await P('.k-row .tag'), 'V13: status chips on the dashboard leave rows');
-  await J('HR08'); assert((await p.$$('#phone .st-chips [data-act^="st-menu:"]')).length === 1, 'V13: one Sort control'); await p.fill('#st-q', 'maya'); assert(await has('August 2026 · 20 working days'), 'V13: period kept while searching');
+  await J('HR08'); assert((await p.$$('#phone .st-chips [data-act^="st-menu:"]')).length === 1, 'V13: one Sort control'); await p.fill('#st-q', 'maya'); assert(await has('August 2026 · 24 working days so far (Sun–Fri)'), 'V13: period kept while searching (Phase 6: Sun–Fri, was 20)');
   await J('HR09'); assert(!(await has('Non-requested')) && await has('Annual leave'), 'R17: one label; Aug 17–21 has a request');
   await p.click('[data-act="st-calday:18"]'); assert(await P('.att-pop a:has-text("Annual leave")'), 'F17: a leave day links to its request');
   await J('HR11'); await p.fill('#as-name', 'Kopila Rai'); await p.fill('#as-phone', '+977 9811111111'); await p.selectOption('#as-role', 'Nurse'); await p.selectOption('#as-dept', 'Cardiology'); await p.fill('#as-start', '2026-09-14');
@@ -675,6 +690,34 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await p.evaluate(() => document.querySelector('[aria-modal=true]').contains(document.activeElement) && !!document.querySelector('#phone .st-main').closest('[inert]')), 'V05: the page behind a sheet is inert; focus is in the sheet');
   await p.click('.csheet >> text=Go back'); assert(await p.evaluate(() => !document.querySelector('#phone [inert]')) && /Approve/.test(await foc()), 'V05: closing the sheet clears inert; focus returns to Approve');
   await J('R02'); await p.click('[data-act="st-checkin"]'); await p.click('[data-act="st-checkin-ok"]'); assert((await p.textContent('.toast-region')).includes('checked in'), 'W03: check-in announced by the shared toast');
+  // ---- Phase 6 ----
+  await J('D03b'); assert(await P('text=Lab results') && await P('text=HbA1c blood test') && await P('text=Thyroid panel'), 'T25: lab results in the doctor\'s history');
+  await p.click('#phone [data-act="d-lab:hba1c"]'); assert(await P('text=What the patient was told') && await P('text=Reviewed by Dr. Priya Sharma on Aug 26'), 'T25: a result opens read-only');
+  await J('D03b'); await p.click('#phone [data-act="d-lab:cbc"]'); assert(await P('text=Review report') && await P('text=Haemoglobin'), 'T25: a result waiting on her opens for review');
+  await J('K11f'); await p.click('#phone [data-act="d-lab:thyroid"]'); assert(await P('text=Reviewed by Dr. Anita Joshi on Jul 5') && await P('text=Back to history'), 'T25: desktop opens it in the detail pane');
+  await J('C07'); await p.evaluate(() => { S.appt.pay = { how: 'esewa', paid: true, ref: 'ESEWA-1' }; render(); }); await p.click('#phone .cta >> text=Cancel visit');
+  assert((await p.textContent('.csheet')).includes('Cancel your visit today at 4:30 PM?') && (await p.textContent('.csheet')).includes('goes back to your eSewa wallet'), 'R13: cancel today, with the wallet refund said');
+  await p.click('.csheet .btn.destructive'); assert(await P('text=Your Aug 28 visit is cancelled') && (await p.textContent('.toast-region')).includes('going back to your eSewa wallet'), 'R13: cancelled, toast');
+  assert(await p.evaluate(() => !drToday().includes('as')), 'R13: she leaves the doctor\'s queue');
+  await J('C09'); assert(!(await P('.cta >> text=Cancel visit')), 'R13: no in-app cancel once checked in');
+  await J('B01'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('text=शुभ प्रभात,') && await P('.bnav >> text=गृहपृष्ठ') && await P('text=भेट बुक गर्नुहोस्'), 'F15/R12: Home in Nepali');
+  await J('C01'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('h1:text("हेरचाह")'), 'F15/R12: Care in Nepali');
+  await J('H01'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('text=तपाईंको स्वास्थ्य रेकर्ड लक छ'), 'F15/R12: Health lock in Nepali');
+  await J('MT01'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('h1:text("औषधिहरू")'), 'F15/R12: Medicines in Nepali');
+  await J('15'); await p.evaluate(() => { S.lang = 'ne'; S.picker = null; render(); }); assert(await P('text=आफ्नो प्रोफाइल बनाउनुहोस्') && await P('text=जन्म मिति'), 'F15/R12: Create profile in Nepali');
+  await J('T02c'); await p.evaluate(() => { S.stId = 'sk'; render(); }); assert(await has('Not in today · works Sun–Thu · next in Sun, Aug 30'), 'T08: Not in today, with her days and the next one');
+  await J('T03e'); assert(await has('OPDs running') && await P('#st-cover'), 'Cover: shown and changeable on a closed department (OPDs running restored)');
+  await p.selectOption('#st-cover', 'Dr. Anita Joshi'); assert(await has('Cover: Dr. Anita Joshi'), 'Cover: changing it updates the notice');
+  await J('HR11'); await p.fill('#as-name', 'Gita Shah'); await p.fill('#as-phone', '+977 9822222222'); await p.selectOption('#as-role', 'Nurse'); await p.selectOption('#as-dept', 'Cardiology'); await p.fill('#as-start', '2026-08-28');
+  await p.click('#phone .btn:has-text("Add staff")'); assert(await P('.st-tr.hi:has-text("Gita Shah")'), 'F26: the new staff row is highlighted');
+  const payDl = p.waitForEvent('download'); await J('HR01'); await p.click('#phone >> text=Export for payroll'); const csv = require('fs').readFileSync(await (await payDl).path(), 'utf8');
+  assert(csv.startsWith('"Name","Employee ID","Job title","Department","Start date","Grade","Working days (Aug 2026)"') && csv.includes('"Maya Tuladhar"'), 'T13: payroll CSV downloads');
+  await J('HR04'); await p.click('#phone .btn:has-text("Approve")'); await p.click('.csheet .btn:has-text("Approve")'); assert(!(await P('text=Reopen')), 'W08: Undo first, no Reopen yet');
+  await p.evaluate(() => { S.toast = null; render(); }); await p.click('#phone >> text=Reopen'); assert(await P('.btn:has-text("Approve")') && await p.evaluate(() => S.stAudit[0].to === 'Pending (reopened)'), 'W08: Reopen returns it to Pending and logs it');
+  await J('T01'); await p.evaluate(() => { S.stMe = 'tb'; S.screen = 'sdash'; render(); });
+  assert(!(await P('text=View all doctors')) && (await p.$$('#phone .k-nav a, #phone .k-nav span')).length === 2, 'T23: trustee sees Dashboard and Departments only');
+  await p.click('#phone .k-nav >> text=Departments'); assert(!(await P('text=Add department')), 'T23: no Add department');
+  await p.click('#phone [data-act="st-dept:card"]'); assert(await has('Cover:') && !(await P('#st-cover')), 'T23: cover shown, not changeable');
   console.log('page errors:', errs);
   await b.close();
 })().catch(e => { console.error(e.message); process.exit(1); });

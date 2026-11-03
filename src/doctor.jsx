@@ -146,8 +146,22 @@ export const drVisitList = id => {
   return <>{drChip('doc', 'Doctor', opts, S.drHistDoc, 'd-hdoc')}
     <div className="mt-list">{sepJoin(shown.map(v => // T25: every visit opens; the tag is the doctor's wording, not the patient's "Your visit"
       <button className="list-item" data-act={`d-hv:${v.i}`}>{lead('lt-history.svg')}<span className="text"><span className="item-title">{v.date}</span><span className="body-s">{`${v.doc} · ${v.reason}`}</span>
-        {tag(v.own ? 'Seen by you' : 'Other doctor', `${v.own ? 'success' : 'info'} s12`)}</span>{chev}</button>))}</div></>;
+        {tag(v.own ? 'Seen by you' : 'Other doctor', `${v.own ? 'success' : 'info'} s12`)}</span>{chev}</button>))}</div>
+    {drLabs(id).length ? <><p className="dr-label">Lab results</p><div className="mt-list">{sepJoin(drLabs(id).map(l => // T25: her lab results, each opening the report
+      <button className="list-item" data-act={`d-lab:${l.k}`}>{lead('lt-lab.svg')}<span className="text"><span className="item-title">{l.title}</span><span className="body-s">{l.sub}</span>
+        {tag(l.pending ? 'Needs your review' : 'Reviewed', `${l.pending ? 'warn' : 'neutral'} s12`)}</span>{chev}</button>))}</div></> : null}</>;
 };
+// T25: a patient's lab results for the doctor: Anisha's from Health (labOf follows a release), anyone else's from the reports waiting here.
+// ponytail: no test repeats in the demo data, so there's no trend line yet; add one when a patient has the same test twice.
+export const drLabs = id => (id === 'as' ? Object.keys(LABS).map(k => ({ k, ...labOf(k) }))
+  : Object.entries(DR_REPORTS).filter(([, r]) => r.pid === id).map(([k, r]) => ({ k, title: r.test, sub: `${r.date}, City Hospital lab`, words: S.released[k]?.words,
+    by: S.released[k] ? 'Reviewed by Dr. Priya Sharma on Aug 28' : '' })))
+  .map(l => ({ ...l, pending: S.drPending.includes(l.k) }));
+// T25: one result, read-only: its values when the lab sent them here, who reviewed it, and what the patient was told.
+export const drLabView = (id, k) => { const l = drLabs(id).find(x => x.k === k), r = DR_REPORTS[k];
+  return <><p className="dr-body">{l.sub}{l.by ? ` · ${l.by}` : ''}</p>
+    {r ? <div className="stack6"><p className="dr-label">Result</p>{drValues(r.rows)}</div> : <p className="dr-body tertiary">The values are in the lab's report file.</p>}
+    {l.words ? <div className="stack8">{lbl('What the patient was told')}<p className="note-body">{l.words}</p></div> : null}</>; };
 export const drShort = dmy => { const p = parseDob(dmy); return p ? `${AD_SHORT[p.m]} ${p.d}` : ''; }; // '18 / 09 / 2026' → 'Sep 18'
 export const drFollowLine = (f, date) => f === '2w' ? ['Follow-up in 2 weeks', `Around ${dayLabel(FU_DAY)}.`] : date ? [`Follow-up on ${drShort(date)}`, ''] : ['Follow-up needed', ''];
 export const drOwnVisit = id => {
@@ -267,6 +281,10 @@ Object.assign(SCREENS, {
       <div className="inset stack16"><p className="dr-body tertiary">{DR_PATIENTS[S.dp].name} · {drPid(S.dp)}</p>
         {docCard('PS', 'Dr. Priya Sharma', `Aug 28, ${drTime(S.dp)}`, 'General medicine, OPD 2')}{drOwnVisit(S.dp)}</div>
     </div>, { bar: drBar('Visit on Aug 28', true) }),
+
+  dlab: () => drScreen(<div className="body" style={{ gap: 20 }}>{/* T25 */}
+      <div className="inset stack16"><p className="dr-body tertiary">{DR_PATIENTS[S.dp].name} · {drPid(S.dp)}</p>{drLabView(S.dp, S.drLab)}</div>
+    </div>, { bar: drBar(LABS[S.drLab]?.title || DR_REPORTS[S.drLab].test, true) }),
 
   // Another doctor's visit: date, department and reason only. The rest stays with the doctor who saw her.
   dvisito: () => { const v = drVisits(S.dp)[S.drHv];
@@ -430,6 +448,9 @@ Object.assign(ACTIONS, {
   'd-hv': i => { S.drHv = +i; const v = drVisits(S.dp)[S.drHv];
     if (S.app === 'desk') { S.kView = 'hvisit'; return render(); }
     go(v.today ? 'dvisitd' : 'dvisito'); }, // T25: today's visit in full; any other as its date, department and reason
+  'd-lab': k => { // T25: a result waiting on her opens for review; any other opens read-only
+    if (S.drPending.includes(k)) { if (S.app === 'desk') { Object.assign(S, { screen: 'kreports', stack: [] }); return ACTIONS['k-rep'](k); } return ACTIONS['d-report'](k); }
+    S.drLab = k; if (S.app === 'desk') { S.kView = 'lab'; return render(); } go('dlab'); },
   // F24/R20/T25: the patient's history, from her report. The desktop shows it in the Queue's detail pane; Reports keeps its place.
   'd-hist': id => { S.dp = id; S.drHistDoc = 'all';
     if (S.app === 'desk') { Object.assign(S, { screen: 'kqueue', stack: [], kSel: id, kView: 'history' }); return render(); }
@@ -537,7 +558,7 @@ Object.assign(NUM, {
   dqueue: s => s.drNoPatients || !drToday().length ? 'D02b' : s.drOffline ? 'D02e' : s.drMenu === 'status' ? 'D02c' : s.drFilt !== 'all' ? 'D02d' : 'D02',
   dpatient: s => s.dp === 'as' && drStatus('as') !== 'done' ? 'D03' : s.dp === 'nt' && drStatus('nt') !== 'done' ? 'D03c'
     : drStatus(s.dp) === 'done' ? 'D03d' : drStatus(s.dp) === 'notarrived' ? 'D03e' : 'D03',
-  dhistory: s => s.drMenu === 'doc' ? 'D03h' : 'D03b', dvisitd: () => 'D03f', dvisito: () => 'D03g',
+  dhistory: s => s.drMenu === 'doc' ? 'D03h' : 'D03b', dvisitd: () => 'D03f', dvisito: () => 'D03g', dlab: () => 'D03b', // T25: no Figma frame of its own yet
   dvisit: s => s.sheet === 'drdone' ? 'D04f' : s.dp === 'nt' ? 'D04b' : s.drDraft?.follow === 'other' ? 'D04c' : 'D04', daddmed: s => DR_MED_REQ.some(k => s.drMed?.[`${k}Err`]) ? 'D04e' : 'D04d',
   dreports: s => s.drPending.length ? 'D05' : 'D05b', dreport: s => s.sheet === 'drrelease' ? (s.drRel.choice === 'follow' ? 'D06e' : 'D06d') : s.drRep === 'lipid' ? 'D06c' : s.drRel.choice === 'follow' ? 'D06b' : 'D06',
   dprofile: s => s.sheet === 'drsignout' ? 'D07c' : 'D07', dsettings: () => 'D07b',

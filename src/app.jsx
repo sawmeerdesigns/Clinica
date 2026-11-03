@@ -4,7 +4,7 @@ import { cloneElement, useEffect, useLayoutEffect, useReducer, useRef, useState 
 import { ask, say, src } from './ask.jsx';
 import { backTo, bar, label, row, rows, tag, when } from './booking.jsx';
 import { emergency, setting } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast, tr } from './core.jsx';
 import { DESK_START } from './desk.jsx';
 import { DOCTOR_START, drOffline, showApp } from './doctor.jsx';
 import { centred, field, lead, list, unlock } from './health.jsx';
@@ -65,11 +65,11 @@ export const appBar = ({ back = true, title = '' } = {}) => (
     {title ? <h1 className="title">{title}</h1> : <div className="title"></div>}<div className="slot"></div>{/* W13: a titled bar is the screen's heading */}
   </div>);
 export const heading = (h, p, cls = 'h-xl', H = 'h1') => ( // W13: the screen's heading; pass 'h2' under a titled bar
-  <div className="inset"><div className="heading"><H className={cls}>{h}</H>{p ? <p className="lede">{p}</p> : null}</div></div>);
+  <div className="inset"><div className="heading"><H className={cls}>{tr(h)}</H>{p ? <p className="lede">{tr(p)}</p> : null}</div></div>); // F15/R12: tr() in the shared helpers
 export const btn = (label, act, { kind = 'primary', disabled = false, size = '' } = {}) =>
-  <button className={`btn ${kind} ${size}`} data-act={act} disabled={disabled}>{label}</button>;
+  <button className={`btn ${kind} ${size}`} data-act={act} disabled={disabled}>{tr(label)}</button>;
 export const support = (msg, tone = '', icon = '') => (
-  <div className={`support ${tone}`}>{icon ? <img src={`${A}${icon}`} width="14" height="14" alt="" /> : null}<p>{msg}</p></div>);
+  <div className={`support ${tone}`}>{icon ? <img src={`${A}${icon}`} width="14" height="14" alt="" /> : null}<p>{tr(msg)}</p></div>);
 
 // ---------- screens ----------
 Object.assign(SCREENS, {
@@ -124,7 +124,7 @@ Object.assign(SCREENS, {
         {S.codeFor === 'newphone' ? heading('Your new mobile number', "We'll text a code to check it. Your records stay the same.")
           : heading('Your mobile number', "We'll text a 6-digit code. Use the number your clinic has on file, so we can find your records.")}
         <div className="inset"><div className="field-wrap">
-          <label className="label" htmlFor="tel">Mobile number</label>
+          <label className="label" htmlFor="tel">{tr('Mobile number')}</label>
           <div className={`field ${S.phoneErr ? 'err' : ''}`} id="tel-field">
             <span className="dial"><span className="flag-np" aria-hidden="true"></span>+977<img src={`${A}icon-chevron-down.svg`} width="20" height="20" alt="" /></span>
             <span className="divider"></span>
@@ -150,7 +150,7 @@ Object.assign(SCREENS, {
     const msg = {
       typing: <div className="body-s" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <p style={{ fontWeight: 600, color: 'var(--text-tertiary)' }} id="resend">Resend code in {mmss(S.resend)}</p>
-                <p>Wrong number? <a href="#" className="link" data-act="back" style={{ color: 'inherit' }}>Go back to change it.</a></p></div>,
+                <p>{tr('Wrong number?')} <a href="#" className="link" data-act="back" style={{ color: 'inherit' }}>{tr('Go back to change it.')}</a></p></div>,
       wrong: support(`That code didn't match. ${S.tries} ${S.tries === 1 ? 'try' : 'tries'} left.`, 'err', 'icon-error.svg'),
       noarrive: support("Didn't get it? Check the number above is right, then send a new one.", '', 'icon-info.svg'),
       expired: support('That code has expired. Send a new one and enter it as soon as it arrives.', 'err', 'icon-error.svg'),
@@ -215,34 +215,35 @@ Object.assign(SCREENS, {
         {heading('Create your profile', 'The clinic uses this to find you at reception.')}
         <div className="inset"><form id="pf" noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }} onSubmit={e => { e.preventDefault(); createProfile(); }}>
           <div className="field-wrap">
-            <label className="label" htmlFor="name">Full name</label>
-            <div className={`field ${S.nameErr ? 'err' : ''}`}><input id="name" autoComplete="name" placeholder="Your full name" value={S.name}
+            <label className="label" htmlFor="name">{tr('Full name')}</label>{/* F15/R12 */}
+            <div className={`field ${S.nameErr ? 'err' : ''}`}><input id="name" autoComplete="name" placeholder={tr('Your full name')} value={S.name}
               onChange={e => { S.name = e.target.value; if (S.nameErr && S.name.trim()) S.nameErr = false; paint(); }} /></div>
             <div id="name-msg">{S.nameErr ? support('Enter your full name, as the clinic has it.', 'err') : null}</div>
           </div>
           <div className="field-wrap">
-            <label className="label" htmlFor="dob">Date of birth</label>
+            <label className="label" htmlFor="dob">{tr('Date of birth')}</label>
             <div className={`field ${S.dobErr ? 'err' : ''}`}>
               <button type="button" className="cal-btn" data-act="open-picker" aria-label="Choose date of birth"><img src={`${A}icon-calendar.svg`} width="20" height="20" alt="" /></button>
               <input id="dob" inputMode="numeric" autoComplete="bday" placeholder="DD / MM / YYYY" value={S.dob}
+                onClick={() => { if (!S.dob) openPicker(); }} // F26: tapping the empty field opens the picker; a typed date stays editable
                 onChange={e => { S.dob = maskDob(e.target.value); S.dobErr = ''; paint(); }}
                 onBlur={() => { if (S.dob.length === 14) { S.dobErr = dobError(); S.dobErr ? render() : paint(); } }} />
             </div>
             <div id="dob-msg">{dobMsg}</div>
           </div>
           <fieldset className={`radio-group ${S.sexErr ? 'err' : ''}`} id="sex">
-            <legend>Sex</legend>
+            <legend>{tr('Sex')}</legend>
             <div className="radio-options roomy">{/* R25: one per row, full-width targets */}
-              {['Female', 'Male', 'Other'].map(v => <label key={v} className="radio"><input type="radio" name="sex" value={v} aria-label={v} checked={S.sex === v}
-                onChange={() => { S.sex = v; S.sexErr = false; paint(); }} /><span aria-hidden="true">{v}</span></label>)}{/* W18: read once, as the radio */}
+              {['Female', 'Male', 'Other'].map(v => <label key={v} className="radio"><input type="radio" name="sex" value={v} aria-label={tr(v)} checked={S.sex === v}
+                onChange={() => { S.sex = v; S.sexErr = false; paint(); }} /><span aria-hidden="true">{tr(v)}</span></label>)}{/* W18: read once, as the radio */}
             </div>
             <div id="sex-msg">{S.sexErr ? support('Choose one.', 'err') : null}</div>
           </fieldset>
           <fieldset className="radio-group" id="pronouns">{/* V16: optional, with Prefer not to say */}
-            <legend>Pronouns (optional)</legend>
+            <legend>{tr('Pronouns (optional)')}</legend>
             <div className="radio-options roomy">
               {['She/her', 'He/him', 'They/them', 'Prefer not to say'].map(v => <label key={v} className="radio"><input type="radio" name="pronouns" value={v} checked={S.pronouns === v}
-                onChange={() => { S.pronouns = v; paint(); }} />{v}</label>)}
+                onChange={() => { S.pronouns = v; paint(); }} />{tr(v)}</label>)}
             </div>
           </fieldset>
         </form></div>
@@ -336,7 +337,7 @@ export function onboarding(step, title, body, card) {
 export function listItem(icon, title, sub, act) {
   return <button className="list-item" data-act={act}>
     <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>
-    <span className="text"><span className="item-title">{title}</span><span className="body-s">{sub}</span></span>
+    <span className="text"><span className="item-title">{tr(title)}</span><span className="body-s">{tr(sub)}</span></span>
     <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" />
   </button>;
 }
@@ -344,7 +345,7 @@ export function listItem(icon, title, sub, act) {
 export function empty(icon, title, body, actions, action = false, H = 'p') { // H: 'h1' when it is the screen's only title (W13)
   return <div className="empty">
     <div className="tile-ic" style={action ? { background: 'var(--surface-icon-neutral-bold)' } : undefined}><img src={`${A}${icon}`} width={action ? 20 : 28} height={action ? 20 : 28} alt="" /></div>
-    <H className="h-s">{title}</H><p className="body-s">{body}</p>
+    <H className="h-s">{tr(title)}</H><p className="body-s">{tr(body)}</p>
     <div className="actions">{actions}</div>
   </div>;
 }
@@ -763,7 +764,7 @@ export function Shell() {
   const [, force] = useReducer(x => x + 1, 0);
   useEffect(() => subscribe(force), []);
   const openAsRef = useRef();
-  const tab = S.app !== 'staff' ? S.app : ({ admin: 'admin', desk: 'reception', hr: 'hr' })[stMe()?.access] || staffTab;
+  const tab = S.app !== 'staff' ? S.app : ({ admin: 'admin', trustee: 'admin', desk: 'reception', hr: 'hr' })[stMe()?.access] || staffTab; // T23: a trustee signs in under Top Level Management
   const kind = casesOpen ? 'edge' : (S.app === 'patient' ? S.careEmpty : S.app === 'staff' ? S.stHoliday : S.drNoPatients) ? 'empty' : 'full';
   const roleTab = (t, l) => <button className="tab" data-tab={t} aria-current={tab === t} onClick={() => pickTab(t)}>{l}</button>;
   const caseTab = (c, l) => <button className="tab" data-case={c} aria-current={kind === c} onClick={() => pickCase(c)}>{l}</button>;
@@ -829,7 +830,7 @@ export function Shell() {
           <ul>
             <li>Every tab shares the same day: what happens here shows on the patient's phone too.</li>
             {S.app === 'staff'
-              ? <li>Admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>. Password <code>clinica</code>.</li>
+              ? <li>Admin <code>CH-ADM-04</code>, front desk <code>CH-FD-12</code>, HR <code>CH-HR-03</code>, trustee (read-only) <code>CH-TRS-01</code>. Password <code>clinica</code>.</li>
               : <li>Doctor staff ID <code>CH-0231</code>. Password <code>clinica</code>.</li>}
           </ul>
         </details>

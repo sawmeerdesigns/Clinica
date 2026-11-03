@@ -5,9 +5,9 @@ import { btn, empty, listItem, start, support } from './app.jsx';
 import { T, ask, src } from './ask.jsx';
 import { label, rel, row, rows, sk, tag, when } from './booking.jsx';
 import { A, ACTIONS, FLOW, NUM, ORDER, S, SCREENS, after, back, every, extraState, go, later, mount, paint, render, sepJoin } from './core.jsx';
-import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drBadge, drChip, drComment, drRelNew, drDate, draftCue, drField, drFollowRadio, drMed, drMedList, drMeds, drNoteField, drOffline, drOutList, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
+import { DR_DRAFTS, DR_FOLLOW, DR_HISTORY, DR_REPORTS, DR_TAG, EXTRA_STATE_DR, drBadge, drChip, drComment, drRelNew, drDate, draftCue, drField, drFollowRadio, drLabView, drMed, drMedList, drMeds, drNoteField, drOffline, drOutList, drOtherVisit, drOwnVisit, drPid, drPwClear, drRadio, drSettings, drShown, drStatus, drStatusOpts, drTime, drToday, drValues, drVisitList, drVisits } from './doctor.jsx';
 import { DR_PATIENTS, TODAY, mdOf } from './data.js'; // one arrivals list and one today (F07/F20)
-import { centred, docCard, field, list } from './health.jsx';
+import { LABS, centred, docCard, field, list } from './health.jsx';
 import { img, now, patients, person } from './staff.jsx';
 
 later(() => { DR_HISTORY.nt = [['May 14, 2026', 'Dr. Priya Sharma · General checkup'], ['Feb 2, 2026', 'Dr. Priya Sharma · Follow-up']]; }, ORDER.desk);
@@ -53,6 +53,8 @@ export function kDetail() {
       <div className="stack16" style={{ maxWidth: 560 }}><p className="k-h2">Visit on {v.date.split(',')[0]}</p>
         {v.today ? <>{docCard('PS', 'Dr. Priya Sharma', `Aug 28, ${drTime(id)}`, 'General medicine, OPD 2')}{drOwnVisit(id)}</> : drOtherVisit(id, v)}</div></section>;
   }
+  if (S.kView === 'lab') return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start', gap: 16 }}>{kClose}{back('history', 'Back to history')}{kId(p, p.info)}</div>
+      <div className="stack16" style={{ maxWidth: 560 }}><p className="k-h2">{LABS[S.drLab]?.title || DR_REPORTS[S.drLab].test}</p>{drLabView(id, S.drLab)}</div></section>; // T25
   if (S.kView === 'complete') {
     const d = S.drDraft;
     return <section className="k-detail"><div className="k-hd"><div className="k-hl">{kClose}{kId(p, `${drPid(id)} · Today's visit · ${drTime(id)}`)}</div>{btn('Complete visit', 'k-complete', { size: 'l', kind: 'primary hug' })}</div>
