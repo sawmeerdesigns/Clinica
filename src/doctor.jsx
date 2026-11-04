@@ -271,8 +271,8 @@ export const drOutList = (cls = '') => S.drOut.length ? <><div className="inset"
   <div className="list">{sepJoin(S.drOut.map(o => { const r = DR_REPORTS[o.k], p = DR_PATIENTS[r.pid];
     return <div className={`list-item static ${cls}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
       <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span>
-        <span className="dq-m"><span className="past">{o.back ? 'Taken back' : 'Released'} by {o.by} at {o.at}</span>{tag(o.back ? 'Taken back' : o.follow ? 'Follow-up asked' : 'Released', `${o.back ? 'neutral' : o.follow ? 'warn' : 'success'} s12`)}</span></span>
-      {o.back ? null : btn('Take back', `d-retract:${o.k}`, { size: 'l', kind: 'secondary hug' })}</div>; }))}</div></> : null;
+        <span className="dq-m"><span className="past">{o.back ? 'Taken back' : 'Released'} by {o.by} at {o.at}</span>{tag(o.back ? 'Taken back' : o.follow ? 'Follow-up asked' : 'Released', `${o.back ? 'neutral' : o.follow ? 'warn' : 'success'} s12`)}</span>
+        {o.back ? null : <span>{btn('Take back', `d-retract:${o.k}`, { size: 'l', kind: 'secondary hug' })}</span>}</span></div>; }))}</div></> : null; // Take back sits under the line, so "Released by…" keeps its width
 
 // ---------- screens ----------
 Object.assign(SCREENS, {
@@ -418,7 +418,7 @@ Object.assign(mount, {
 Object.assign(OVERLAY, {
   drrelease: () => {
     const r = DR_REPORTS[S.drRep], p = DR_PATIENTS[r.pid], w = drWords(), goBack = btn('Go back', 'sheet-close', { kind: 'secondary' });
-    const sees = `${p.name} (${drPid(r.pid)}) will see your comment right away: “${w}”. You can take it back later from Released today.`; // Y06
+    const sees = `${p.name} (${drPid(r.pid)}) will see your comment right away: “${w}”${/[.!?]$/.test(w) ? '' : '.'} You can take it back later from Released today.`; // Y06; no “….”. when the comment ends a sentence
     return S.drRel.choice === 'follow'
       ? csheet('Release with a follow-up request?', `${sees} ${r.first} will also be asked to book a follow-up with you.`, btn('Release with follow-up request', 'd-release-ok'), goBack)
       : csheet('Release this report?', sees, btn(`Release to ${r.first}`, 'd-release-ok'), goBack);
