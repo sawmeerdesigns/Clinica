@@ -3,13 +3,13 @@
 import { cloneElement, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { ask, say, src } from './ask.jsx';
 import { backTo, bar, label, row, rows, tag, when } from './booking.jsx';
-import { emergency, setting } from './care.jsx';
+import { emergency, setting, usePerson } from './care.jsx';
 import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast, tr, NE, nd, ne } from './core.jsx';
 import { DESK_START } from './desk.jsx';
 import { DOCTOR_START, drOffline, showApp } from './doctor.jsx';
-import { centred, field, lead, list, unlock } from './health.jsx';
+import { HEALTH_SCREENS, PIN_SCREENS, centred, field, lead, list, unlock } from './health.jsx';
 import { interceptLink, notifSet, openAs } from './more.jsx';
-import { SA, STAFF_START, cell, checks, counts, img, now, patients, person, stHome, stMe } from './staff.jsx';
+import { SA, STAFF_START, cell, checks, counts, img, now, patients, person, drJoin, stHome, stMe, wkFilled } from './staff.jsx';
 
 // Phase 8: Nepali for this module's own lines (sign-in, onboarding, create profile, the date picker)
 Object.assign(NE, {
@@ -54,6 +54,8 @@ export const BS_MONTHS = ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Ash
 export const digits = s => s.replace(/\D/g, '');
 export const telKey = () => S.codeFor === 'newphone' ? 'newPhone' : 'phone'; // Profile › change number reuses sign-in's screens
 export const masked = () => { const d = digits(S[telKey()] || '') || '9841000412'; return `+977 ${d.slice(0, 2)}•• ••• ${d.slice(-3)}`; };
+// Run 6 Y26: on screen the masked number; a screen reader hears "number ending in 412", not the bullets.
+export const maskedEl = () => <><span aria-hidden="true">{masked()}</span><span className="vh">{ne() ? `${nd(masked().slice(-3))} मा सकिने नम्बर` : `number ending in ${masked().slice(-3)}`}</span></>;
 export const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 export const pad = n => String(n).padStart(2, '0');
 export const todayAD = new Date();
@@ -187,7 +189,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar()}
       <div className="body">
-        {heading('Enter the code', ne() ? `${masked()} मा SMS बाट पठाइयो।` : `Sent by SMS to ${masked()}.`)}
+        {heading('Enter the code', ne() ? <>{maskedEl()} मा SMS बाट पठाइयो।</> : <>Sent by SMS to {maskedEl()}.</>)}
         <div className="inset"><div className="code-wrap">
           <div className={`code ${err ? 'err' : ''}`} id="code">{cells}
             <input className="cell-input" id="code-in" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
@@ -610,7 +612,7 @@ export function createProfile() {
   if (S.nameErr || S.dobErr || S.sexErr) return render(); // every missing field says what it needs, all at once
   if (/sharma/i.test(S.name)) return go('match'); // demo: a close, not exact, match
   S.fullName = S.name.trim(); S.first = S.fullName.split(' ')[0];
-  S.healthEmpty = true; S.careEmpty = true; S.followup = null; // a new patient has no visits yet
+  S.healthEmpty = true; S.careEmpty = true; S.followup = null; S.meds = []; // a new patient has no visits yet; Run 6 Y01: nor anyone else's medicines
   toHome(); // notifications are asked for later, after the first booking
 }
 
@@ -627,7 +629,7 @@ Object.assign(ACTIONS, {
   'send-code': sendCode,
   verify,
   'new-code': () => { S.code = ''; S.codeState = 'typing'; S.resend = 42; render(); },
-  pick: arg => { S.fullName = arg; S.first = arg.split(' ')[0]; toHome(); }, // choosing yourself goes straight to Home
+  pick: arg => { usePerson(arg); toHome(); }, // choosing yourself goes straight to Home; Run 6 Y01: with your own record
   'open-picker': openPicker,
   'close-picker': () => { S.picker = null; paint(); },
   cal: arg => switchCal(arg),
@@ -681,22 +683,33 @@ FLOW.push(
 );
 export let ALL = [];
 
-// Decision (reload): a reload keeps the drafts and leaves staff in their own app, signed in. sessionStorage, this tab only;
-// real persistence is out of scope. Drafts: the phone/desktop visit (drKept), the reception walk-in (wk), the booking reason.
-const KEEP = 'clinica-reload';
+// Decision (reload), Run 6 Y05: a real reload restores this tab's whole demo state — all of S (every app's data, and where each app was)
+// and the staff tab. sessionStorage, this tab only; a plain navigation starts fresh, and blocked storage is ignored. Real persistence is
+// out of scope. Left out, because they'd misbehave after a reload: open sheets, menus and the date picker, toasts, a PIN being typed,
+// passwords, Ask's conversation and the Health unlock — Health is locked again.
+const KEEP = 'clinica-reload', ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/; // dates (a new hire's start) come back as dates
+const DROP = { sheet: null, sys: null, toast: null, picker: null, bio: null, stMenu: null, drMenu: null, loading: null, refreshing: false, listening: false,
+  pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, unlocked: false, askUnlocked: false, chat: [], drPw: '', drPw0: '', drPw1: '', drPw2: '', 'st-pw': '' };
+// A PIN being typed goes back to where it was asked for; a records screen opens on the lock, and unlocking returns to it (W16).
+const relock = v => {
+  if (PIN_SCREENS.includes(v.screen)) v.screen = v.stack.pop() || 'home';
+  if (HEALTH_SCREENS.includes(v.screen)) { Object.assign(S, { afterUnlock: v.screen, lockStack: v.stack, lockWhy: null }); Object.assign(v, { screen: 'hlocked', stack: [] }); }
+};
 export function boot() {
   ALL = FLOW.flatMap(([, items]) => items); // each screen's caption, for the note; the presets are test fixtures
   start('full');
   let k = null;
-  try { if (performance.getEntriesByType('navigation')[0]?.type === 'reload') k = JSON.parse(sessionStorage.getItem(KEEP)); } catch { k = null; }
-  if (k) {
-    if (k.app !== 'patient') start(k.app);
-    Object.assign(S, { drKept: k.drKept || {}, wk: k.wk || S.wk, reason: k.reason || '' });
-    if (k.app === 'staff' && k.stMe) { staffTab = k.staffTab || staffTab; S.stMe = k.stMe; S.screen = stHome(); }
-    if ((k.app === 'doctor' || k.app === 'desk') && k.drSigned) Object.assign(S, { drSigned: true, screen: k.app === 'doctor' ? 'dqueue' : 'kqueue' });
+  try { if (performance.getEntriesByType('navigation')[0]?.type === 'reload') k = JSON.parse(sessionStorage.getItem(KEEP), (_, v) => typeof v === 'string' && ISO.test(v) ? new Date(v) : v); } catch { k = null; }
+  if (k?.S) {
+    Object.assign(S, k.S, DROP); staffTab = k.staffTab || staffTab;
+    if (k.draftOf) S.drDraft = Object.assign(S.drKept[k.draftOf], { restored: true }); // the visit being written is still its kept draft (F03), and says so
+    const b = S.booked; if (b) [S.appt, ...S.more].forEach(v => { if (v.doc === b.doc && v.day === b.day && v.time === b.time) v.pay = b.pay; }); // one pay record (V14)
+    relock(S.app === 'patient' ? S : S.saved.patient || { stack: [] });
+    Object.entries(S.walk).forEach(([x, w]) => { if (w.doc === 'ps') drJoin(x, w); }); // Dr. Sharma's walk-ins rejoin her queue's list
+    if (S.screen === 'swalk') S.wkKept = wkFilled(); // T21: the walk-in form came back, and says so
     render();
   }
-  addEventListener('pagehide', () => { try { sessionStorage.setItem(KEEP, JSON.stringify({ app: S.app, stMe: S.stMe, staffTab, drSigned: S.drSigned, drKept: S.drKept, wk: S.wk, reason: S.reason })); } catch { /* storage blocked: start fresh */ } });
+  addEventListener('pagehide', () => { try { sessionStorage.setItem(KEEP, JSON.stringify({ S, staffTab, draftOf: Object.keys(S.drKept).find(x => S.drKept[x] === S.drDraft) })); } catch { /* storage blocked: start fresh */ } });
 }
 
 // Two ways in: a returning patient with everything, or a new patient with nothing yet.
@@ -782,7 +795,7 @@ export function Phone() {
     if (ph.querySelector('main')) ph.parentElement.removeAttribute('role'); else ph.parentElement.setAttribute('role', 'main');
     // V05: everything behind an open sheet or dialog is inert, so it can't be tabbed to, tapped by voice or read.
     ph.querySelectorAll('[data-inert]').forEach(e => { e.inert = false; e.removeAttribute('data-inert'); });
-    const dlg = ph.querySelector('[aria-modal="true"]');
+    const dlg = [...ph.querySelectorAll('[aria-modal="true"]')].at(-1); // Run 6 Y13: the topmost, e.g. the date picker over a desktop sheet
     if (dlg) for (let el = dlg; el !== ph; el = el.parentElement) for (const sib of el.parentElement.children)
       if (sib !== el && !sib.matches('.scrim, .sheet-home, .toast-region')) { sib.inert = true; sib.setAttribute('data-inert', ''); }
     // W03: focus moves only when the screen, the app or a sheet changes — never on a paint while typing.
@@ -809,6 +822,8 @@ export function Phone() {
         const [act, arg] = a.dataset.act.split(/:(.*)/s);
         if (a.tagName === 'A') e.preventDefault();
         ACTIONS[act]?.(arg, a);
+        // Run 6 Y11: when the control that was used goes away (Undo, Reopen), focus goes to the screen's heading, not the page
+        if (!a.isConnected && (document.activeElement === document.body || !document.activeElement)) focusHeading();
       }
     }
     phoneListeners.click.forEach(f => f(e));

@@ -35,6 +35,7 @@ Object.assign(NE, {
   'Open Health to read them.': 'पढ्न स्वास्थ्य खोल्नुहोस्।', 'Dose logged.': 'औषधि खाएको टिपियो।',
   'Paracetamol is almost out of stock': 'Paracetamol सकिनै लागेको छ', 'Only 6 tablets left. Restock before you run out.': '6 ट्याब्लेट मात्र बाँकी। सकिनुअघि थप किन्नुहोस्।',
   now: 'अहिले', tablets: 'ट्याब्लेट', capsules: 'क्याप्सुल',
+  'Amlodipine besylate tablets': 'Amlodipine besylate ट्याब्लेट', '1 tablet, once a day': '1 ट्याब्लेट, दिनको 1 पटक', 'Once a day': 'दिनको 1 पटक', '6 months': '6 महिना', // Run 6 Y01: Ramesh's
 });
 // A dose or count the patient typed ('2 tablets') keeps its words, except tablet/capsule.
 const mx = s => !ne() || !s ? s : NE[s] || String(s).replace(/\b(tablet|capsule)s?\b/gi, w => /^t/i.test(w) ? 'ट्याब्लेट' : 'क्याप्सुल');

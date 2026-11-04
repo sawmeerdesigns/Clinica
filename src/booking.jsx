@@ -2,9 +2,10 @@
 // Figma: zw3saW6ot26E6gWH20K3ux, section 118:6257. Plugs into core.jsx: SCREENS, mount, ACTIONS, FLOW, NUM.
 import { btn, empty, endScreen, family, heading, homeInd, listItem, masked, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
 import { T, acts, answer, ask, src } from './ask.jsx';
-import { CAL_NOTE, calBtn, inCal, notice, unread } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NE, NUM, S, SCREENS, after, back, go, mount, nd, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
+import { CAL_NOTE, calBtn, csheet, inCal, notice, unread } from './care.jsx';
+import { $phone, A, ACTIONS, FLOW, NE, NUM, OVERLAY, S, SCREENS, after, back, go, mount, nd, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
 import { chev, field, lbl, lead, list } from './health.jsx';
+import { labOf } from './doctor.jsx';
 import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
 import { DAY_TIMES, DOCTORS, FEE, GM, TODAY, WALLETS, week } from './data.js';
@@ -30,6 +31,7 @@ Object.assign(NE, {
   'Arrive 15 minutes early and check in at the reception desk.': '15 मिनेट अगाडि आइपुग्नुहोस् र रिसेप्सनमा चेक इन गर्नुहोस्।',
   'No doctors match': 'मिल्ने डाक्टर भेटिएनन्', 'Try clearing the filters, or call the clinic to ask who can see you.': 'फिल्टर हटाएर हेर्नुहोस्, वा कुन डाक्टरले हेर्न सक्नुहुन्छ भनेर क्लिनिकमा फोन गरेर सोध्नुहोस्।',
   'Try another specialty, or call the clinic to ask who can see you.': 'अर्को विशेषज्ञता छान्नुहोस्, वा कुन डाक्टरले हेर्न सक्नुहुन्छ भनेर क्लिनिकमा फोन गरेर सोध्नुहोस्।',
+  'Keep just the one': 'एउटा मात्र राख्नुहोस्', 'Book a second visit': 'दोस्रो भेट बुक गर्नुहोस्', // Run 6 Y02
 });
 const L = (en, np) => ne() ? np : en; // Phase 8: a line whose Nepali is built around names, times or numbers
 
@@ -46,7 +48,14 @@ export const specIcon = (s, on) => `${A}sp-${s === GM ? 'general' : s.toLowerCas
 
 // ---------- slot logic ----------
 export const listHas = (l, t) => l === 'all' || (l || []).includes(t);
-export const isTaken = (doc, day, t) => DAYS[day].closed || listHas(DOCTORS[doc].busy[day], t) || listHas(S.taken[`${doc}|${day}`], t);
+// Run 6 Y02: a slot this person already holds can't be booked again; the doctor page shows it as "Your visit".
+export const isTaken = (doc, day, t) => DAYS[day].closed || listHas(DOCTORS[doc].busy[day], t) || listHas(S.taken[`${doc}|${day}`], t) || !!holds(doc, day, t);
+export const holds = (doc, day, t) => visits().find(v => v.doc === doc && v.day === day && (!t || v.time === t));
+// Run 6 Y02: a person can have several visits booked. S.appt is the one the care team's apps follow (Anisha's 4:30 today); S.more
+// holds the rest. Soonest first; i is null for S.appt, else its place in S.more (Care opens it with appt:i).
+const mins = t => { const [, h, m, ap] = /(\d+):(\d+) (AM|PM)/.exec(t); return (h % 12 + (ap === 'PM' ? 12 : 0)) * 60 + +m; };
+export const visits = () => [...(S.careEmpty ? [] : [{ ...S.appt, i: null }]), ...S.more.map((v, i) => ({ ...v, i }))].sort((a, b) => a.day - b.day || mins(a.time) - mins(b.time));
+export const openVisit = () => S.vOpen == null ? S.appt : S.more[S.vOpen]; // the visit Care has open
 export const freeTimes = (doc, day) => DOCTORS[doc].times.filter(t => !isTaken(doc, day, t));
 export const nextOpen = (doc, from = 0) => DAYS.findIndex((_, i) => i >= from && freeTimes(doc, i).length);
 export const dayName = i => `${DAYS[i].wd}, ${DAYS[i].date}`;
@@ -68,7 +77,7 @@ export const bar = ({ back = true, title = '', actions = null, big = false } = {
     {title ? <h1 className="title" style={big ? { fontSize: 20 } : undefined}>{tr(title)}</h1> : <div className="title"></div>}{/* W13: a titled bar is the screen's heading */}
     <div className="bar-acts">{actions || <div className="slot"></div>}</div>
   </div>);
-export const label = t => <p className="sec-label">{tr(t)}</p>; // F15/R12
+export const label = t => <h2 className="sec-label">{tr(t)}</h2>; // F15/R12; Run 6 Y21: a heading, so screen readers can jump between sections
 export const tag = (text, tone = '') => <span className={`tag ${tone}`}>{tr(text)}</span>;
 export const row = (icon, title, sub) => (
   <div className="list-item static">
@@ -101,15 +110,15 @@ export function payHandOff(a) {
     : { title: `Pay NPR ${FEE} with ${w}?`, sub: `Consultation fee for your visit with ${DOCTORS[a.doc].name}.`, confirm: `Pay with ${w}`, href: '#', act: 'pay-ok' });
 }
 // W11: a follow-up booked from a report warns about a visit already booked with the same doctor.
-export const fuClash = () => { const a = S.appt;
-  return S.fuOf && !S.careEmpty && a.doc === S.doc ? notice('warn', L(`You already have a visit with Dr. ${surname(DOCTORS[a.doc].name)}`, `Dr. ${surname(DOCTORS[a.doc].name)} सँग तपाईंको भेट पहिले नै छ`),
+export const fuClash = () => { const a = visits().find(v => v.doc === S.doc); // Run 6 Y02: any of her visits, not only S.appt
+  return S.fuOf && a ? notice('warn', L(`You already have a visit with Dr. ${surname(DOCTORS[a.doc].name)}`, `Dr. ${surname(DOCTORS[a.doc].name)} सँग तपाईंको भेट पहिले नै छ`),
     L(`${when(a.day, a.time)}. You can talk about this report then, so you may not need another visit.`, `${when(a.day, a.time)}। त्यतिबेला यो रिपोर्टबारे कुरा गर्न सक्नुहुन्छ, त्यसैले अर्को भेट नचाहिन सक्छ।`)) : null; };
 export const callBtn = size => <a className={`btn secondary ${size}`} href="tel:+97710000000"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />{tr('Call the clinic')}</a>;
 
 // Item, Content/Appointment. A chevron means the whole card is interactive.
-export function apptCard(a, link = false) {
+export function apptCard(a, link = false) { // link: true for S.appt, or the data-act of another visit
   const d = DOCTORS[a.doc], T = link ? 'button' : 'div';
-  return <T className="card appt" data-act={link ? 'appt:today' : undefined}>
+  return <T className="card appt" data-act={link ? (link === true ? 'appt:today' : link) : undefined}>
     <span className="avatar l" aria-hidden="true">{d.ini}</span>
     <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when(a.day, a.time)}</span><span className="where">{d.opd}, {tr('City Hospital')}</span></span>
     {link ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}
@@ -143,10 +152,11 @@ export function lowBanner() {
 
 // The card keeps its place, so Home doesn't reshuffle. On visit day it says the state, in Care's tones — never an estimate.
 export function homeVisit() {
-  const a = S.appt, d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor', t = nd(a.time);
-  if (S.careEmpty) return <div className="inset stack8">{label('Your next appointment')}
+  const a = visits()[0];
+  if (!a) return <div className="inset stack8">{label('Your next appointment')}
     <div className="card neutral"><div className="text"><p className="h-s">{tr('Nothing booked yet')}</p><p className="body-s">{tr('When you book a visit, it shows here.')}</p></div></div></div>;
-  const v = a.day === 0 && {
+  const d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor', t = nd(a.time);
+  const v = a.i == null && a.day === 0 && { // Run 6 Y02: the soonest visit; visit-day states belong to S.appt
     late: ['warn', L(`${dr} is running late`, `${dr} ढिला हुनुहुन्छ`), L(`Your ${a.time} slot is kept. We'll message you when ${she}'s ready.`,
       `तपाईंको ${t} को समय सुरक्षित छ। ${a.doc === 'ps' ? 'उहाँ' : 'डाक्टर'} तयार हुनुभएपछि हामी खबर गर्छौं।`), 'appt:today'], // Phase 8: Nepali
     checkedin: ['info', "You're checked in", L(`Reception will call you when ${dr} is ready.`, `${dr} तयार हुनुभएपछि रिसेप्सनले तपाईंलाई बोलाउनेछ।`), 'appt:today'],
@@ -156,7 +166,7 @@ export function homeVisit() {
     missed: ['warn', L(`We missed you at ${a.time}`, `${t} मा हामीले तपाईंलाई भेटेनौं`), "Book again when you're ready.", 'care-tab'],
   }[S.visitDay];
   // W02: a wallet booking shows its fee state on Home (Paid / Not paid · Pay now); pay-at-reception visits keep Home as designed.
-  if (!v) return <div className="inset stack8">{label('Your next appointment')}{apptCard(a, true)}{WALLETS[a.pay?.how] ? payCard(a) : null}</div>;
+  if (!v) return <div className="inset stack8">{label('Your next appointment')}{apptCard(a, a.i == null || `appt:${a.i}`)}{WALLETS[a.pay?.how] ? payCard(a) : null}</div>;
   return <div className="inset stack8">{label("Today's visit")}<button className={`card notice ${v[0]}`} data-act={v[3]}><div className="text"><p className="h-s">{tr(v[1])}</p><p className="body-s">{tr(v[2])}</p></div></button></div>; // Figma sync: 'You're checked in', 'Visit complete' in Nepali
 }
 
@@ -215,9 +225,9 @@ Object.assign(SCREENS, {
           <button className="tile" data-act="health-go:hrx"><img src={`${A}qa-rx.svg`} width="28" height="28" alt="" />{tr('Prescriptions')}</button>
         </div></div> : null}
         {st === 'default' && !S.healthEmpty && !homeLocked() ? <div><div className="inset">{label('Recent')}</div><div className="list">
-            {sepJoin([listItem('lt-lab.svg', 'Lab report ready', 'Open Health to see it', 'lab-ready') /* T03 */,
+            {sepJoin([listItem('lt-lab.svg', 'Lab report ready', (k => k ? `${tr(labOf(k).title)} · ${tr('Open Health to see it')}` : 'Open Health to see it')(S.labs.find(k => !labOf(k).reviewing)), 'lab-ready') /* T03; Run 6 Y22: names the report it opens */,
                listItem('lt-rx.svg', 'Prescription updated', L('From Dr. Sharma, Aug 25', `Dr. Sharma बाट, ${nd('Aug 25')}`), 'health-go:hrxd'),
-               listItem('lt-followup.svg', 'Follow-up due', `${tr('Dermatology')}, ${tr('Sep 14')}`, 'stub:Follow-up')])}
+               listItem('lt-followup.svg', 'Follow-up due', `${tr('Dermatology')}, ${tr('Sep 14')} · ${tr('not booked yet')}`, 'stub:Follow-up')])}{/* Y26: not the booked one Care shows */}
           </div></div> : null}
         {st === 'walkin' ? <div className="stack7"><div className="inset">{label('Your visit')}</div>
           {rows([row('lt-doctor.svg', 'Doctor', `${DOCTORS.aj.name}, ${tr(DOCTORS.aj.spec)}`), row('lt-location.svg', 'Where', `${DOCTORS.aj.opd}, ${tr('City Hospital')}`), row('lt-fee.svg', 'Fee', L(`NPR ${FEE}, paid at reception`, `NPR ${FEE}, रिसेप्सनमा तिरिएको`))])}</div> : null}
@@ -285,8 +295,9 @@ Object.assign(SCREENS, {
           {label(tr('Choose a time'))}
           <div className="times" role="radiogroup" aria-label={tr('Time')}>
             {d.times.map(t => {
-              const off = isTaken(S.doc, S.day, t);
-              return <button key={t} className="pick time" role="radio" aria-checked={t === S.time} disabled={off} data-act={`time:${t}`} aria-label={`${tr(t)}${off ? L(', taken', ', बुक भइसक्यो') : ''}`}>{tr(t)}</button>;
+              const off = isTaken(S.doc, S.day, t), mine = holds(S.doc, S.day, t); // Run 6 Y02: her own booked slot says so
+              return <button key={t} className={`pick time${mine ? ' mine' : ''}`} role="radio" aria-checked={t === S.time} disabled={off} data-act={`time:${t}`}
+                aria-label={`${tr(t)}${mine ? L(', your visit', ', तपाईंको भेट') : off ? L(', taken', ', बुक भइसक्यो') : ''}`}>{tr(t)}{mine ? <span className="d1">{tr('Your visit')}</span> : null}</button>;
             })}
           </div>
           <div className="note-line"><img src={`${A}icon-info-18.svg`} width="18" height="18" alt="" /><p>{tr("If your doctor is running late, we'll message you. We won't guess a wait time.")}</p></div>
@@ -377,7 +388,7 @@ Object.assign(SCREENS, {
   },
 
   notif: () => {
-    const a = S.appt, d = DOCTORS[a.doc];
+    const a = S.booked || S.appt, d = DOCTORS[a.doc]; // Run 6 Y02: the visit just booked, which may not be S.appt
     return (
     <div className="screen">
       {statusBar()}
@@ -446,9 +457,12 @@ export function backTo(screen) {
 
 export const bookFor = () => !S.bookFor || S.bookFor === S.fullName ? `${S.fullName} ${L('(you)', '(तपाईं)')}` : S.bookFor;
 export function bookedDone() { // the patient's own visit becomes theirs; a visit for someone else lives in that person's records
-  const b = S.booked;
+  const b = S.booked, o = b.for === S.fullName ? S : S.people[b.for]; // Run 6 Y01: someone else's goes into their own record
   // V14: the visit keeps its reason and payment (the same pay object as S.booked, so paying later updates both).
-  if (b.for === S.fullName) Object.assign(S, { appt: { doc: b.doc, day: b.day, time: b.time, reason: b.reason, pay: b.pay, fu: b.fu }, homeState: 'default', careEmpty: false, visitDay: 'booked' });
+  const v = { doc: b.doc, day: b.day, time: b.time, reason: b.reason, pay: b.pay, fu: b.fu };
+  // Run 6 Y02: it joins their visits. It takes S.appt's place only when that one is gone (none, cancelled or missed).
+  if (o?.careEmpty || o?.homeState === 'cancelled' || o?.visitDay === 'missed') Object.assign(o, { appt: v, homeState: 'default', careEmpty: false, visitDay: 'booked' });
+  else if (o) o.more = [...o.more, v];
   S.cal.appt = false;
 }
 
@@ -487,9 +501,11 @@ Object.assign(ACTIONS, {
   'filter-clear': () => { S.filt = { today: false, sex: 'Any' }; S.sheet = null; render(); },
   doctor: arg => { S.doc = arg; S.day = 0; S.time = null; S.fuOf = null; go('doctor'); },
   fav: arg => { S.fav[arg] = !S.fav[arg]; render(); },
-  day: arg => { S.day = +arg; S.time = null; render(); },
+  day: (arg, el) => { S.day = +arg; S.time = null; render(); // Run 6 Y21: "See Sun, Aug 30" lands on that day's times, not the page
+    if (!el.matches('.pick')) $phone().querySelector('.pick.time:not([disabled])')?.focus(); },
   time: arg => { S.time = arg; render(); },
-  book: () => go('review'),
+  book: () => { if (holds(S.doc, S.day)) { S.sheet = 'dupvisit'; return render(); } go('review'); }, // Run 6 Y02: a second visit that day asks first
+  'book-anyway': () => { S.sheet = null; go('review'); },
   confirm: () => {
     if (!S.payWith || Date.now() - shownAt < 400) return; // R10: a payment choice first, and a second tap of a double-tap is ignored
     const fail = S.offline ? 'offline' : S.failNext, mine = S.booked && S.booked.doc === S.doc && S.booked.day === S.day && S.booked.time === S.time;
@@ -508,7 +524,7 @@ Object.assign(ACTIONS, {
   },
   pay: arg => { S.payWith = S.payWith === arg ? null : arg; paint(); },
   // W02: a cancelled hand-off can be retried from the visit; the mocked wallet's "Pay with X" marks it paid with a receipt.
-  'pay-now': () => payHandOff(S.screen === 'confirmed' ? S.booked || S.appt : S.appt),
+  'pay-now': () => payHandOff(S.screen === 'confirmed' ? S.booked || S.appt : S.screen === 'home' ? visits()[0] : openVisit()), // Run 6 Y02: the visit on screen
   'pay-ok': () => {
     const a = S.payFor, p = a.pay, w = WALLETS[p.how][0];
     Object.assign(p, { paid: true, ref: `${w.toUpperCase()}-${48213 + S.payments.length}` });
@@ -531,23 +547,28 @@ Object.assign(ACTIONS, {
 
 Object.assign(NUM, {
   home: s => s.loading === 'first' ? 'GX04' : s.loading === 'slow' ? 'GX06' : s.homeState !== 'default' ? ({ cancelled: 'B09', walkin: 'B10' })[s.homeState]
-    : s.offline ? 'GX01' : s.careEmpty ? 'SH01' : s.appt.day === 0 && ({ late: 'SH02', checkedin: 'SH03', done: 'SH04' })[s.visitDay] || 'B01',
+    : s.offline ? 'GX01' : s.careEmpty && !s.more.length ? 'SH01' : s.appt.day === 0 && ({ late: 'SH02', checkedin: 'SH03', done: 'SH04' })[s.visitDay] || 'B01',
   finddoctor: s => s.sheet === 'filter' ? 'SB12' : filtersOn() ? 'SB13' : s.query.trim() ? (CONDITIONS.find(([re]) => re.test(s.query.toLowerCase()))?.[1] ? 'SB06' : 'SB07')
     : ({ Cardiology: 'SB08', Dermatology: 'SB09', Paediatrics: 'SB10', Gynaecology: 'SB11' })[s.specialty] || (Object.values(s.fav).some(Boolean) ? 'SB15' : 'B02'),
-  doctor: s => !freeTimes(s.doc, s.day).length ? 'B07' : s.fav[s.doc] ? 'SB14' : 'B03',
+  doctor: s => s.sheet === 'dupvisit' ? 'B03c' : !freeTimes(s.doc, s.day).length ? 'B07' : s.fav[s.doc] ? 'SB14' : 'B03',
   history: () => 'B03b', confirmed: () => 'B05', notif: () => 'B06', failed: s => ({ taken: 'B08', offline: 'SB04', noreply: 'SB05' })[s.failKind],
   review: s => s.sheet === 'bookfor' ? 'SB01' : s.bookFor && s.bookFor !== s.fullName ? 'SB02' : s.payWith && s.payWith !== 'reception' ? 'B04b' : 'B04',
 });
 
 export const BOOKING_STACK = ['home', 'finddoctor', 'doctor'];
+// Run 6 Y02: a second visit with the same doctor on the same day asks first. The B03/B04 frames show her before her 4:30 was booked.
+OVERLAY.dupvisit = () => { const c = holds(S.doc, S.day), dr = `Dr. ${surname(DOCTORS[c.doc].name)}`;
+  return csheet(L(`You already have a visit with ${dr} that day`, `त्यो दिन ${dr} सँग तपाईंको भेट पहिले नै छ`), L(`${when(c.day, c.time)}. Book a second visit as well?`, `${when(c.day, c.time)}। अर्को भेट पनि बुक गर्ने?`),
+    btn('Keep just the one', 'sheet-close'), btn('Book a second visit', 'book-anyway', { kind: 'secondary' })); };
 FLOW.push(
   ['Booking — happy path', [
     ['B01', 'Home', 'Taps ‘Book a visit’', 'Next appointment as a Neutral card; quick actions are Specialty tiles; Recent names no drug.', () => ({ screen: 'home' })],
     ['B02', 'Find doctor', 'Taps Dr. Priya Sharma', "Docked search, specialty filter clipped at the edge as the scroll cue, one clinic's doctors, no ratings.", () => ({ screen: 'finddoctor', stack: ['home'] })],
-    ['B03', 'Doctor profile', 'Picks 4:30 PM, taps Book', 'Contained header, fee up front, Saturday closed, taken slots shown as taken, no wait estimate.', () => ({ screen: 'doctor', stack: ['home', 'finddoctor'] })],
+    ['B03', 'Doctor profile', 'Picks 4:30 PM, taps Book', 'Contained header, fee up front, Saturday closed, taken slots shown as taken, no wait estimate.', () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], careEmpty: true })],
+    ['B03c', 'Doctor profile — a second visit that day', 'Picks 5:00 PM, taps Book', 'New (Run 6 Y02): her 4:30 reads “Your visit”. Booking another time with the same doctor that day asks first: keep just the one, or book a second visit.', () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], time: '5:00 PM', sheet: 'dupvisit' })],
     ['B03b', 'Visit history', 'Linked from the avatar on Home', 'Sits beside 03 in Figma with no caption or arrow; this prototype opens it from the profile avatar on Home.', () => ({ screen: 'history', stack: ['home'] })],
-    ['B04', 'Review booking', 'Taps Confirm booking', 'Summary rows carry no chevrons because nothing on them is tappable. Pay at reception.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'reception' })],
-    ['B04b', 'Review booking — pay now', 'Taps eSewa', 'Nothing is preselected (R10): Pay at reception, eSewa, Khalti or Fonepay is chosen before Confirm. The Fee row says “to pay with eSewa” until the wallet confirms.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'esewa' })],
+    ['B04', 'Review booking', 'Taps Confirm booking', 'Summary rows carry no chevrons because nothing on them is tappable. Pay at reception.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'reception', careEmpty: true })],
+    ['B04b', 'Review booking — pay now', 'Taps eSewa', 'Nothing is preselected (R10): Pay at reception, eSewa, Khalti or Fonepay is chosen before Confirm. The Fee row says “to pay with eSewa” until the wallet confirms.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'esewa', careEmpty: true })],
     ['B05', 'Confirmed', 'Taps Done', 'Success tone earned. No back arrow. Check in at reception, not by QR. Done leads to 06.', () => ({ screen: 'confirmed', taken: { 'ps|0': ['4:30 PM'] } })],
     ['B06', 'Notifications', 'After Done', "Asked only after an accomplishment — here, a confirmed booking — so the value is concrete: this visit, this doctor. Skipped if notifications are already on. After 'Not now', ask again only after the next booking; after a second 'Not now', only from Profile. SMS updates continue either way.", () => ({ screen: 'notif' })],
   ]],
