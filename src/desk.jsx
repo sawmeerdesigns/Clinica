@@ -88,7 +88,7 @@ export function kReportDetail() {
         <p className="dr-body tertiary">Reference ranges only — patients never see raw values, only what you tell them.</p></div>
       <div className="stack16">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}
         {drComment(r, k)}
-        <div>{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'k-release', { size: 'l', kind: 'primary hug', disabled: !rel.choice })}</div></div>
+        <div>{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'k-release', { size: 'l', kind: 'primary hug', disabled: !rel.choice || !rel.comment.trim() })}</div></div>
     </div></section>;
 }
 
@@ -183,17 +183,17 @@ later(() => FLOW.push(['Doctor desktop', [ // the presets read doctor.jsx's DR_D
   ['K10b', 'Queue — no patients today', 'Nothing scheduled', "The desktop queue's true empty state — the list itself has nothing in it, not just nothing selected.", KW({ drNoPatients: true })],
   ['K11', 'Queue — Anisha', 'Selects Anisha', "Master-detail: the full list stays visible on the left while Anisha's visit shows on the right.", KW({ kSel: 'as' })],
   ['K11f', 'Queue — Anisha history', 'View history', 'History reached via a link, not shown inline — the same density fix applied on mobile.', KW({ kSel: 'as', kView: 'history' })],
-  ['K11b', 'Queue — completing visit', 'Start visit', "Anisha's note and prescriptions, written inline in the detail pane rather than a separate page.", KW({ kSel: 'as', kView: 'complete', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as } })],
+  ['K11b', 'Queue — completing visit', 'Start visit', "Anisha's note and prescriptions, written inline in the detail pane rather than a separate page.", KW({ kSel: 'as', kView: 'complete', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { note: '', meds: [], follow: null, followDate: '' } })],
   ['K11d', 'Queue — visit complete', 'Selects a Done patient', "A completed visit shown read-only — reused for every other ‘Done’ patient in the list.", KW({ kSel: 'bt' })],
   ['K11e', 'Queue — not arrived', 'Selects Sunita', "A patient who hasn't checked in — no visit to start yet.", KW({ kSel: 'sk' })],
   ['K12', 'Queue — Nabin', 'Selects Nabin', 'A second, genuinely different patient selected — proving the detail pane really changes, not just Anisha relabelled.', KW({ kSel: 'nt' })],
   ['K12g', 'Queue — Nabin history', 'View history', "Nabin's own visit history, distinct from Anisha's.", KW({ kSel: 'nt', kView: 'history' })],
   ['K12h', 'Queue — Nabin, completing visit', 'Start visit', "Nabin's own diagnosis and prescriptions, not a reused stand-in.", KW({ kSel: 'nt', kView: 'complete', drDraft: { ...DR_DRAFTS.nt } })],
-  ['K20', 'Reports', "Selects Anisha's CBC", "Anisha's CBC result, with the raw values and the release decision side by side.", KW({ screen: 'kreports', kRep: 'cbc', drRel: { choice: 'normal', comment: DR_REPORTS.cbc.normal } })],
+  ['K20', 'Reports', "Selects Anisha's CBC", "Anisha's CBC result, with the raw values and the release decision side by side.", KW({ screen: 'kreports', kRep: 'cbc', drRel: drRelNew() })],
   ['K20a', 'Reports — no selection', 'Reports', "The Reports tab's own default state, matching the Queue's.", KW({ screen: 'kreports' })],
   ['K20b', 'Reports — flag follow-up', 'I need to see them again', 'The branch for when a result needs a conversation, not just a release.', KW({ screen: 'kreports', kRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW } })],
   ['K20n', 'Reports — nothing pending', 'All released', 'Every report already released — nothing left to review.', KW({ screen: 'kreports', drPending: [] })],
-  ['K20c', 'Reports — Kabita', "Selects Kabita's lipid panel", "A second patient's own report — her real Lipid panel, not Anisha's CBC reused.", KW({ screen: 'kreports', kRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal } })],
+  ['K20c', 'Reports — Kabita', "Selects Kabita's lipid panel", "A second patient's own report — her real Lipid panel, not Anisha's CBC reused.", KW({ screen: 'kreports', kRep: 'lipid', drRel: drRelNew() })],
   ['K30', 'Profile', 'Profile', "The doctor's own account, centred rather than in a sidebar layout since there's nothing else to show alongside it.", KW({ screen: 'kprofile' })],
   ['K30b', 'Account settings', 'Change password / Notifications', "Both settings on one scrollable page — Profile's two rows land here with the right section already in view.", KW({ screen: 'kset', stack: ['kprofile'] })],
   ['K10c', 'Queue — offline', 'No connection', "The day's progress is what was last loaded; the list can't update, so it isn't shown as if it were current.", KW({ drOffline: true })],

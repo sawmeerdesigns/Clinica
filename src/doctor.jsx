@@ -38,13 +38,13 @@ export const DR_FOLLOW = 'Please book a follow-up so we can discuss this.';
 export const drRelNew = () => ({ choice: null, comment: '', edited: false });
 // F01/R01: the suggestion is worked out from the report on screen, never carried over from another one.
 export const drSuggest = (k = S.drRep) => S.drRel.choice === 'follow' ? DR_FOLLOW : S.drRel.choice ? DR_REPORTS[k].normal : '';
-export const drWords = (k = S.drRep) => S.drRel.comment.trim() || drSuggest(k); // what the patient will read
+export const drWords = () => S.drRel.comment.trim(); // what the patient will read: only what the doctor wrote or chose to use
 // The comment box and Release button, shared by phone and desktop. Release waits for a decision (W06/F23).
 export const drComment = (r, k) => <div className="field-wrap"><label className="dr-label" htmlFor="d-comment">Comment for {r.first}</label>
-  <div className="field textarea"><textarea id="d-comment" value={S.drRel.comment} placeholder={S.drRel.choice ? `Suggested: ${drSuggest(k)}` : 'Choose what the patient should see first'}
+  <div className="field textarea"><textarea id="d-comment" value={S.drRel.comment} placeholder={S.drRel.choice ? `Write what ${r.first} should know` : 'Choose what the patient should see first'}
     onChange={e => { S.drRel.comment = e.target.value; S.drRel.edited = true; paint(); }} /></div>
-  {S.drRel.choice && !S.drRel.comment.trim() ? <p className="dr-body tertiary">Leave it blank to send the suggested text.</p> : null}
-  {S.drRel.choice ? drPreview(r) : null}</div>;
+  {S.drRel.choice && !S.drRel.comment.trim() ? <div>{btn('Use suggested text', 'd-usecomment', { size: 'l', kind: 'secondary hug' })}</div> : null}{/* after review: nothing pre-written; the suggestion is a choice */}
+  {S.drRel.choice && drWords() ? drPreview(r) : null}</div>;
 // Run 6 Y25: what the patient's report page will show once released, as she'll see it.
 export const drPreview = r => <div className="stack8 dr-preview">{lbl(`What ${r.first} will see`)}<div className="card neutral stack8">
   <p className="item-title">{r.test}</p><p className="note-body">{drWords()}</p>
@@ -257,12 +257,13 @@ export const drMedForm = () => <div className="fields">
 export const drNoteHint = id => DR_DRAFTS[id]?.note || '';
 export const drNoteOf = d => d.note.trim();
 export const drNoteField = (d, id, fid) => <div className="field-wrap"><label className="dr-label" htmlFor={fid}>Doctor's note</label>
-  <div className="field textarea"><textarea id={fid} value={d.note} placeholder={drNoteHint(id) ? `Suggested: ${drNoteHint(id)}` : 'What should the patient know?'} onChange={e => { d.note = e.target.value; paint(); }} /></div>
+  <div className="field textarea"><textarea id={fid} value={d.note} placeholder="What should the patient know?" onChange={e => { d.note = e.target.value; paint(); }} /></div>
   {drNoteHint(id) && !d.note.trim() ? <div>{btn('Use suggested note', 'd-usenote', { size: 'l', kind: 'secondary hug' })}</div> : null}</div>;
 export const drMedList = d => <><p className="dr-label">Medicines</p>{d.meds.length ? d.meds.map(drMedEdit) : <p className="dr-body tertiary">No medicines yet.</p>}
   <button className="btn secondary l" data-act="d-addmed">{d.meds.length ? 'Add another medicine' : 'Add a medicine'}</button></>; // Y26
 // R24: the follow-up's real date shows while choosing.
-export const drFollowRadio = d => drRadio('Follow-up', [['none', 'No follow-up'], ['2w', `In 2 weeks · ${dayLabel(FU_DAY)}`], ['other', 'Other date']], d.follow, 'd-follow');
+export const drFollowRadio = d => <div className="stack4">{drRadio('Follow-up', [['none', 'No follow-up'], ['2w', `In 2 weeks · ${dayLabel(FU_DAY)}`], ['other', 'Other date']], d.follow, 'd-follow')}
+  {d.followErr ? support(d.followErr, 'err') : null}</div>; // nothing pre-chosen: the doctor decides
 export const drFollowText = d => d.follow === '2w' ? `In 2 weeks · ${dayLabel(FU_DAY)}` : d.follow !== 'other' ? 'No follow-up'
   : (p => p && !drDateErr(d.followDate) ? dayLabel(new Date(p.y, p.m, p.d)) : 'Follow-up needed, date not set')(parseDob(d.followDate || ''));
 // F03/R03/T02/V02/T21: a draft that was kept says so when it comes back.
@@ -390,7 +391,7 @@ Object.assign(SCREENS, {
       <div className="inset">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}</div>
       <div className="inset">{drComment(r, S.drRep)}</div>
       <div style={{ height: 20, flex: 'none' }}></div>
-      <div className="inset">{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'd-release', { disabled: !rel.choice })}</div>
+      <div className="inset">{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'd-release', { disabled: !rel.choice || !rel.comment.trim() })}</div>
     </div>, { bar: drBar('Review report', true) });
   },
 
@@ -552,7 +553,7 @@ Object.assign(ACTIONS, {
     // F04/F23: nothing pre-filled — the prepared note is only the placeholder (drNoteField).
     // F03/R03/T02/V02: the draft lives in drKept from the start, so every way out (Back, a tab, another patient, the desktop X) keeps it.
     const kept = S.drKept[S.dp];
-    S.drDraft = kept || { note: '', meds: [], follow: 'none', followDate: '' };
+    S.drDraft = kept || { note: '', meds: [], follow: null, followDate: '' }; // no follow-up decision made for the doctor
     S.drDraft.restored = !!kept;
     S.drKept = { ...S.drKept, [S.dp]: S.drDraft };
     if (S.app === 'desk') { Object.assign(S, { screen: 'kqueue', stack: [], kSel: S.dp, kView: 'complete' }); render(); return document.getElementById('k-note')?.focus(); } // the note is written inline; Run 7: focus there, not on Complete
@@ -560,8 +561,10 @@ Object.assign(ACTIONS, {
   },
   'd-checkin': id => { pickTab('reception'); ACTIONS['st-arr'](id); }, // Run 7: no dead end in a demo — the arrival opens at Reception
   'd-resume': id => { S.sheet = null; if (S.app === 'desk') { S.dp = id; return ACTIONS['d-start'](); } ACTIONS['d-patient'](id); ACTIONS['d-start'](); }, // V21: the "You're with …" banner; Run 6 Y04: the sheet's "Finish … first"
-  'd-follow': v => { S.drDraft.follow = v; render(); },
-  'd-complete': () => { S.sheet = 'drdone'; render(); }, // F05/R08/T12/V17: review first
+  'd-follow': v => { S.drDraft.follow = v; S.drDraft.followErr = ''; render(); },
+  'd-complete': () => { // F05/R08/T12/V17: review first; and a follow-up decision, even if it's "No follow-up"
+    if (!S.drDraft.follow) { S.drDraft.followErr = 'Choose a follow-up, or No follow-up.'; render(); return document.querySelector('.phone [role=radiogroup][aria-label="Follow-up"] [role=radio]')?.focus(); }
+    S.sheet = 'drdone'; render(); },
   'd-complete-ok': () => {
     S.drDraft.note = drNoteOf(S.drDraft);
     if (S.dp === 'as') { // what Anisha now sees: her visit complete, these notes, and this follow-up advice
@@ -584,7 +587,8 @@ Object.assign(ACTIONS, {
     render();
   },
   'd-keep': how => { const rel = S.drRel; rel.choice = rel.next; if (how === 'replace') Object.assign(rel, { comment: '', edited: false }); S.sheet = null; render(); }, // T15
-  'd-release': () => { if (!S.drRel.choice) return; S.sheet = 'drrelease'; render(); }, // W06: no decision, no release
+  'd-usecomment': () => { S.drRel.comment = drSuggest(); render(); document.getElementById('d-comment')?.focus(); },
+  'd-release': () => { if (!S.drRel.choice || !S.drRel.comment.trim()) return; S.sheet = 'drrelease'; render(); }, // W06: no decision, no release
   'd-release-ok': () => {
     S.sheet = null; drRelease();
     if (S.app === 'desk') { Object.assign(S, { screen: 'kreports', stack: [], kRep: null }); return render(); }
@@ -649,15 +653,15 @@ later(() => FLOW.push(['Doctor app', [ // the presets read DR_DRAFTS, ready only
   ['D03d', 'Patient snapshot — visit complete', 'Taps a Done patient', "A finished visit — a status tag replaces the Start visit button. Reused for every other ‘Done’ patient in today's queue.", DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'bt' })],
   ['D03e', 'Patient snapshot — not arrived', 'Taps Sunita', "A patient who hasn't checked in yet — no Start visit action available.", DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'sk' })],
   ['D03i', 'Start visit — someone still with you', 'Start visit, while Nabin is with the doctor', "New (Run 6 Y04): starting a visit never completes anyone. Finish Nabin's first (opens his visit), or keep it open and start Anisha's.", DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'as', sheet: 'drbusy' })],
-  ['D04', 'Complete visit', 'Start visit', "Writing the note and prescribing, with the exact wording that later appears in the patient's own Health tab. Completing it moves Anisha's Care to Visit complete.", DW({ screen: 'dvisit', stack: ['dqueue'], dp: 'as', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as } })],
+  ['D04', 'Complete visit', 'Start visit', "Writing the note and prescribing, with the exact wording that later appears in the patient's own Health tab. Completing it moves Anisha's Care to Visit complete.", DW({ screen: 'dvisit', stack: ['dqueue'], dp: 'as', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { note: '', meds: [], follow: null, followDate: '' } })],
   ['D04b', 'Complete visit — Nabin', 'Start visit', "Nabin's own diagnosis and prescriptions, distinct from Anisha's.", DW({ screen: 'dvisit', stack: ['dqueue'], dp: 'nt', drDraft: { ...DR_DRAFTS.nt } })],
   ['D05', 'Reports', 'Reports tab', "Lab results waiting for the doctor's review before a patient can see them.", DW({ screen: 'dreports' })],
   ['D05b', 'No reports pending', 'All released', "The reports queue's empty state.", DW({ screen: 'dreports', drPending: [] })],
   ['D05c', 'Reports — released today', 'After releasing', 'New (Run 6 Y06): each report released today says who released it and when, and can be taken back after the few seconds of Undo have gone.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null, words: DR_REPORTS.cbc.normal }] })],
   ['D05d', 'Take a report back', 'Take back', 'New (Run 6 Y06): asks first. The patient stops seeing the comment, the report goes back to Needs review to correct, and Released today keeps a record that it was taken back.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null, words: DR_REPORTS.cbc.normal }], drBack: 'cbc', sheet: 'drretract' })],
-  ['D06', 'Report detail', "Taps Anisha's CBC", 'Raw lab values, a release decision, and a comment for the patient — the values themselves never reach the patient app.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'normal', comment: DR_REPORTS.cbc.normal } })],
+  ['D06', 'Report detail', "Taps Anisha's CBC", 'Raw lab values, a release decision, and a comment for the patient — the values themselves never reach the patient app.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: drRelNew() })],
   ['D06b', 'Report — flag follow-up', 'I need to see them again', 'The alternate branch when a result needs a conversation, not just a release. On her side, the report then asks her to book a follow-up.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW } })],
-  ['D06c', 'Report detail — Kabita', "Taps Kabita's lipid panel", "A second patient's own report, not a reused stand-in.", DW({ screen: 'dreport', stack: ['dreports'], drRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal } })],
+  ['D06c', 'Report detail — Kabita', "Taps Kabita's lipid panel", "A second patient's own report, not a reused stand-in.", DW({ screen: 'dreport', stack: ['dreports'], drRep: 'lipid', drRel: drRelNew() })],
   ['D07', 'Profile', 'Profile tab', "The doctor's own account — registration, department, and sign out.", DW({ screen: 'dprofile' })],
   ['D07b', 'Account settings', 'Change password / Notifications', "Both settings on one scrollable screen — Profile's two rows land here with the right section already in view.", DW({ screen: 'dsettings', stack: ['dprofile'] })],
   ['D02c', 'Queue — status filter', 'Status', 'One status at a time. Only statuses someone has today are offered, so the list never comes up empty.', DW({ screen: 'dqueue', drMenu: 'status' })],

@@ -69,7 +69,7 @@ export const TRUSTEES = [{ id: 'tb', ini: 'BK', name: 'Bimala Karki', title: 'Tr
 export const EXTRA_STATE_ST = () => ({
   stMe: null, stErr: false, stForgot: false, stHoliday: false, stAccess: {}, stDocs: [], walk: {}, ckAt: {},
   rq: { ...ARR_STATE } /* everyone else's arrivals today (data.js) */, leave: { ms: 'approved', pk: 'pending', ms0: 'approved', rs1: 'approved', sr1: 'approved' },
-  lvCover: {}, lvCov: '', // Run 7: who covers an approved request (person id), and the choice being made
+  lvCover: {}, lvCov: null, // Run 7: who covers an approved request (person id), and the choice being made
   lvHist: {}, // Run 6 Y07: decisions that were reopened, kept per request
   lvBy: { ms: ['Anjali Basnet', 'Aug 21, 10:05 AM'], ms0: ['Anjali Basnet', 'Aug 4, 9:40 AM'], rs1: ['Anjali Basnet', 'Aug 14, 2:15 PM'], sr1: ['Anjali Basnet', 'Aug 4, 11:20 AM'] }, // T16/W08: who decided, and when
   lvWhy: {}, lvAsk: null, lvNote: '', // W08: the denial reason sent to the employee; the decision waiting on its confirm sheet
@@ -795,7 +795,7 @@ Object.assign(OVERLAY, {
       <div className="csheet" role="dialog" aria-modal="true" aria-labelledby="sl-t"><span className="handle"></span>
         <div className="cs-text"><h2 className="cs-t" id="sl-t">{deny ? `Deny ${first}'s ${l.type.toLowerCase()}?` : `Approve ${first}'s ${l.type.toLowerCase()}?`}</h2>
           <p className="lede">{p.name} · {leaveSpan(l)} · {leaveDays(l)}. {first} is told straight away{deny ? ', with your reason if you give one' : ''}.{deny ? '' : ` ${cov[0]}.`}</p>
-          {!deny && cov[2] && coverFree(k).length ? <div className="stack4">{drRadio('Who covers?', [...coverFree(k).map(x => [x.id, `${x.name} · ${x.dept}`]), ['', 'Nobody yet']], S.lvCov || '', 'st-lvcov')}</div> : null}{/* Run 7 */}
+          {!deny && cov[2] && coverFree(k).length ? <div className="stack4">{drRadio('Who covers?', [...coverFree(k).map(x => [x.id, `${x.name} · ${x.dept}`]), ['nobody', 'Nobody yet']], S.lvCov, 'st-lvcov')}</div> : null}{/* Run 7 */}
           {deny ? <div className="field-wrap"><label className="label" htmlFor="sl-why">Reason for {first} (optional)</label><div className="field"><input id="sl-why" placeholder="e.g. Cardiology has no nurse cover those days" value={S.lvNote}
             onChange={e => { S.lvNote = e.target.value; paint(); }} /></div></div> : null}</div>
         <div className="cs-acts">{btn(deny ? 'Deny request' : 'Approve request', 'st-leave-ok', { kind: deny ? 'destructive' : 'primary' })}{goBack()}</div></div><div className="sheet-home"></div></>; },
@@ -952,11 +952,11 @@ Object.assign(ACTIONS, {
   },
   'st-asnew': () => addWalkIn(wkRecord()),
   // HR
-  'st-leave': v => { Object.assign(S, { lvAsk: v, lvNote: '', lvCov: '', sheet: 'stleave' }); render(); },
+  'st-leave': v => { Object.assign(S, { lvAsk: v, lvNote: '', lvCov: null, sheet: 'stleave' }); render(); }, // nothing pre-chosen
   'st-lvcov': id => { S.lvCov = id; paint(); }, // Run 7 // F16/V11/W08: confirm first
   'st-leave-ok': () => { const k = S.stId, v = S.lvAsk;
     S.leave[k] = v; S.lvBy[k] = [stMe().name, `today, ${now()}`]; S.lvWhy[k] = v === 'denied' ? S.lvNote.trim() : '';
-    S.lvCover = { ...S.lvCover, [k]: v === 'approved' ? S.lvCov || '' : '' }; // Run 7
+    S.lvCover = { ...S.lvCover, [k]: v === 'approved' && S.lvCov && S.lvCov !== 'nobody' ? S.lvCov : '' }; // Run 7; nothing picked means nobody yet
     S.sheet = null; toast(`${person(LEAVES[k].who).name}'s leave ${v}.`, ['Undo', `st-lvundo:${k}`]); render(); },
   // T13: a CSV for payroll — start date, grade, and August's working, present, leave and absent days — through the browser's own download.
   'st-payroll': () => { const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
