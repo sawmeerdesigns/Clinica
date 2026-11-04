@@ -16,9 +16,9 @@ Object.assign(NE, {
   'Your clinic, in your pocket.': 'तपाईंको क्लिनिक, तपाईंको खल्तीमा।', 'City Hospital': 'सिटी हस्पिटल', 'You can change this any time in Profile.': 'यो जुनसुकै बेला प्रोफाइलमा बदल्न सकिन्छ।',
   "Book with your clinic's own doctors.": 'आफ्नै क्लिनिकका डाक्टरसँग बुक गर्नुहोस्।', 'See who is in today and choose a time that suits you.': 'आज को-को हुनुहुन्छ हेर्नुहोस् र आफूलाई मिल्ने समय छान्नुहोस्।',
   'Know the moment something changes.': 'केही बदलिनासाथ थाहा पाउनुहोस्।', "If your doctor is running late or a visit moves, we'll tell you straight away.": 'डाक्टर ढिला हुनुभयो वा भेटको समय सर्‍यो भने हामी तुरुन्तै खबर गर्छौं।',
-  'Dr. Acharya is running late': 'Dr. Acharya ढिला हुनुहुन्छ', "Your slot is kept, and we'll message you when he's ready.": 'तपाईंको समय सुरक्षित छ। उहाँ तयार हुनुभएपछि हामी खबर गर्छौं।',
+  "Your slot is kept, and we'll message you when she's ready.": 'तपाईंको समय सुरक्षित छ। उहाँ तयार हुनुभएपछि हामी खबर गर्छौं।',
   'Everything your doctor tells you, in one place.': 'डाक्टरले भन्नुभएका सबै कुरा, एकै ठाउँमा।', 'Visits, prescriptions and reports in one place, to read again later.': 'भेट, प्रेस्क्रिप्सन र रिपोर्ट एकै ठाउँमा, पछि फेरि पढ्न।',
-  'Prescription from Dr. Acharya': 'Dr. Acharya को प्रेस्क्रिप्सन', 'Three times a day, after food': 'दिनको 3 पटक, खाना खाएपछि',
+  'Prescription from Dr. Sharma': 'Dr. Sharma को प्रेस्क्रिप्सन', 'Three times a day, after food': 'दिनको 3 पटक, खाना खाएपछि',
   'A doctor in a white coat with a stethoscope': 'सेतो कोट लगाएका, स्टेथोस्कोपसहितका डाक्टर', Back: 'पछाडि', Main: 'मुख्य', 'Phone number': 'फोन नम्बर',
   'Your new mobile number': 'तपाईंको नयाँ मोबाइल नम्बर', "We'll text a code to check it. Your records stay the same.": 'जाँच्न हामी एउटा कोड SMS गर्छौं। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।',
   "Didn't get it? Check the number above is right, then send a new one.": 'कोड आएन? माथिको नम्बर सही छ कि हेर्नुहोस्, अनि नयाँ कोड पठाउनुहोस्।',
@@ -133,16 +133,16 @@ Object.assign(SCREENS, {
 
   onb1: () => onboarding(1, "Book with your clinic's own doctors.", 'See who is in today and choose a time that suits you.',
     <div className="card">
-      <div className="avatar" aria-hidden="true">SA</div>
-      <div className="doctor"><p className="h-s">Dr. Sameer Acharya</p><p className="spec">{tr('General medicine')}</p><span className="tag">{tr('Available today')}</span></div>
+      <div className="avatar" aria-hidden="true">PS</div>{/* Run 7: a doctor the demo hospital really has */}
+      <div className="doctor"><p className="h-s">Dr. Priya Sharma</p><p className="spec">{tr('General medicine')}</p><span className="tag">{tr('Available today')}</span></div>
     </div>),
   onb2: () => onboarding(2, 'Know the moment something changes.', "If your doctor is running late or a visit moves, we'll tell you straight away.",
-    <div className="card info"><div className="text"><p className="h-s">{tr('Dr. Acharya is running late')}</p>
-      <p className="body-s">{tr("Your slot is kept, and we'll message you when he's ready.")}</p></div></div>),
+    <div className="card info"><div className="text"><p className="h-s">{tr('Dr. Sharma is running late')}</p>
+      <p className="body-s">{tr("Your slot is kept, and we'll message you when she's ready.")}</p></div></div>),
   onb3: () => onboarding(3, 'Everything your doctor tells you, in one place.', 'Visits, prescriptions and reports in one place, to read again later.',
     <div className="card">
       <div className="lead-tile"><img src={`${A}icon-prescription.svg`} width="20" height="20" alt="" /></div>
-      <div className="text"><p className="item-title">{tr('Prescription from Dr. Acharya')}</p><p className="body-s">{tr('Three times a day, after food')}</p></div>
+      <div className="text"><p className="item-title">{tr('Prescription from Dr. Sharma')}</p><p className="body-s">{tr('Three times a day, after food')}</p></div>
     </div>),
 
   phone: () => (
@@ -617,7 +617,9 @@ export function createProfile() {
 }
 
 export function endScreen(title, body) { S.endTitle = title; S.endBody = body; go('end'); }
-export function toHome() { S.stack = []; S.screen = 'home'; S.picker = null; S.unlocked = false; S.bio = null; S.sheet = null; render(); } // leaving the tab re-locks Health
+export function toHome() { // leaving Health re-locks it. Run 7: coming Home from anywhere else (a booking) keeps the Home lock open
+  if ([S.screen, ...S.stack].some(x => x === 'hempty' || HEALTH_SCREENS.includes(x))) S.unlocked = false;
+  S.stack = []; S.screen = 'home'; S.picker = null; S.bio = null; S.sheet = null; render(); }
 
 // data-act="name:arg" → ACTIONS.name(arg, el). The other modules add their own.
 Object.assign(ACTIONS, {

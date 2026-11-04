@@ -123,6 +123,49 @@ Run 6 (Y = run 6) found five S1 problems and 21 lower ones. Phase 9 fixed the S1
 | Y25 | src/doctor.jsx:48–51, :187 | Under the comment, "What Anisha will see" previews her card (the test, the comment, and the follow-up request when flagged). The developer-style hint is gone. History tags read Released / Follow-up asked, as the Released list does. | Fixed |
 | Y26 | src/app.jsx:57, src/care.jsx:367, :376, :387, src/doctor.jsx:187, :258, src/booking.jsx:230, src/more.jsx:272, src/staff.jsx:80, :234, :888 | The masked number is read as "number ending in 412". "Add a medicine" when there are none. Only the latest HbA1c shows the trend; the earlier one shows its own value. Staff sign-in says "Staff ID". A role changed from a profile stays under Staff and saves back to the profile. The wallet sheet's cancel says "Pay later" (पछि तिर्छु), not रद्द. "Change PIN" only once a PIN exists (Y09). Home's Dermatology follow-up says "not booked yet", so it isn't read as the booked one in Care. A refresh restoring the open form is covered by Y05. Not done: the Absent column cut off at 900 px (narrow desktop layout is out of scope, user decision). | Fixed |
 
+## Run 7 findings
+
+Run 7 (Z) prepared the demo: 10 sessions (S61–S70), each a demo story. No blockers; these are what would look wrong or stall in front of stakeholders.
+
+| ID | Sessions | Finding | Status |
+|---|---|---|---|
+| Z01 | S64, S65 | Demo dead end: Anisha is Not arrived in both doctor apps, and only Reception checks in | Fixed: Not arrived offers **Check in at Reception**, which opens her check-in on the Reception tab (src/doctor.jsx, src/desk.jsx) |
+| Z02 | S65 | Switching patients made an open visit look lost (Start visit again) | Fixed: an open visit reads **Continue visit**, with "Visit in progress. Your note and medicines are kept."; Start visit on desktop focuses the note, not Complete |
+| Z03 | S65 | A take-back record vanished when the corrected report was released | Fixed: re-release keeps take-back rows |
+| Z04 | S65 | Released rows didn't say what the patient sees | Fixed: "They see: “…”" on each released row |
+| Z05 | S65 | "Goes back to Pending" where the list says Needs review | Fixed: Needs review |
+| Z06 | S67 | No way to record that cover was arranged; record said "Approved without cover" | Fixed: the approve sheet asks "Who covers?" (free staff, or Nobody yet); the approved record shows "Cover: Maya Tuladhar (General medicine)" |
+| Z07 | S67 | Approved record still said "Arrange cover before approving" | Fixed: "Nobody is covering yet…" |
+| Z08 | S62 | Ramesh's Home locked again straight after he booked | Fixed: `toHome` re-locks only when leaving Health (src/app.jsx) |
+| Z09 | S62 | Anisha's held slot showed as free under Ramesh | Fixed: slots held by anyone on the phone are Taken (`othersHold`, src/booking.jsx) |
+| Z10 | S69 | After switching to Anisha with her PIN, Health asked her to create one | Fixed: the PIN that switched to her becomes hers if she had none (src/care.jsx, src/health.jsx) |
+| Z11 | S69 | Ramesh's empty Health said "Nothing here yet" beside his medicine | Fixed: "No visits or reports yet" when he tracks a medicine |
+| Z12 | S61, S63, S62 | Onboarding showed Dr. Sameer Acharya, who isn't on the hospital's list | Fixed: Dr. Priya Sharma (and "Dr. Sharma is running late", "Prescription from Dr. Sharma") |
+| Z13 | S61 | Receipt reachable only from Profile | Fixed: a paid visit has **View receipt** |
+| Z14 | S63 | Cancel banner gave the date, not the time | Fixed: "Your Aug 28, 4:30 PM visit is cancelled" |
+| Z15 | S62 | The second-visit warning didn't say whose visit, or that a second can be for someone else | Fixed: "Anisha's visit: Today, 4:30 PM… If it's for someone else, you choose who on the next screen." |
+| Z16 | S66 | Closed-department error pointed to doctors that don't exist | Fixed: "Cardiology is closed today. Send to the cover doctor below, or type another doctor." |
+| Z17 | S66 | Chest pain was queued with no urgency | Fixed: red-flag symptoms (chest pain, breathing, fainting, heavy bleeding, stroke, seizure) show "… can be an emergency. Tell the duty nurse now…". Clinical wording to confirm |
+| Z18 | S64 | Quantity not worked out for long courses | Fixed: the Quantity placeholder suggests "About 184 tablets for this dose" |
+| Z19 | S64 | "Add another medicine" title with no medicines | Fixed: "Add a medicine" (phone screen and desktop sheet) |
+| Z20 | S64 | Suggested note didn't fit a three-day fever | Fixed: "Come back if the fever is not better in 2 days." (patient side too, and Nepali) |
+| Z21 | S65 | No HbA1c range on the doctor's lab view | Fixed: the lab's reference range under the result |
+| Z22 | S67 | Escape didn't close the calendar popover, which hid the next week | Fixed: Escape closes it; it opens above the day |
+| Z23 | S67, S68 | Three-letter initials SbR, PsK | Fixed: SR, PK |
+| Z24 | S67 | Maya Tuladhar's ID CH-STF-0231 echoed the doctor's login | Fixed: CH-STF-0236 |
+| Z25 | S68 | Department header "2 doctors" listed one | Fixed: "2 doctors · 1 on leave" |
+| Z26 | S68 | Profile didn't say what an access role covers | Fixed: the role's description under Access |
+| Z27 | S70 | Masked number read with bullets on booking screens | Fixed: "number ending in 412" |
+| Z28 | S70 | Own current slot read as "taken" when rescheduling | Fixed: "your current time" |
+| Z29 | S70 | "Visit moved" didn't name the old time | Fixed: the slot and the stale calendar entry include the time |
+| Z30 | S70 | Clear search shown with nothing typed | Fixed |
+| Z31 | S61, S63, S62, S70 | First Confirm booking tap did nothing | Not a code defect: the lab driver replays steps ~120 ms apart, inside the 400 ms double-tap guard (R10). With real timing one tap books (checked) |
+| Z32 | S62 | PIN looked lost after Back | Not a code defect: with real timing the PIN is kept and Back goes Health lock → Profile (checked); the driver's fast replay |
+| Z33 | S70 | Old status message heard on later screens | Not a code defect: toasts last 5 s; the driver's replay keeps them on screen |
+| Z34 | S61, S64 | Phone shows 9:41 while staff apps are at 4:52 PM; today's 11:00 AM bookable | Deferred: the patient demo is a morning booking and the staff demo an afternoon; aligning the clocks would break the main booking story (B03 books 4:30 today) |
+| Z35 | S69 | Small grey text, no text-size setting, AD dates | Deferred: prototype limit (Large text frames exist in Figma; BS dates are on Date of birth) |
+| Z36 | S70 | Payments empty for the demo patient | Deferred: pay in the demo first (Khalti/eSewa) to show a receipt; frame P12b shows one |
+
 ## Decisions taken
 
 From the spec:
@@ -221,3 +264,4 @@ Phase 10 (the rest of run 6):
 - **Phase 8:** 528 → 547 "ok", exit 0, `page errors: []`. 19 new assertions: Nepali spot checks (Confirmed, B10, appointment detail and dates, a Care sentence, running late, the resend timer, the update screen, the notification centre, an Ask answer with the doctor's words and the medicine instructions, a report explanation, the trend and the privacy policy), the earlier HbA1c in the reports list, the trend on the patient report (H09b too) and on the desk's history list and lab view, the policy's sample banner and all ten sections, the staff apps staying English with Nepali chosen, and every patient frame rendering in Nepali without throwing. Changed: Phase 7's Nepali checks expect "आज, दिउँसो 4:30" and "आज दिउँसो 4:30 मा बुक गर्नुहोस्" (times are Nepali now), and P03 clicks Back by its Nepali label (पछाडि).
 - **Phase 9:** 547 → 583 "ok", exit 0, `page errors: []`, on both the dev server and `vite preview` (CI). New assertions: Y01 (Ramesh's Home, Care, Health and Medicines are his own; his Home locks and opens with his PIN, and Health doesn't open his medicines around the lock; switching back restores Anisha's; a visit booked for him lands on his Home), Y02 (her 4:30 reads "Your visit" and is disabled; a same-day second visit asks first, Keep just the one stays put; two visits kept, the soonest on Home, both in Care, the new one opens its own page and cancels on its own), Y03 (the longer lengths, a length/End date mismatch and Ongoing + End date blocked, 3 months saved and shown in the review sheet, an End date alone sets the length), Y04 (the start-visit sheet on phone and desktop, Nabin not completed, Finish first opens his visit), Y05 (`page.reload()` keeps a role change and its audit entry, a check-in and a walk-in, keeps the PIN, locks Health again, replays no toast), Y10 (the page and the cancel sheets name her). Changed by the decisions: the first booking books 5:00 then 5:30 instead of 4:30 then 5:00 (4:30 is hers), and Home shows the soonest visit, not the new one; "Cancel your visit…" is now "Cancel Anisha's visit…" (C05, R13); the doctor-phone and desktop queue counts drop by one (Nabin is no longer auto-completed: 6 → 5, 7 → 6, desktop 7 → 6); Anisha's Home after booking for Ramesh shows "Nothing booked yet" (B04 is now before her 4:30) and his Home shows the visit; W11 confirms the same-day sheet; F14's caregiver-PIN check moved from Ramesh's Health (now empty) to his locked Home.
 - **Phase 10:** 584 → 618 "ok", exit 0, `page errors: []`. New assertions for Y06 (take back after Undo, recorded), Y07 (denial kept in History, employee told, focus on Approve), Y08 (toast above the wallet sheet), Y09 (no PIN: Set a PIN, lock disabled), Y11 (toast waits while focused), Y12 (blank note stays blank, Use suggested note), Y13 (typed month name, picker over the desktop sheet takes clicks), Y14 (cover button, match feedback, no match), Y15 (receipt), Y16 (export summary), Y17 (range and meanwhile), Y18 (read-only line, no names on leave), Y19 (Lab role), Y20 (one tab stop, arrows, full day names), Y21 (h2 section labels), Y22 (Home names the report), Y23 (history from the open visit, Not arrived says why), Y24 (who could cover; kept after approval), Y25 (preview, Follow-up asked in history), Y26 (Pay later, Staff ID, role change from a profile, earlier HbA1c value), and a second same-day visit in Dr. Sharma's queue. Changed: no-PIN Health lock now says Set a PIN (was Change PIN), "Admin ID" → "Staff ID", the add-medicine button is found by its action (it reads "Add a medicine" when there are none), the masked number check allows the screen-reader text, and the Not arrived hint avoids the words "Start visit". `toast` is exposed on `window` for the check.
+- **Run 7:** 618 → 632 "ok", exit 0, `page errors: []`. New assertions for Z01, Z03, Z04, Z06, Z08, Z09, Z10, Z12, Z13, Z15, Z16, Z17, Z18, Z22. Changed: Ramesh's empty Health reads "No visits or reports yet"; the desktop draft check uses Continue visit; the cancel banner includes the time; Maya Tuladhar's ID is CH-STF-0236.
