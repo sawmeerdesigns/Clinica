@@ -197,6 +197,7 @@ Phase 10 (the rest of run 6):
 - **Trustee and staff on leave (Y18).** Trustees see how many staff are on leave, not who; names stay in HR.
 - **Lab access (Y19).** A new access role rather than reusing Nurse. It has no screens of its own in the prototype.
 - **Take back (Y06).** Retracting is the same restore as Undo, available all day from Released today, and it's logged there. The patient isn't sent a notice that a report was taken back.
+- **New frames.** B03c (second visit that day), D03i (someone still with you), D05c and D05d (released today, take back), HR06b (reopened leave), P05b (Health lock, no PIN yet) join H09b and P12b, so Figma can show every new state: 359 frames.
 - **Narrow desktop (Y26's 900 px header).** Not done, following the earlier decision that the narrow desktop layout isn't needed.
 
 ## Needs product input

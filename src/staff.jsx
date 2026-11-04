@@ -1026,7 +1026,7 @@ export const STAFF_NUM = {
   sstaff: s => ({ role: 'HR01d', dept: 'HR01c', status: 'HR01e' })[s.stMenu] || (s.stDone ? 'HR11c' : Object.values(s.stF).some(v => v.length) ? 'HR01b' : 'HR01'),
   sperson: s => person(s.stId)?.addedBy ? 'HR02b' : 'HR02', shdash: () => 'HR10', saddst: s => Object.keys(s.stNewErr).length ? 'HR11b' : 'HR11',
   sleave: s => s.stMenu === 'status' ? 'HR03c' : (s.stF.status || []).length ? 'HR03d' : Object.values(s.leave).includes('pending') ? 'HR03' : 'HR03b',
-  sreq: s => s.stId === 'ms' ? 'HR07' : ({ pending: 'HR04', approved: 'HR05', denied: 'HR06' })[s.leave.pk],
+  sreq: s => s.stId === 'ms' ? 'HR07' : s.lvHist?.[s.stId]?.length ? 'HR06b' : ({ pending: 'HR04', approved: 'HR05', denied: 'HR06' })[s.leave.pk],
   satt: s => s.stMenu === 'sort' ? 'HR08c' : s.stSort ? 'HR08b' : 'HR08', satt1: s => s.stCalDay ? 'HR09b' : s.stCalM !== 7 ? 'HR09c' : 'HR09',
 };
 // The sign-out confirmation can sit over any staff screen.
@@ -1116,6 +1116,7 @@ FLOW.push(['Hospital staff — HR', [
   ['HR04b', 'Leave request — deny, with a reason', 'Deny', 'Deny asks first, with an optional reason that is sent to Prasant as written. Approve asks the same way. Either can be undone for a few seconds.', SH({ screen: 'sreq', stId: 'pk', sheet: 'stleave', lvAsk: 'denied', lvNote: 'Cardiology has no nurse cover those days' })],
   ['HR05', 'Leave request — approved', 'Approve', 'Approved, with who approved it and when; Prasant is told.', SH({ screen: 'sreq', stId: 'pk', leave: { ...EXTRA_STATE_ST().leave, pk: 'approved' }, lvBy: { ...EXTRA_STATE_ST().lvBy, pk: ['Anjali Basnet', 'today, 4:52 PM'] } })],
   ['HR06', 'Leave request — denied', 'Deny', 'Denied, with who denied it and when, and the reason exactly as Prasant received it.', SH({ screen: 'sreq', stId: 'pk', leave: { ...EXTRA_STATE_ST().leave, pk: 'denied' }, lvBy: { ...EXTRA_STATE_ST().lvBy, pk: ['Anjali Basnet', 'today, 4:52 PM'] }, lvWhy: { pk: 'Cardiology has no nurse cover those days' } })],
+  ['HR06b', 'Leave request — reopened', 'Reopen', "New (Run 6 Y07): back to Pending, with the denial and what was sent kept in the request's History, then who reopened it and that Prasant was told.", SH({ screen: 'sreq', stId: 'pk', lvHist: { pk: [['Denied by Anjali Basnet, today, 4:52 PM', 'Sent: “Cardiology has no other nurse those days.”'], ['Reopened by Anjali Basnet, today, 4:55 PM', 'Prasant was told the request is being looked at again.']] } })],
   ['HR07', 'Leave request — Dr. Maya Shrestha', 'Opens Maya', 'An already approved request, read-only.', SH({ screen: 'sreq', stId: 'ms' })],
   ['HR08', 'Attendance', 'Attendance', 'This month for everyone; absences stand out in red.', SH({ screen: 'satt' })],
   ['HR08b', 'Attendance — highest absent', 'Highest to lowest absent', 'Who has missed the most days.', SH({ screen: 'satt', stSort: 'absent-desc' })],

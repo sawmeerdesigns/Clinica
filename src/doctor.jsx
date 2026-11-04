@@ -623,11 +623,11 @@ export const switchPhone = () => showApp(S.app === 'patient' ? 'doctor' : 'patie
 Object.assign(NUM, {
   dsignin: s => s.drErr ? 'D01b' : 'D01',
   dqueue: s => s.drNoPatients || !drToday().length ? 'D02b' : s.drOffline ? 'D02e' : s.drMenu === 'status' ? 'D02c' : s.drFilt !== 'all' ? 'D02d' : 'D02',
-  dpatient: s => s.dp === 'as' && drStatus('as') !== 'done' ? 'D03' : s.dp === 'nt' && drStatus('nt') !== 'done' ? 'D03c'
+  dpatient: s => s.sheet === 'drbusy' ? 'D03i' : s.dp === 'as' && drStatus('as') !== 'done' ? 'D03' : s.dp === 'nt' && drStatus('nt') !== 'done' ? 'D03c'
     : drStatus(s.dp) === 'done' ? 'D03d' : drStatus(s.dp) === 'notarrived' ? 'D03e' : 'D03',
   dhistory: s => s.drMenu === 'doc' ? 'D03h' : 'D03b', dvisitd: () => 'D03f', dvisito: () => 'D03g', dlab: () => 'D03b', // T25: no Figma frame of its own yet
   dvisit: s => s.sheet === 'drdone' ? 'D04f' : s.dp === 'nt' ? 'D04b' : s.drDraft?.follow === 'other' ? 'D04c' : 'D04', daddmed: s => DR_MED_REQ.some(k => s.drMed?.[`${k}Err`]) ? 'D04e' : 'D04d',
-  dreports: s => s.drPending.length ? 'D05' : 'D05b', dreport: s => s.sheet === 'drrelease' ? (s.drRel.choice === 'follow' ? 'D06e' : 'D06d') : s.drRep === 'lipid' ? 'D06c' : s.drRel.choice === 'follow' ? 'D06b' : 'D06',
+  dreports: s => s.sheet === 'drretract' ? 'D05d' : s.drOut.length ? 'D05c' : s.drPending.length ? 'D05' : 'D05b', dreport: s => s.sheet === 'drrelease' ? (s.drRel.choice === 'follow' ? 'D06e' : 'D06d') : s.drRep === 'lipid' ? 'D06c' : s.drRel.choice === 'follow' ? 'D06b' : 'D06',
   dprofile: s => s.sheet === 'drsignout' ? 'D07c' : 'D07', dsettings: () => 'D07b',
 });
 
@@ -642,10 +642,13 @@ later(() => FLOW.push(['Doctor app', [ // the presets read DR_DRAFTS, ready only
   ['D03c', 'Patient snapshot — Nabin', 'Taps Nabin', 'A second real patient, proving the pattern generalises beyond Anisha.', DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'nt' })],
   ['D03d', 'Patient snapshot — visit complete', 'Taps a Done patient', "A finished visit — a status tag replaces the Start visit button. Reused for every other ‘Done’ patient in today's queue.", DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'bt' })],
   ['D03e', 'Patient snapshot — not arrived', 'Taps Sunita', "A patient who hasn't checked in yet — no Start visit action available.", DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'sk' })],
+  ['D03i', 'Start visit — someone still with you', 'Start visit, while Nabin is with the doctor', "New (Run 6 Y04): starting a visit never completes anyone. Finish Nabin's first (opens his visit), or keep it open and start Anisha's.", DW({ screen: 'dpatient', stack: ['dqueue'], dp: 'as', sheet: 'drbusy' })],
   ['D04', 'Complete visit', 'Start visit', "Writing the note and prescribing, with the exact wording that later appears in the patient's own Health tab. Completing it moves Anisha's Care to Visit complete.", DW({ screen: 'dvisit', stack: ['dqueue'], dp: 'as', visitDay: 'with', drq: { ...EXTRA_STATE_DR().drq, nt: 'done' }, drDraft: { ...DR_DRAFTS.as } })],
   ['D04b', 'Complete visit — Nabin', 'Start visit', "Nabin's own diagnosis and prescriptions, distinct from Anisha's.", DW({ screen: 'dvisit', stack: ['dqueue'], dp: 'nt', drDraft: { ...DR_DRAFTS.nt } })],
   ['D05', 'Reports', 'Reports tab', "Lab results waiting for the doctor's review before a patient can see them.", DW({ screen: 'dreports' })],
   ['D05b', 'No reports pending', 'All released', "The reports queue's empty state.", DW({ screen: 'dreports', drPending: [] })],
+  ['D05c', 'Reports — released today', 'After releasing', 'New (Run 6 Y06): each report released today says who released it and when, and can be taken back after the few seconds of Undo have gone.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null }] })],
+  ['D05d', 'Take a report back', 'Take back', 'New (Run 6 Y06): asks first. The patient stops seeing the comment, the report goes back to Pending to correct, and Released today keeps a record that it was taken back.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null }], drBack: 'cbc', sheet: 'drretract' })],
   ['D06', 'Report detail', "Taps Anisha's CBC", 'Raw lab values, a release decision, and a comment for the patient — the values themselves never reach the patient app.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'normal', comment: DR_REPORTS.cbc.normal } })],
   ['D06b', 'Report — flag follow-up', 'I need to see them again', 'The alternate branch when a result needs a conversation, not just a release. On her side, the report then asks her to book a follow-up.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW } })],
   ['D06c', 'Report detail — Kabita', "Taps Kabita's lipid panel", "A second patient's own report, not a reused stand-in.", DW({ screen: 'dreport', stack: ['dreports'], drRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal } })],

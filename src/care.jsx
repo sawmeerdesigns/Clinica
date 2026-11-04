@@ -602,7 +602,7 @@ Object.assign(NUM, {
   notifs: s => s.healthEmpty ? 'N02' : s.notifOff ? 'N03' : 'N01',
   pf: s => ({ signout: 'P08', close: 'P10' })[s.sheet] || 'P01',
   pfdetails: s => s.phoneChanged ? 'PM08' : 'P02', pflang: () => 'P03', pfnotif: s => s.notifOff ? 'P09' : 'P04',
-  pflock: s => s.pinChanged ? 'PM04' : s.noSensor ? 'HM13' : s.finger !== 'on' ? 'PM10' : 'P05',
+  pflock: s => s.pinChanged ? 'PM04' : s.noSensor ? 'HM13' : !s.pin ? 'P05b' : s.finger !== 'on' ? 'PM10' : 'P05',
   pfclinic: () => 'P06', pfswitch: () => 'P07', pfpay: () => 'P12', pfrcpt: () => 'P12b', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
 });
 later(() => { NUM.confirmed = s => s.cal.appt ? 'K03' : s.booked?.for && s.booked.for !== s.fullName ? 'SB03' : 'B05'; }, ORDER.care); // over booking.jsx's; Figma sync: booked for someone else is SB03, not B05
@@ -637,6 +637,7 @@ FLOW.push(
   ]],
   ['Profile — lock, clinic and this phone', [
     ['P05', 'Health lock', 'From 01', 'Change PIN asks for the current PIN, then reuses Health\'s new-PIN screens (H22, H23). The fingerprint trade-off is stated again here, where it can be turned off.', () => ({ screen: 'pflock', stack: PF, pin: '1234', finger: 'on' })],
+    ['P05b', 'Health lock — no PIN yet', 'From 01, before Health was ever unlocked', 'New (Run 6 Y09): Set a PIN instead of Change PIN, and the shared-phone lock is off and disabled, saying a PIN is needed first. Until then Home shows everything.', () => ({ screen: 'pflock', stack: PF, pin: null })],
     ['P06', 'Your clinic', 'From 01', "Emergency guidance first: call 102, don't wait for an app. Then reception, address and hours.", () => ({ screen: 'pfclinic', stack: PF })],
     ['P07', 'Switch person', 'From 01', 'Switching asks for that person\'s Clinica PIN. An SMS code proves nothing when the family shares the number.', () => ({ screen: 'pfswitch', stack: PF })],
     ['P11', "Enter Ramesh's PIN", 'From 07 — switching to Ramesh', "Switching person asks for that person's Clinica PIN. The keypad opens their Home — not Health, which a shared Enter PIN screen would have done. Ramesh's demo PIN is 1961.", () => ({ screen: 'pfpin', stack: [...PF, 'pfswitch'], switchTo: 1, pinEntry: '19' })],

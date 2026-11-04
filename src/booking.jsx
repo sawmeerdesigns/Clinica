@@ -550,7 +550,7 @@ Object.assign(NUM, {
     : s.offline ? 'GX01' : s.careEmpty && !s.more.length ? 'SH01' : s.appt.day === 0 && ({ late: 'SH02', checkedin: 'SH03', done: 'SH04' })[s.visitDay] || 'B01',
   finddoctor: s => s.sheet === 'filter' ? 'SB12' : filtersOn() ? 'SB13' : s.query.trim() ? (CONDITIONS.find(([re]) => re.test(s.query.toLowerCase()))?.[1] ? 'SB06' : 'SB07')
     : ({ Cardiology: 'SB08', Dermatology: 'SB09', Paediatrics: 'SB10', Gynaecology: 'SB11' })[s.specialty] || (Object.values(s.fav).some(Boolean) ? 'SB15' : 'B02'),
-  doctor: s => !freeTimes(s.doc, s.day).length ? 'B07' : s.fav[s.doc] ? 'SB14' : 'B03',
+  doctor: s => s.sheet === 'dupvisit' ? 'B03c' : !freeTimes(s.doc, s.day).length ? 'B07' : s.fav[s.doc] ? 'SB14' : 'B03',
   history: () => 'B03b', confirmed: () => 'B05', notif: () => 'B06', failed: s => ({ taken: 'B08', offline: 'SB04', noreply: 'SB05' })[s.failKind],
   review: s => s.sheet === 'bookfor' ? 'SB01' : s.bookFor && s.bookFor !== s.fullName ? 'SB02' : s.payWith && s.payWith !== 'reception' ? 'B04b' : 'B04',
 });
@@ -565,6 +565,7 @@ FLOW.push(
     ['B01', 'Home', 'Taps ‘Book a visit’', 'Next appointment as a Neutral card; quick actions are Specialty tiles; Recent names no drug.', () => ({ screen: 'home' })],
     ['B02', 'Find doctor', 'Taps Dr. Priya Sharma', "Docked search, specialty filter clipped at the edge as the scroll cue, one clinic's doctors, no ratings.", () => ({ screen: 'finddoctor', stack: ['home'] })],
     ['B03', 'Doctor profile', 'Picks 4:30 PM, taps Book', 'Contained header, fee up front, Saturday closed, taken slots shown as taken, no wait estimate.', () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], careEmpty: true })],
+    ['B03c', 'Doctor profile — a second visit that day', 'Picks 5:00 PM, taps Book', 'New (Run 6 Y02): her 4:30 reads “Your visit”. Booking another time with the same doctor that day asks first: keep just the one, or book a second visit.', () => ({ screen: 'doctor', stack: ['home', 'finddoctor'], time: '5:00 PM', sheet: 'dupvisit' })],
     ['B03b', 'Visit history', 'Linked from the avatar on Home', 'Sits beside 03 in Figma with no caption or arrow; this prototype opens it from the profile avatar on Home.', () => ({ screen: 'history', stack: ['home'] })],
     ['B04', 'Review booking', 'Taps Confirm booking', 'Summary rows carry no chevrons because nothing on them is tappable. Pay at reception.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'reception', careEmpty: true })],
     ['B04b', 'Review booking — pay now', 'Taps eSewa', 'Nothing is preselected (R10): Pay at reception, eSewa, Khalti or Fonepay is chosen before Confirm. The Fee row says “to pay with eSewa” until the wallet confirms.', () => ({ screen: 'review', stack: [...BOOKING_STACK], payWith: 'esewa', careEmpty: true })],
