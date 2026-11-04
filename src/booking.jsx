@@ -374,9 +374,9 @@ Object.assign(SCREENS, {
         <div className="inset"><p className="confirm-line">{ne() ? `${other ? first : 'तपाईं'} ${d.name} सँग ${when(a.day, a.time).replace(/^(आज|भोलि),/, '$1')} मा बुक हुनुभयो।` /* Phase 8 */
           : <>{other ? `${first} is` : "You're"} booked with {d.name} {a.day === 0 ? `at ${a.time} today` : `${rel(a.day)} at ${a.time}`}.</>}</p></div>
         {S.bookedOnce ? <div className="inset" style={{ alignSelf: 'stretch' }}>{notice('success', "You're booked once", "Trying again didn't make a second booking.")}</div> : null}{/* W14 */}
+        <div className="inset" style={{ alignSelf: 'stretch' }}>{payCard(a)}</div>{/* F09/T05/W02; design review: the payment's outcome right under the booking message, not below the fold */}
         <div className="inset stack8" style={{ alignSelf: 'stretch' }}>{label('Booking summary')}{apptCard(a)}</div>
         <div style={{ alignSelf: 'stretch' }}>{rows([row('icon-person.svg', tr('Booking for'), a.for || S.fullName), row('lt-clipboard.svg', tr('Reason for visit'), a.reason || tr('None given'))])}</div>
-        <div className="inset" style={{ alignSelf: 'stretch' }}>{payCard(a)}</div>{/* F09/T05/W02 */}
         <div className="inset" style={{ alignSelf: 'stretch' }}><div className="notes">
           <div className="note-line"><img src={`${A}icon-schedule.svg`} width="18" height="18" alt="" /><p>{tr('Arrive 15 minutes early and check in at the reception desk.')}</p></div>
           <div className="note-line"><img src={`${A}icon-chat.svg`} width="18" height="18" alt="" /><p>{other
