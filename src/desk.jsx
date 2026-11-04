@@ -79,7 +79,8 @@ export function kReportDetail() {
   const k = S.kRep;
   if (!k) return <section className="k-detail center">{kEmpty('qa-lab.svg', 'Select a report', 'Choose one from the list to review and release it.')}</section>;
   const r = DR_REPORTS[k], p = DR_PATIENTS[r.pid], rel = S.drRel, follow = rel.choice === 'follow';
-  return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'space-between' }}>{kId(p, `${drPid(r.pid)} · ${r.test} · ${r.date} · City Hospital lab`)}
+  return <section className="k-detail"><a href="#" className="k-link k-narrow" data-act="k-rep-close"><img src={`${A}icon-chevron-left-action-16.svg`} width="16" height="16" alt="" />Back to reports</a>{/* narrow screens: the list is hidden while a report is open */}
+    <div className="k-hd" style={{ justifyContent: 'space-between' }}>{kId(p, `${drPid(r.pid)} · ${r.test} · ${r.date} · City Hospital lab`)}
       <a href="#" className="k-link" data-act={`d-hist:${r.pid}`}>View {r.first}'s history{kChevR}</a></div>{/* F24/R20/T25: history from the report */}
     <div className="k-stack">
       <div className="stack8"><p className="dr-label">Result</p>
@@ -158,6 +159,7 @@ Object.assign(ACTIONS, {
   'k-view': v => { if (v === 'history') S.kHistFrom = S.kView === 'complete' ? 'complete' : 'visit'; S.kView = v; render(); },
   'k-start': () => { S.dp = S.kSel; ACTIONS['d-start'](); }, // the note is written inline (doctor.jsx); Run 6 Y04: it may ask first
   'k-complete': () => { S.dp = S.kSel; ACTIONS['d-complete'](); }, // F05: the review sheet; confirming completes (doctor.jsx d-complete-ok)
+  'k-rep-close': () => { S.kRep = null; render(); },
   'k-rep': k => { S.kRep = S.drRep = k; S.drRel = drRelNew(); render(); }, // F01/R01: the open report is drRep too; W06/F23: undecided
   'k-release': () => { S.drRep = S.kRep; ACTIONS['d-release'](); }, // asks first; confirming releases (doctor.jsx)
   'k-settings': sec => { S.drSec = sec; S.drPwErr = ''; drPwClear(); go('kset'); },

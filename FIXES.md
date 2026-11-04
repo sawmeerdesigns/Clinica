@@ -121,7 +121,7 @@ Run 6 (Y = run 6) found five S1 problems and 21 lower ones. Phase 9 fixed the S1
 | Y23 | src/desk.jsx:48, :62, :69, :156, src/doctor.jsx:315 | The desktop visit editor has "View Anisha's history and labs", whose Back returns to the open visit. A Not arrived patient says why on phone and desktop: "… hasn't checked in yet. Reception checks patients in; then you can start the visit here." | Fixed |
 | Y24 | src/staff.jsx:661, :716 | A no-cover warning lists who could cover (same job, other departments, not on leave then), and stays on the record after approval as "Approved without cover: …". | Fixed |
 | Y25 | src/doctor.jsx:48–51, :187 | Under the comment, "What Anisha will see" previews her card (the test, the comment, and the follow-up request when flagged). The developer-style hint is gone. History tags read Released / Follow-up asked, as the Released list does. | Fixed |
-| Y26 | src/app.jsx:57, src/care.jsx:367, :376, :387, src/doctor.jsx:187, :258, src/booking.jsx:230, src/more.jsx:272, src/staff.jsx:80, :234, :888 | The masked number is read as "number ending in 412". "Add a medicine" when there are none. Only the latest HbA1c shows the trend; the earlier one shows its own value. Staff sign-in says "Staff ID". A role changed from a profile stays under Staff and saves back to the profile. The wallet sheet's cancel says "Pay later" (पछि तिर्छु), not रद्द. "Change PIN" only once a PIN exists (Y09). Home's Dermatology follow-up says "not booked yet", so it isn't read as the booked one in Care. A refresh restoring the open form is covered by Y05. Not done: the Absent column cut off at 900 px (narrow desktop layout is out of scope, user decision). | Fixed |
+| Y26 | src/app.jsx:57, src/care.jsx:367, :376, :387, src/doctor.jsx:187, :258, src/booking.jsx:230, src/more.jsx:272, src/staff.jsx:80, :234, :888 | The masked number is read as "number ending in 412". "Add a medicine" when there are none. Only the latest HbA1c shows the trend; the earlier one shows its own value. Staff sign-in says "Staff ID". A role changed from a profile stays under Staff and saves back to the profile. The wallet sheet's cancel says "Pay later" (पछि तिर्छु), not रद्द. "Change PIN" only once a PIN exists (Y09). Home's Dermatology follow-up says "not booked yet", so it isn't read as the booked one in Care. A refresh restoring the open form is covered by Y05. The Absent column cut off at 900 px: fixed in the responsive pass (below). | Fixed |
 
 ## Run 7 findings
 
@@ -165,6 +165,16 @@ Run 7 (Z) prepared the demo: 10 sessions (S61–S70), each a demo story. No bloc
 | Z34 | S61, S64 | Phone shows 9:41 while staff apps are at 4:52 PM; today's 11:00 AM bookable | Deferred: the patient demo is a morning booking and the staff demo an afternoon; aligning the clocks would break the main booking story (B03 books 4:30 today) |
 | Z35 | S69 | Small grey text, no text-size setting, AD dates | Deferred: prototype limit (Large text frames exist in Figma; BS dates are on Date of birth) |
 | Z36 | S70 | Payments empty for the demo patient | Deferred: pay in the demo first (Khalti/eSewa) to show a receipt; frame P12b shows one |
+
+## Responsive pass
+
+After run 7 (user request: the prototype only; Figma stays at the designed 375 px phone and 1440 px desktop sizes). Every frame was swept at 1280, 1024, 900, 768, 600 and 390 px for page-level sideways scroll, content past the window edge and clipped text, then checked by eye (src/styles.css, end of file; src/desk.jsx).
+- Role tabs wrap instead of running off the edge (≤860 px).
+- Data tables share the width below 1024 px and scroll sideways inside themselves only below 600 px, so the Attendance "Absent" column (Y26) shows at 900 px.
+- Filter menus opened from a header's right side open leftwards; on phones every filter menu (and the date-range calendar) opens in place, full width.
+- On phones, two-up form fields (walk-in, add staff) stack, dashboard stats go two per row, doctor rows wrap, the attendance calendar's days share the width, and search fields are full width.
+- Doctor Dashboard on a narrow screen shows the list or the open patient/report, not one stacked far below the other; the report gets "Back to reports" (the patient view already has its close).
+- check.cjs: no frame scrolls the page sideways at 900 or 390 px, and the phone Doctor Dashboard shows the open patient.
 
 ## Decisions taken
 
@@ -241,13 +251,12 @@ Phase 10 (the rest of run 6):
 - **Lab access (Y19).** A new access role rather than reusing Nurse. It has no screens of its own in the prototype.
 - **Take back (Y06).** Retracting is the same restore as Undo, available all day from Released today, and it's logged there. The patient isn't sent a notice that a report was taken back.
 - **New frames.** B03c (second visit that day), D03i (someone still with you), D05c and D05d (released today, take back), HR06b (reopened leave), P05b (Health lock, no PIN yet) join H09b and P12b, so Figma can show every new state: 359 frames.
-- **Narrow desktop (Y26's 900 px header).** Not done, following the earlier decision that the narrow desktop layout isn't needed.
+- **Narrow desktop (Y26's 900 px header).** Fixed later in the responsive pass.
 
 ## Needs product input
 
 - **Privacy policy (T26).** Legal review of the sample policy, in both languages.
 - **Nepali review.** A native speaker should read the translations once, especially the pronoun options (उनी with a qualifier), "Due" → गर्नुपर्ने, and the afternoon/evening cut-off.
-- **Narrow desktop layout (V04).** Not needed (user decision); Y26's cut-off Absent header at 900 px stays.
 - **Clinical wording (Y17).** The HbA1c reference range and the "Until you see your doctor" line.
 
 ## check.cjs changes
@@ -265,3 +274,4 @@ Phase 10 (the rest of run 6):
 - **Phase 9:** 547 → 583 "ok", exit 0, `page errors: []`, on both the dev server and `vite preview` (CI). New assertions: Y01 (Ramesh's Home, Care, Health and Medicines are his own; his Home locks and opens with his PIN, and Health doesn't open his medicines around the lock; switching back restores Anisha's; a visit booked for him lands on his Home), Y02 (her 4:30 reads "Your visit" and is disabled; a same-day second visit asks first, Keep just the one stays put; two visits kept, the soonest on Home, both in Care, the new one opens its own page and cancels on its own), Y03 (the longer lengths, a length/End date mismatch and Ongoing + End date blocked, 3 months saved and shown in the review sheet, an End date alone sets the length), Y04 (the start-visit sheet on phone and desktop, Nabin not completed, Finish first opens his visit), Y05 (`page.reload()` keeps a role change and its audit entry, a check-in and a walk-in, keeps the PIN, locks Health again, replays no toast), Y10 (the page and the cancel sheets name her). Changed by the decisions: the first booking books 5:00 then 5:30 instead of 4:30 then 5:00 (4:30 is hers), and Home shows the soonest visit, not the new one; "Cancel your visit…" is now "Cancel Anisha's visit…" (C05, R13); the doctor-phone and desktop queue counts drop by one (Nabin is no longer auto-completed: 6 → 5, 7 → 6, desktop 7 → 6); Anisha's Home after booking for Ramesh shows "Nothing booked yet" (B04 is now before her 4:30) and his Home shows the visit; W11 confirms the same-day sheet; F14's caregiver-PIN check moved from Ramesh's Health (now empty) to his locked Home.
 - **Phase 10:** 584 → 618 "ok", exit 0, `page errors: []`. New assertions for Y06 (take back after Undo, recorded), Y07 (denial kept in History, employee told, focus on Approve), Y08 (toast above the wallet sheet), Y09 (no PIN: Set a PIN, lock disabled), Y11 (toast waits while focused), Y12 (blank note stays blank, Use suggested note), Y13 (typed month name, picker over the desktop sheet takes clicks), Y14 (cover button, match feedback, no match), Y15 (receipt), Y16 (export summary), Y17 (range and meanwhile), Y18 (read-only line, no names on leave), Y19 (Lab role), Y20 (one tab stop, arrows, full day names), Y21 (h2 section labels), Y22 (Home names the report), Y23 (history from the open visit, Not arrived says why), Y24 (who could cover; kept after approval), Y25 (preview, Follow-up asked in history), Y26 (Pay later, Staff ID, role change from a profile, earlier HbA1c value), and a second same-day visit in Dr. Sharma's queue. Changed: no-PIN Health lock now says Set a PIN (was Change PIN), "Admin ID" → "Staff ID", the add-medicine button is found by its action (it reads "Add a medicine" when there are none), the masked number check allows the screen-reader text, and the Not arrived hint avoids the words "Start visit". `toast` is exposed on `window` for the check.
 - **Run 7:** 618 → 632 "ok", exit 0, `page errors: []`. New assertions for Z01, Z03, Z04, Z06, Z08, Z09, Z10, Z12, Z13, Z15, Z16, Z17, Z18, Z22. Changed: Ramesh's empty Health reads "No visits or reports yet"; the desktop draft check uses Continue visit; the cancel banner includes the time; Maya Tuladhar's ID is CH-STF-0236.
+- **Responsive pass:** 632 → 635 "ok": every frame at 900 and 390 px without sideways page scroll, and the phone Doctor Dashboard list/detail.

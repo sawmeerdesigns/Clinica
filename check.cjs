@@ -882,6 +882,12 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('button.btn:text-is("Unlock")'); assert(await P('text=Enter your PIN'), 'Y05: her PIN was kept, so unlocking asks for it'); await pin('1234'); assert(await P('text=Taking now'), 'Y05: and opens Health');
   await p.click('[data-tab="reception"]'); assert(await P('text=22 patients across the hospital') && await P('.k-row:has-text("Gita Basnet")') && await p.evaluate(() => drStatus('sk')) === 'waiting', 'Y05: the walk-in and the check-in survive the reload');
   await p.click('[data-tab="admin"]'); await p.click('.k-ni >> text=Settings'); assert(await has('Sabina Rai: Front desk → Front desk + approves leave'), 'Y05: the role change and its audit entry survive the reload');
+  // Responsive pass: no frame scrolls the page sideways at tablet or phone width (tables scroll inside themselves)
+  for (const w of [900, 390]) { const q = await b.newPage({ viewport: { width: w, height: 900 } }); q.on('pageerror', e => errs.push(e.message)); await q.goto(process.env.URL || 'http://localhost:5173'); await q.waitForTimeout(600);
+    const wide = await q.evaluate(() => frameIds().filter(n => { jumpTo(n); return document.documentElement.scrollWidth > innerWidth + 1; }));
+    assert(!wide.length, `responsive: nothing wider than a ${w} px window (${wide.join(', ')})`);
+    if (w === 390) { await q.evaluate(() => jumpTo('K11')); assert(!(await q.isVisible('.k-list')) && await q.isVisible('.k-detail'), 'responsive: on a phone the Doctor Dashboard shows the open patient, not the list under it'); }
+    await q.close(); }
   console.log('page errors:', errs);
   if (errs.length) process.exitCode = 1; // CI: a page error fails the run
   await b.close();
