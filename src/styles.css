@@ -415,6 +415,8 @@ button.card:hover { background: var(--surface-secondary); }
 .pick.day { flex: none; width: 66px; height: 56px; padding: 0; white-space: nowrap; }
 .pick.day .d1 { font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 .pick.time { width: calc((100% - 16px) / 3); height: 40px; padding: 0 16px; }
+.pick.time.mine { height: auto; min-height: 40px; padding: 4px 8px; border-color: var(--border-action); } /* Run 6 Y02: her own visit */
+.pick.time.mine .d1 { font-weight: 400; font-size: 12px; line-height: 16px; }
 .times { display: flex; flex-wrap: wrap; gap: 8px; }
 .pick[aria-checked="true"] { background: var(--surface-action); border-color: var(--border-action); color: var(--text-on-action); }
 .pick:disabled { background: var(--surface-disabled); border-color: var(--border-disabled); color: var(--text-disabled); cursor: not-allowed; }
@@ -1014,6 +1016,7 @@ button.att-c[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
    W03: every success state uses it, so the message never blocks a tap; only its action catches pointer events. */
 .toast-region { position: absolute; left: 16px; right: 16px; bottom: 104px; z-index: 5; display: flex; justify-content: center; pointer-events: none; }
 .phone.desk .toast-region { bottom: 32px; }
+.phone:has([aria-modal="true"]) .toast-region { bottom: auto; top: 56px; } /* Run 6 Y08: never over a sheet's buttons */
 .toast { display: flex; align-items: center; gap: 16px; max-width: 480px; padding: 12px 16px; border-radius: var(--radius-large); background: var(--text-primary); color: var(--text-on-action); font: 600 14px/20px "Open Sans"; animation: fade .2s; }
 .toast-act { pointer-events: auto; flex: none; border: 0; background: none; padding: 4px 0; font: 700 14px/20px "Open Sans"; color: #9cc3ff; cursor: pointer; }
 /* R30: pending count on the Reports nav item */
@@ -1054,3 +1057,11 @@ button.att-c[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
   .phone.desk :is(.scrim, .csheet, #sheet .sheet, .toast-region) { position: fixed; }
   .phone.desk :is(.csheet, #sheet .sheet, .dr-medsheet) { max-width: calc(100% - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
 }
+
+/* Run 6 Y18: the trustee's read-only line, above every page */
+.st-ro { display: flex; align-items: center; gap: 8px; }
+/* Run 6 Y20: each kind has its own mark, not just its colour: a dot (present), a bar (on leave), a ring (absent) */
+.att-c.leave::after { width: 12px; height: 3px; border-radius: 2px; }
+.att-c.absent::after { background: none; border: 1.5px solid currentColor; width: 6px; height: 6px; }
+.att-key .leave i { width: 12px; height: 3px; border-radius: 2px; }
+.att-key .absent i { background: none; border: 1.5px solid var(--text-error); }

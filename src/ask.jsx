@@ -115,7 +115,7 @@ export const visitCard = (when, where, act, doc = 'ps') => { const T = act ? 'bu
   <span className="avatar l" aria-hidden="true">{d.ini}</span>
   <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{nd(when)}</span><span className="where">{tr(where)}</span></span>
   {act ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}</T>; };
-export const todayCard = link => { const a = S.appt; return visitCard(when(a.day, a.time), `${tr(DOCTORS[a.doc].spec)}, ${DOCTORS[a.doc].opd}`, link && 'appt:today', a.doc); };
+export const todayCard = (link, a = S.appt) => visitCard(when(a.day, a.time), `${tr(DOCTORS[a.doc].spec)}, ${DOCTORS[a.doc].opd}`, link && 'appt:today', a.doc); // Run 6 Y02: any of her visits
 export const followCard = f => visitCard(`${f.day}, ${f.time}`, 'Follow-up, OPD 2', S.followup === f && 'appt:fu'); // an old snapshot links nowhere
 
 // App bar, Chat shape: back arrow and its label as one tap target, title centred. The Assistant home (no action) shows the arrow alone (Figma 633:30822).

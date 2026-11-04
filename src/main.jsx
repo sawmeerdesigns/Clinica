@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import { S, render, runLater } from './core.jsx';
+import { S, render, runLater, toast } from './core.jsx';
 import { Shell, boot, start, jumpTo, showCases, ALL } from './app.jsx';
 import './booking.jsx';
 import './health.jsx';
@@ -18,4 +18,4 @@ createRoot(document.getElementById('root')).render(<Shell />);
 
 // For check.cjs, which drives the prototype from outside.
 Object.defineProperty(window, 'S', { get: () => S });
-Object.assign(window, { frameIds: () => ALL.map(x => x[0]), render, start, jumpTo, showCases, switchPhone, showApp, drStatus, drToday, DR_PATIENTS });
+Object.assign(window, { frameIds: () => ALL.map(x => x[0]), render, start, jumpTo, showCases, switchPhone, showApp, drStatus, drToday, DR_PATIENTS, toast });

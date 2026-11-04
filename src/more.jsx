@@ -243,6 +243,7 @@ export function openSys(p) { S.sys = p; S.sheet = 'sys'; render(); }
 export const CLINIC_TEL = 'tel:+97714412345';
 export const SYS_OS = {
   'Phone settings': () => ({ title: "Open your phone's settings for Clinica?", sub: 'You can turn on notifications or calendar access there.', confirm: 'Open Settings' }),
+  'Share receipt': () => ({ title: 'Share this receipt', sub: 'As an image, to WhatsApp, Viber or Messages.', confirm: 'Share' }), // Run 6 Y15
   Calendar: () => ({ title: `Open your calendar at ${S.cancelled?.day || dayLabel(FU_DAY)}?`, sub: 'You can delete the old visit there.', confirm: 'Open Calendar' }),
 };
 export function interceptLink(e) {
@@ -268,7 +269,7 @@ OVERLAY.sys = () => {
   <div className="as" role="dialog" aria-modal="true" aria-label={sysTr(p.title)}>
     <div className="as-group"><div className="as-msg"><p className="as-t">{sysTr(p.title)}</p><p>{sysTr(p.sub)}</p></div>
       <a className="as-btn" {...link}>{sysTr(p.confirm)}</a></div>
-    <button className="as-btn as-cancel" data-act="sheet-close">{tr('Cancel')}</button>
+    <button className="as-btn as-cancel" data-act="sheet-close">{tr(p.act === 'pay-ok' ? 'Pay later' : 'Cancel')}</button>{/* Run 6 Y26: not "रद्द", which also cancels a visit */}
   </div></>;
 };
 export const SYSP = (title, sub, confirm) => () => ({ screen: 'home', sheet: 'sys', sys: { title, sub, confirm, href: '#' } });

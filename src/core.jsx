@@ -97,7 +97,11 @@ export const sepJoin = items => items.map((x, i) => <Fragment key={i}>{i > 0 && 
 let toastT;
 export const toast = (msg, action = null, ms = 5000) => { // action: [label, 'data-act'] or null
   clearTimeout(toastT); S.toast = { msg, action };
-  toastT = setTimeout(() => { S.toast = null; paint(); }, ms);
+  const end = () => { // Run 6 Y11: it waits while it's hovered or has keyboard focus (WCAG 2.2.1)
+    if (document.querySelector('.toast-region:hover') || document.activeElement?.closest('.toast-region')) { toastT = setTimeout(end, 1000); return; }
+    S.toast = null; paint();
+  };
+  toastT = setTimeout(end, ms);
 };
 export const toastClear = () => { clearTimeout(toastT); S.toast = null; };
 
