@@ -12,7 +12,7 @@ import { DAY_TIMES, DOCTORS, FEE, GM, TODAY, WALLETS, week } from './data.js';
 
 // F15/R12: tr() and the Nepali strings now live in core.jsx, shared by the whole patient app.
 // Phase 8: Nepali for this module's own lines
-Object.assign(NE, {
+Object.assign(NE, { 'Booking summary': 'बुकिङ सारांश',
   Back: 'पछाडि', Close: 'बन्द गर्नुहोस्', Main: 'मुख्य', 'Your profile': 'तपाईंको प्रोफाइल', 'City Hospital': 'सिटी हस्पिटल', Time: 'समय', Clear: 'हटाउनुहोस्',
   'Filter doctors': 'डाक्टर फिल्टर गर्नुहोस्', 'Save doctor': 'डाक्टर सेभ गर्नुहोस्', 'Remove from saved': 'सेभबाट हटाउनुहोस्', 'Clear search': 'खोज हटाउनुहोस्',
   'Clear filters': 'फिल्टर हटाउनुहोस्', doctor: 'डाक्टर', tablets: 'ट्याब्लेट', 'View history': 'इतिहास हेर्नुहोस्', Loading: 'लोड हुँदैछ',
@@ -211,7 +211,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}
       <div className="appbar">
-        <h1 className="vh">{tr('Home')}</h1>{/* W13: Home's heading, for screen readers */}<div className="brand">Clinica</div>
+        <h1 className="greet-bar">{tr('Good morning,')} <b>{S.first}</b></h1>{/* the greeting is Home's heading and its bar title, so the body starts with the visit */}
         <button className="icon-btn bell" data-act="go:notifs" aria-label={`${tr('Notifications')}${unread() ? L(', unread', ', नयाँ छ') : ''}`}>
           <img src={`${A}icon-bell.svg`} width="24" height="24" alt="" />{unread() ? <img className="dot" src={`${A}unread-dot.svg`} width="12" height="12" alt="" /> : null}</button>
         <button className="icon-btn" data-act="go:history" aria-label={tr('Your profile')}>
@@ -219,7 +219,6 @@ Object.assign(SCREENS, {
       </div>
       {offLine()}
       {S.loading ? homeSkeleton() : <div className="body g20">
-        <div className="inset greet"><p>{tr('Good morning,')}</p><p className="name">{S.first}</p></div>
         {st === 'default' ? homeLocked() ? homeLockRow() : <>{homeVisit()}{lowBanner()}</>
           : <div className="inset stack8">{label('Today')}{today}</div>}
         {st !== 'walkin' ? <div className="inset"><div className="qa">
@@ -334,14 +333,13 @@ Object.assign(SCREENS, {
       {statusBar()}{bar({ title: tr('Review booking') })}
       <div className="body g20">
         {S.fuOf ? <div className="inset stack8">{tag(tr('Follow-up'), 'info')}{fuClash()}</div> : null}{/* W11 */}
-        <div className="inset">{apptCard({ doc: S.doc, day: S.day, time: S.time })}</div>
+        <div className="inset stack8">{label('Your visit')}{apptCard({ doc: S.doc, day: S.day, time: S.time })}</div>
         {rows([<button className="list-item" data-act="sheet:bookfor">{lead('icon-person.svg')}<span className="text"><span className="item-title">{tr('Booking for')}</span><span className="body-s">{bookFor()}</span></span></button>,
           feeRow(), payBlock(), row('lt-sms.svg', tr('Confirmation'), ne() ? <>{maskedEl()} मा SMS बाट</> : <>By SMS to {maskedEl()}</>)])}
         {textArea(false)}
       </div>
-      {/* R10: the line above lifts Confirm off the spot where Book was, and Confirm waits for a payment choice */}
-      <div className="cta bordered"><p className="body-s">{S.payWith ? `NPR ${FEE}, ${howText(S.payWith)}${ne() ? '।' : '.'}` : tr('Choose how to pay to confirm.')}</p>
-        {btn(S.payWith ? tr('Confirm booking') : tr('Choose how to pay'), 'confirm', { disabled: !S.payWith })}</div>
+      {/* R10: Confirm waits for a payment choice, and ignores a tap that lands right after the screen opens. The page is the summary; nothing is squeezed above the button */}
+      <div className="cta bordered">{btn(S.payWith ? tr('Confirm booking') : tr('Choose how to pay'), 'confirm', { disabled: !S.payWith })}</div>
       {homeInd()}
     </div>),
 
@@ -376,7 +374,9 @@ Object.assign(SCREENS, {
         <div className="inset"><p className="confirm-line">{ne() ? `${other ? first : 'तपाईं'} ${d.name} सँग ${when(a.day, a.time).replace(/^(आज|भोलि),/, '$1')} मा बुक हुनुभयो।` /* Phase 8 */
           : <>{other ? `${first} is` : "You're"} booked with {d.name} {a.day === 0 ? `at ${a.time} today` : `${rel(a.day)} at ${a.time}`}.</>}</p></div>
         {S.bookedOnce ? <div className="inset" style={{ alignSelf: 'stretch' }}>{notice('success', "You're booked once", "Trying again didn't make a second booking.")}</div> : null}{/* W14 */}
-        <div className="inset stack8" style={{ alignSelf: 'stretch' }}>{apptCard(a)}{payCard(a)}</div>{/* F09/T05/W02 */}
+        <div className="inset stack8" style={{ alignSelf: 'stretch' }}>{label('Booking summary')}{apptCard(a)}</div>
+        <div style={{ alignSelf: 'stretch' }}>{rows([row('icon-person.svg', tr('Booking for'), a.for || S.fullName), row('lt-clipboard.svg', tr('Reason for visit'), a.reason || tr('None given'))])}</div>
+        <div className="inset" style={{ alignSelf: 'stretch' }}>{payCard(a)}</div>{/* F09/T05/W02 */}
         <div className="inset" style={{ alignSelf: 'stretch' }}><div className="notes">
           <div className="note-line"><img src={`${A}icon-schedule.svg`} width="18" height="18" alt="" /><p>{tr('Arrive 15 minutes early and check in at the reception desk.')}</p></div>
           <div className="note-line"><img src={`${A}icon-chat.svg`} width="18" height="18" alt="" /><p>{other

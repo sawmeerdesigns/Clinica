@@ -176,6 +176,14 @@ After run 7 (user request: the prototype only; Figma stays at the designed 375 p
 - Doctor Dashboard on a narrow screen shows the list or the open patient/report, not one stacked far below the other; the report gets "Back to reports" (the patient view already has its close).
 - check.cjs: no frame scrolls the page sideways at 900 or 390 px, and the phone Doctor Dashboard shows the open patient.
 
+## Design review (after the case study)
+
+User feedback on the screens:
+- **Home:** the greeting is the app bar's title ("Good morning, Anisha") in place of the Clinica wordmark, so the body starts with the visit (src/booking.jsx, home; src/styles.css `.greet-bar`).
+- **Review booking:** a full-page summary under "Your visit"; the line squeezed above Confirm is gone (the disabled button still says "Choose how to pay"). **Confirmed** gives the confirmation message, then the booking summary: the visit, who it's for, the reason, and the payment.
+- **Nothing pre-decided for the doctor:** a report opens with no decision chosen and an empty comment ("Write what Anisha should know"); the suggestion is a "Use suggested text" button, and Release waits for a decision and a comment. The visit note's placeholder is neutral (Use suggested note stays). Follow-up starts unchosen, and Complete asks for a choice ("Choose a follow-up, or No follow-up."). The starting frames D04, K11b, D06, D06c, K20, K20c open that way.
+- Same sweep elsewhere: HR's "Who covers?" no longer starts on "Nobody yet". Defaults that show current state (a person's role, today's date) stay.
+
 ## Decisions taken
 
 From the spec:
@@ -275,3 +283,4 @@ Phase 10 (the rest of run 6):
 - **Phase 10:** 584 → 618 "ok", exit 0, `page errors: []`. New assertions for Y06 (take back after Undo, recorded), Y07 (denial kept in History, employee told, focus on Approve), Y08 (toast above the wallet sheet), Y09 (no PIN: Set a PIN, lock disabled), Y11 (toast waits while focused), Y12 (blank note stays blank, Use suggested note), Y13 (typed month name, picker over the desktop sheet takes clicks), Y14 (cover button, match feedback, no match), Y15 (receipt), Y16 (export summary), Y17 (range and meanwhile), Y18 (read-only line, no names on leave), Y19 (Lab role), Y20 (one tab stop, arrows, full day names), Y21 (h2 section labels), Y22 (Home names the report), Y23 (history from the open visit, Not arrived says why), Y24 (who could cover; kept after approval), Y25 (preview, Follow-up asked in history), Y26 (Pay later, Staff ID, role change from a profile, earlier HbA1c value), and a second same-day visit in Dr. Sharma's queue. Changed: no-PIN Health lock now says Set a PIN (was Change PIN), "Admin ID" → "Staff ID", the add-medicine button is found by its action (it reads "Add a medicine" when there are none), the masked number check allows the screen-reader text, and the Not arrived hint avoids the words "Start visit". `toast` is exposed on `window` for the check.
 - **Run 7:** 618 → 632 "ok", exit 0, `page errors: []`. New assertions for Z01, Z03, Z04, Z06, Z08, Z09, Z10, Z12, Z13, Z15, Z16, Z17, Z18, Z22. Changed: Ramesh's empty Health reads "No visits or reports yet"; the desktop draft check uses Continue visit; the cancel banner includes the time; Maya Tuladhar's ID is CH-STF-0236.
 - **Responsive pass:** 632 → 635 "ok": every frame at 900 and 390 px without sideways page scroll, and the phone Doctor Dashboard list/detail.
+- **Design review:** 635 → 639 "ok". Changed: releases click Use suggested text; completing a visit picks a follow-up; R10 checks the disabled button only.

@@ -78,7 +78,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('text=Book 5:00 PM today'); await p.click('.csheet .btn:text-is("Book a second visit")');
   assert(await p.isVisible('.appbar >> text=Review booking'), 'review (B04)');
   await p.fill('#reason', 'Fever for three days');
-  assert(await p.isDisabled('.cta .btn:text-is("Choose how to pay")') && await p.isVisible('text=Choose how to pay to confirm.'), 'R10: Confirm waits for a payment choice');
+  assert(await p.isDisabled('.cta .btn:text-is("Choose how to pay")'), 'R10: Confirm waits for a payment choice (the disabled button says so; no line squeezed above it)');
   await p.click('.pay-tile:has-text("Pay at reception")'); assert(await p.isVisible('text=NPR 800, to pay at reception'), 'R10: Pay at reception is an explicit choice');
   await p.evaluate(() => showCases()); await p.selectOption('[data-s="failNext"]', 'taken'); await p.waitForTimeout(450); await p.click('text=Confirm booking');
   assert(await p.isVisible('text=5:00 PM was just taken'), 'booking failed (B08)');
@@ -413,7 +413,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone .csheet .btn.primary'); assert(await P('.appbar >> text=Complete visit') && await P('text=Nabin Tamang') && await P('text=CH-1922'), "Y04: Finish Nabin's visit first opens his visit");
   await p.click('[aria-label=Back]'); assert(await P('text=5 of 8 seen today') && await P('.dq-t:has-text("Nabin Tamang") >> text=With doctor'), 'Y04: and nothing was completed');
   await p.click('[data-act="d-patient:as"]'); await p.click('#phone >> text=Start visit'); await p.click('#phone .csheet .btn:text-is("Keep it open and start Anisha\'s")');
-  assert(await P("text=Doctor's note") && await P('text=No medicines yet.') && await p.inputValue('#d-note') === '' && (await p.getAttribute('#d-note', 'placeholder')).startsWith('Suggested: '), 'complete visit (D04): F04/F23 nothing pre-filled, the note is a suggestion');
+  assert(await P("text=Doctor's note") && await P('text=No medicines yet.') && await p.inputValue('#d-note') === '' && (await p.getAttribute('#d-note', 'placeholder')) === 'What should the patient know?' && await P('text=Use suggested note') && !(await P('[role=radiogroup][aria-label="Follow-up"] [aria-checked="true"]')), 'complete visit (D04): F04/F23 nothing pre-filled or pre-chosen; the suggestion is a button');
   assert(await P('.radio-row:has-text("In 2 weeks · Fri, Sep 11")'), 'R24: the follow-up date shows while choosing');
   // F04/R24: add a medicine with its dose, edit it, add a duplicate, remove one
   await p.click('[data-act="d-addmed"]'); await p.fill('#dm-name', 'Paracetamol'); await p.fill('#dm-strength', '500 mg'); await p.click('.radio-row:has-text("Tablet")');
@@ -443,7 +443,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click("#phone >> text=View Anisha's history"); assert(await P('.tag >> text=Other doctor') && !(await P('text=Your visit')), 'T25: history from the report, doctor wording');
   await p.click('#phone .list-item:has-text("Jul 3, 2026")'); assert(await P('.appbar >> text=Visit on Jul 3'), 'T25: a past visit opens'); await p.click('[aria-label=Back]'); await p.click('[aria-label=Back]');
   assert(await p.isDisabled('#phone .btn:text-is("Release to Anisha")') && !(await P('[role=radio][aria-checked="true"]')) && await p.inputValue('#d-comment') === '', 'W06/F23: no decision, empty comment, Release disabled');
-  await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request') && await p.inputValue('#d-comment') === '' && await p.getAttribute('#d-comment', 'placeholder') === 'Suggested: Please book a follow-up so we can discuss this.', 'flag follow-up (D06b): suggestion shown, not filled in');
+  await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request') && await p.inputValue('#d-comment') === '' && await p.getAttribute('#d-comment', 'placeholder') === 'Write what Anisha should know' && await p.isDisabled('#phone .btn:text-is("Release with follow-up request")'), 'flag follow-up (D06b): nothing written for the doctor, Release waits for a comment');
+  await p.click('#phone >> text=Use suggested text'); assert(await p.inputValue('#d-comment') === 'Please book a follow-up so we can discuss this.', 'the suggestion goes in only when the doctor chooses it');
   await p.click('#phone >> text=Release with follow-up request'); { const t = await p.textContent('#phone .csheet'); assert(t.includes('“Please book a follow-up so we can discuss this.”') && t.includes('asked to book a follow-up') && !t.includes('expect a call'), 'W05: follow-up sheet quotes the comment and says what she sees'); }
   await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 result is waiting on you') && !(await P('[data-act="d-report:cbc"]')), 'released, off the list');
   assert(await P('[role=status] .toast >> text=CBC blood test released to Anisha Sharma.') && await P('.toast >> text=Undo'), 'F24/W07/V09: a toast names the patient, with Undo');
@@ -454,7 +455,8 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 result is waiting on you') && await P('text=Released today'), 'released again');
   await p.click('[data-act="d-report:lipid"]'); assert(await p.isDisabled('#phone .btn:text-is("Release to Kabita")'), 'Kabita: Release waits for a decision');
   await p.click('.radio-row:has-text("I need to see them again")'); await p.click('.radio-row:has-text("Everything is normal")');
-  assert((await p.getAttribute('#d-comment', 'placeholder')).includes('cholesterol') && await p.inputValue('#d-comment') === '', "F01/R01 (phone): after Anisha's release, Kabita's suggestion is her own");
+  assert(await p.inputValue('#d-comment') === '' && await p.isDisabled('#phone .btn:text-is("Release to Kabita")'), 'Kabita: nothing written for the doctor, Release waits for a comment');
+  await p.click('#phone >> text=Use suggested text'); assert((await p.inputValue('#d-comment')).includes('cholesterol') && !(await p.inputValue('#d-comment')).includes('blood count'), "F01/R01 (phone): after Anisha's release, Kabita's suggestion is her own");
   await p.click('#phone >> text=Release to Kabita'); { const t = await p.textContent('#phone .csheet'); assert(t.includes('“Your cholesterol levels are all within a healthy range. Keep up the good work.”') && !t.includes('blood count'), 'W05: release sheet quotes her comment'); }
   await p.click('#phone .csheet >> text=Release to Kabita'); assert(await P('text=Nothing waiting on you'), 'no reports pending (D05b)');
   await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'home'; S.stack = []; render(); }); await p.click('[aria-label^="Notifications"]');
@@ -482,7 +484,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('[data-act="k-rep:cbc"]'); await p.click('.radio-row:has-text("I need to see them again")'); assert(await P('text=Release with follow-up request'), 'flag follow-up (K20b)');
   assert(await P('.k-ni:has-text("Reports") .nbadge >> text=2'), 'R30: desktop Reports badge');
   assert(await P('.dv-row:has-text("Platelets") >> text=Range 150,000–400,000/µL'), 'T10: desktop reference ranges');
-  await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 is waiting on you'), 'released');
+  await p.click('#phone >> text=Use suggested text'); await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 is waiting on you'), 'released');
   assert(await P('.toast >> text=CBC blood test released to Anisha Sharma.') && await P('.k-row.static:has-text("Anisha Sharma") >> text=Released by Dr. Priya Sharma'), 'desktop toast and Released today');
   await p.click('.toast >> text=Undo'); assert(await P('text=2 are waiting on you') && await p.evaluate(() => S.kRep === 'cbc' && !S.released.cbc) && await P('text=Release with follow-up request'), 'desktop Undo: pending and open again');
   await p.click('#phone >> text=Release with follow-up request'); await p.click('#phone .csheet .btn.primary'); assert(await P('text=1 is waiting on you') && await p.evaluate(() => !!S.released.cbc), 'desktop re-release');
@@ -490,7 +492,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await p.click('.k-ni >> text=Reports');
   await p.click('[data-act="k-rep:lipid"]'); assert(await p.evaluate(() => S.drRep) === 'lipid' && await p.isDisabled('#phone .btn:text-is("Release to Kabita")'), 'F01/R01: k-rep opens Kabita as drRep, undecided');
   await p.click('.radio-row:has-text("I need to see them again")'); await p.click('.radio-row:has-text("Everything is normal")');
-  assert((await p.getAttribute('#d-comment', 'placeholder')).includes('cholesterol'), "F01/R01 (desktop): toggling gives Kabita's own text, not Anisha's");
+  await p.click('#phone >> text=Use suggested text'); assert((await p.inputValue('#d-comment')).includes('cholesterol'), "F01/R01 (desktop): toggling gives Kabita's own text, not Anisha's");
   await p.fill('#d-comment', 'Your cholesterol is fine.'); await p.click('.radio-row:has-text("I need to see them again")');
   assert(await P('.csheet >> text=Keep your comment?'), 'T15: changing the decision after editing asks first');
   await p.click('#phone .csheet >> text=Keep my comment'); assert(await p.inputValue('#d-comment') === 'Your cholesterol is fine.' && await P('text=Release with follow-up request'), 'T15: keep');
@@ -805,14 +807,16 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
     for (const id of frameIds()) { try { jumpTo(id); if (S.app && S.app !== 'patient') continue; S.lang = 'ne'; render(); } catch (e) { bad.push(id + ': ' + e.message); } } return bad; });
   assert(!neThrows.length, `Phase 8: every patient frame renders in Nepali (${neThrows.join('; ')})`);
   // ---- Run 6, the rest (Y06–Y26) ----
-  await J('D06'); assert(await P('text=What Anisha will see') && !(await has('already built on her side')), 'Y25: a preview of her card, no developer wording');
+  await J('D06'); assert(!(await P('[role=radio][aria-checked="true"]')) && await p.inputValue('#d-comment') === '', 'D06 opens undecided and empty');
+  await p.click('.radio-row:has-text("Everything is normal")'); await p.click('#phone >> text=Use suggested text'); assert(await P('text=What Anisha will see') && !(await has('already built on her side')), 'Y25: a preview of her card, no developer wording');
   await p.click('#phone .btn:text-is("Release to Anisha")'); assert((await p.textContent('.csheet')).includes('You can take it back later from Released today'), 'Y06: the sheet says it can be taken back');
   await p.click('.csheet .btn.primary'); await p.evaluate(() => { S.toast = null; render(); });
   await p.click('#phone .btn:text-is("Take back")'); await p.click('.csheet .btn:text-is("Take it back")');
   assert(await p.evaluate(() => S.drPending.includes('cbc') && !S.released.cbc) && await P('text=Taken back by Dr. Priya Sharma'), 'Y06: taken back after Undo has gone: pending again, off her side, and recorded');
   await J('K11f'); assert(await P('.list-item:has-text("Aug 24, City Hospital lab") >> text=Follow-up asked') && await P('.list-item:has-text("Jun 20, City Hospital lab") >> text=6.1%') && !(await P('.list-item:has-text("Jun 20, City Hospital lab") >> text=Jun 20 → Aug 24')), 'Y25/Y26: history says Follow-up asked; the earlier HbA1c shows its own value');
   await J('D04'); await p.evaluate(() => { S.drDraft.note = ''; render(); }); assert(await P('text=Use suggested note'), 'Y12: the suggestion is a choice');
-  await p.click('.btn:text-is("Complete visit")'); assert((await p.textContent('#phone .csheet')).includes('No note.'), 'Y12: a blank note stays blank'); await p.click('#phone .csheet >> text=Back to editing');
+  await p.click('.btn:text-is("Complete visit")'); assert(await P('text=Choose a follow-up, or No follow-up.') && !(await P('.csheet')), 'no follow-up decision made for the doctor: Complete asks for one');
+  await p.click('.radio-row:has-text("No follow-up")'); await p.click('.btn:text-is("Complete visit")'); assert((await p.textContent('#phone .csheet')).includes('No note.'), 'Y12: a blank note stays blank'); await p.click('#phone .csheet >> text=Back to editing');
   await p.click('#phone >> text=Use suggested note'); assert((await p.inputValue('#d-note')).length > 10, 'Y12: Use suggested note fills it in');
   await J('K11j'); await p.fill('#dm-end', 'Nov 28, 2026'); await p.press('#dm-end', 'Tab'); assert(await p.inputValue('#dm-end') === '28 / 11 / 2026', 'Y13: a typed "Nov 28, 2026" becomes 28 / 11 / 2026');
   await p.click('[aria-label="Choose end date"]'); await p.click('#sheet >> text=Cancel'); assert(await p.evaluate(() => !S.picker) && await P('.csheet.dr-medsheet'), 'Y13: the picker over the desktop sheet takes clicks');
@@ -860,7 +864,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   assert(await p.evaluate(() => S.pin === '1234'), "Run 7: the PIN that switched to Anisha is hers, so Health doesn't ask her to make one");
   await J('D03e'); await p.click('#phone >> text=Check in at Reception'); assert(await p.evaluate(() => S.app === 'staff' && S.screen === 'scheck'), 'Run 7: Not arrived opens the check-in at Reception');
   await J('D05d'); await p.click('.csheet .btn:text-is("Take it back")'); await p.click('[data-act="d-report:cbc"]'); await p.click('.radio-row:has-text("Everything is normal")');
-  await p.click('#phone .btn:text-is("Release to Anisha")'); await p.click('.csheet .btn.primary'); await p.evaluate(() => { S.toast = null; render(); });
+  await p.click('#phone >> text=Use suggested text'); await p.click('#phone .btn:text-is("Release to Anisha")'); await p.click('.csheet .btn.primary'); await p.evaluate(() => { S.toast = null; render(); });
   assert(await P('text=Taken back by Dr. Priya Sharma') && await P('text=They see:'), 'Run 7: the take-back stays on record after re-release, and the row says what she sees');
   await J('D04d'); await p.fill('#dm-dose', '1 tablet'); await p.click('.radio-row:has-text("Twice a day")'); await p.click('.radio-row:has-text("3 months")');
   assert((await p.getAttribute('#dm-qty', 'placeholder')) === 'About 184 tablets for this dose', 'Run 7: quantity worked out from the dose');

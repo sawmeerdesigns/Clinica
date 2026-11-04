@@ -345,6 +345,8 @@ body { background: var(--surface-page); }
 .toggle { display: flex; gap: 8px; align-items: center; margin-top: 10px; cursor: pointer; color: var(--text-primary); }
 
 /* App bar — Home shape */
+.greet-bar { flex: 1; min-width: 0; padding-left: 12px; font: 400 18px/24px "Open Sans"; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.greet-bar b { font-weight: 700; color: var(--text-primary); }
 .brand { flex: 1; padding-left: 12px; font: 700 20px/24px "Open Sans"; color: var(--text-action); }
 .bar-acts { display: flex; }
 .bell { position: relative; }
