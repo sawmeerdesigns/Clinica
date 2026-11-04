@@ -182,6 +182,7 @@ User feedback on the screens:
 - **Home:** the greeting is the app bar's title ("Good morning, Anisha") in place of the Clinica wordmark, so the body starts with the visit (src/booking.jsx, home; src/styles.css `.greet-bar`).
 - **Review booking:** a full-page summary under "Your visit"; the line squeezed above Confirm is gone (the disabled button still says "Choose how to pay"). **Confirmed** gives the confirmation message, then the booking summary: the visit, who it's for, the reason, and the payment.
 - **Nothing pre-decided for the doctor:** a report opens with no decision chosen and an empty comment ("Write what Anisha should know"); the suggestion is a "Use suggested text" button, and Release waits for a decision and a comment. The visit note's placeholder is neutral (Use suggested note stays). Follow-up starts unchosen, and Complete asks for a choice ("Choose a follow-up, or No follow-up."). The starting frames D04, K11b, D06, D06c, K20, K20c open that way.
+- **Payment outcome on Confirmed:** the Paid / Not paid / Pay at reception card sits right under "You're booked…", above the booking summary, so a payment's success (with View receipt) or a pending payment (with Pay now) is never below the fold.
 - Same sweep elsewhere: HR's "Who covers?" no longer starts on "Nobody yet". Defaults that show current state (a person's role, today's date) stay.
 
 ## Decisions taken
