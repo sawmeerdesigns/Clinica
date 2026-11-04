@@ -1065,3 +1065,4 @@ button.att-c[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
 .att-c.absent::after { background: none; border: 1.5px solid currentColor; width: 6px; height: 6px; }
 .att-key .leave i { width: 12px; height: 3px; border-radius: 2px; }
 .att-key .absent i { background: none; border: 1.5px solid var(--text-error); }
+.att-pop { top: auto; bottom: calc(100% + 4px); } /* Run 7: above the day, so the week after stays readable */

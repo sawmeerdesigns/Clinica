@@ -65,8 +65,10 @@ export function kDetail() {
       <div className="stack16">{drFollowRadio(d)}
         {d.follow === 'other' ? <div style={{ maxWidth: 343 }}>{drDate('d-fudate', 'Follow-up date', d, 'followDate', 'follow', 'Optional — pick a date or type one')}</div> : null}</div></section>;
   }
-  const action = st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? tag('Not arrived', 'error s12') : btn('Start visit', 'k-start', { size: 'l', kind: 'primary hug' });
-  const why = st === 'notarrived' ? <p className="dr-body">{p.name.split(' ')[0]} hasn't checked in yet. Reception checks patients in; then you can start the visit here.</p> : null; // Run 6 Y23
+  const action = st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? tag('Not arrived', 'error s12') : btn(st === 'with' ? 'Continue visit' : 'Start visit', 'k-start', { size: 'l', kind: 'primary hug' }); // Run 7: an open visit isn't started again
+  const why = st === 'notarrived' ? <div className="stack8"><p className="dr-body">{p.name.split(' ')[0]} hasn't checked in yet. Reception checks patients in; then you can start the visit here.</p>
+    <div>{btn('Check in at Reception', `d-checkin:${id}`, { size: 'l', kind: 'secondary hug' })}</div></div>
+    : st === 'with' && S.drKept[id] ? <p className="dr-body">Visit in progress. Your note and medicines are kept.</p> : null; // Run 6 Y23
   return <section className="k-detail"><div className="k-hd"><div className="k-hl">{kClose}{kId(p, p.info)}</div>{action}</div>
     <div className="stack8"><p className="dr-label">{st === 'done' ? "Today's visit — complete" : st === 'notarrived' ? 'Scheduled visit' : "Today's visit"}</p>
       {why}<div className="dr-reason"><p className="dr-label tertiary">Reason for visit</p><p className="dr-l">{p.reason}</p><p className="dr-body">{drTime(id)} · General medicine · OPD 2</p></div>

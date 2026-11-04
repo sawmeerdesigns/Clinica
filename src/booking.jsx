@@ -1,6 +1,6 @@
 // Clinica — Patient flow: booking a visit, and its unhappy paths.
 // Figma: zw3saW6ot26E6gWH20K3ux, section 118:6257. Plugs into core.jsx: SCREENS, mount, ACTIONS, FLOW, NUM.
-import { btn, empty, endScreen, family, heading, homeInd, listItem, masked, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
+import { btn, empty, endScreen, family, heading, homeInd, listItem, masked, maskedEl, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
 import { T, acts, answer, ask, src } from './ask.jsx';
 import { CAL_NOTE, calBtn, csheet, inCal, notice, unread } from './care.jsx';
 import { $phone, A, ACTIONS, FLOW, NE, NUM, OVERLAY, S, SCREENS, after, back, go, mount, nd, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
@@ -49,7 +49,10 @@ export const specIcon = (s, on) => `${A}sp-${s === GM ? 'general' : s.toLowerCas
 // ---------- slot logic ----------
 export const listHas = (l, t) => l === 'all' || (l || []).includes(t);
 // Run 6 Y02: a slot this person already holds can't be booked again; the doctor page shows it as "Your visit".
-export const isTaken = (doc, day, t) => DAYS[day].closed || listHas(DOCTORS[doc].busy[day], t) || listHas(S.taken[`${doc}|${day}`], t) || !!holds(doc, day, t);
+export const isTaken = (doc, day, t) => DAYS[day].closed || listHas(DOCTORS[doc].busy[day], t) || listHas(S.taken[`${doc}|${day}`], t) || !!holds(doc, day, t) || othersHold(doc, day, t);
+// Run 7: a slot someone else on this phone holds is taken for everyone else too (just "Taken": whose it is stays private).
+const othersHold = (doc, day, t) => Object.entries(S.people || {}).some(([n, p]) => n !== S.fullName
+  && [...(p.careEmpty || !p.appt ? [] : [p.appt]), ...(p.more || [])].some(v => v.doc === doc && v.day === day && v.time === t));
 export const holds = (doc, day, t) => visits().find(v => v.doc === doc && v.day === day && (!t || v.time === t));
 // Run 6 Y02: a person can have several visits booked. S.appt is the one the care team's apps follow (Anisha's 4:30 today); S.more
 // holds the rest. Soonest first; i is null for S.appt, else its place in S.more (Care opens it with appt:i).
@@ -102,7 +105,7 @@ export const payState = a => { const p = a.pay || { how: 'reception' }, w = WALL
   return p.paid ? ['Paid', L(`NPR ${FEE} with ${w} · Receipt ${p.ref}`, `NPR ${FEE}, ${w} बाट · रसिद ${p.ref}`)] : w ? ['Not paid', L(`NPR ${FEE} with ${w}. Your visit is still booked.`, `NPR ${FEE}, ${w} बाट। तपाईंको भेट अझै बुक छ।`)] : ['Pay at reception', `NPR ${FEE}, ${tr('when you check in')}`]; }; // Figma sync: Nepali
 export const payCard = a => { const [t, sub] = payState(a), due = t === 'Not paid';
   return <div className="card neutral"><span className="lead-tile"><img src={`${A}lt-fee.svg`} width="20" height="20" alt="" /></span>
-    <span className="text"><span className="item-title">{tr(t)}</span><span className="body-s">{sub}</span></span>{due ? btn(tr('Pay now'), 'pay-now', { kind: 'secondary', size: 's' }) : null}</div>; };
+    <span className="text"><span className="item-title">{tr(t)}</span><span className="body-s">{sub}</span></span>{due ? btn(tr('Pay now'), 'pay-now', { kind: 'secondary', size: 's' }) : t === 'Paid' && a.pay?.ref ? btn('View receipt', `rcpt-ref:${a.pay.ref}`, { kind: 'secondary', size: 's' }) : null}</div>; }; // Run 7
 // The wallet hand-off, through the phone's own prompt (more.jsx). Mocked: "Pay with X" marks it paid with a made-up receipt; Cancel leaves it Not paid.
 export function payHandOff(a) {
   const w = WALLETS[a.pay.how][0]; S.payFor = a;
@@ -227,7 +230,7 @@ Object.assign(SCREENS, {
         {st === 'default' && !S.healthEmpty && !homeLocked() ? <div><div className="inset">{label('Recent')}</div><div className="list">
             {sepJoin([listItem('lt-lab.svg', 'Lab report ready', (k => k ? `${tr(labOf(k).title)} · ${tr('Open Health to see it')}` : 'Open Health to see it')(S.labs.find(k => !labOf(k).reviewing)), 'lab-ready') /* T03; Run 6 Y22: names the report it opens */,
                listItem('lt-rx.svg', 'Prescription updated', L('From Dr. Sharma, Aug 25', `Dr. Sharma बाट, ${nd('Aug 25')}`), 'health-go:hrxd'),
-               listItem('lt-followup.svg', 'Follow-up due', `${tr('Dermatology')}, ${tr('Sep 14')} · ${tr('not booked yet')}`, 'stub:Follow-up')])}{/* Y26: not the booked one Care shows */}
+               listItem('lt-followup.svg', 'Follow-up to book', `${tr('Dermatology')}, ${tr('Sep 14')} · ${tr('not booked yet')}`, 'stub:Follow-up')])}{/* Y26: not the booked one Care shows */}
           </div></div> : null}
         {st === 'walkin' ? <div className="stack7"><div className="inset">{label('Your visit')}</div>
           {rows([row('lt-doctor.svg', 'Doctor', `${DOCTORS.aj.name}, ${tr(DOCTORS.aj.spec)}`), row('lt-location.svg', 'Where', `${DOCTORS.aj.opd}, ${tr('City Hospital')}`), row('lt-fee.svg', 'Fee', L(`NPR ${FEE}, paid at reception`, `NPR ${FEE}, रिसेप्सनमा तिरिएको`))])}</div> : null}
@@ -245,7 +248,7 @@ Object.assign(SCREENS, {
           <img src={`${A}icon-search.svg`} width="20" height="20" alt="" />
           <input id="q" type="search" placeholder={tr('Doctor, specialty or condition')} aria-label={tr('Search doctors')} value={S.query}
             onChange={e => { S.query = e.target.value; paint(); }} />
-          <button className="cal-btn" data-act="clear-q" aria-label={tr('Clear search')}><img src={`${A}icon-close.svg`} width="20" height="20" alt="" /></button>
+          {S.query ? <button className="cal-btn" data-act="clear-q" aria-label={tr('Clear search')}><img src={`${A}icon-close.svg`} width="20" height="20" alt="" /></button> : null}{/* Run 7: nothing to clear yet */}
         </div></div>
       </div>
       <div className="body" style={{ gap: 16, padding: '16px 0' }}>
@@ -333,7 +336,7 @@ Object.assign(SCREENS, {
         {S.fuOf ? <div className="inset stack8">{tag(tr('Follow-up'), 'info')}{fuClash()}</div> : null}{/* W11 */}
         <div className="inset">{apptCard({ doc: S.doc, day: S.day, time: S.time })}</div>
         {rows([<button className="list-item" data-act="sheet:bookfor">{lead('icon-person.svg')}<span className="text"><span className="item-title">{tr('Booking for')}</span><span className="body-s">{bookFor()}</span></span></button>,
-          feeRow(), payBlock(), row('lt-sms.svg', tr('Confirmation'), L(`By SMS to ${masked()}`, `${masked()} मा SMS बाट`))])}
+          feeRow(), payBlock(), row('lt-sms.svg', tr('Confirmation'), ne() ? <>{maskedEl()} मा SMS बाट</> : <>By SMS to {maskedEl()}</>)])}
         {textArea(false)}
       </div>
       {/* R10: the line above lifts Confirm off the spot where Book was, and Confirm waits for a payment choice */}
@@ -378,7 +381,7 @@ Object.assign(SCREENS, {
           <div className="note-line"><img src={`${A}icon-schedule.svg`} width="18" height="18" alt="" /><p>{tr('Arrive 15 minutes early and check in at the reception desk.')}</p></div>
           <div className="note-line"><img src={`${A}icon-chat.svg`} width="18" height="18" alt="" /><p>{other
             ? L(`Details sent by SMS. To see ${first}'s appointments, switch to him in Profile.`, `विवरण SMS बाट पठाइयो। ${first} का अपोइन्टमेन्ट हेर्न प्रोफाइलमा उहाँमा स्विच गर्नुहोस्।`)
-            : L(`Details sent by SMS to ${masked()}.`, `विवरण ${masked()} मा SMS बाट पठाइयो।`)}</p></div>
+            : ne() ? <>विवरण {maskedEl()} मा SMS बाट पठाइयो।</> : <>Details sent by SMS to {maskedEl()}.</>}</p></div>
         </div></div>
         {S.cal.appt ? <div style={{ alignSelf: 'stretch' }}>{inCal}</div> : null}
       </div>
@@ -558,7 +561,7 @@ Object.assign(NUM, {
 export const BOOKING_STACK = ['home', 'finddoctor', 'doctor'];
 // Run 6 Y02: a second visit with the same doctor on the same day asks first. The B03/B04 frames show her before her 4:30 was booked.
 OVERLAY.dupvisit = () => { const c = holds(S.doc, S.day), dr = `Dr. ${surname(DOCTORS[c.doc].name)}`;
-  return csheet(L(`You already have a visit with ${dr} that day`, `त्यो दिन ${dr} सँग तपाईंको भेट पहिले नै छ`), L(`${when(c.day, c.time)}. Book a second visit as well?`, `${when(c.day, c.time)}। अर्को भेट पनि बुक गर्ने?`),
+  return csheet(L(`You already have a visit with ${dr} that day`, `त्यो दिन ${dr} सँग तपाईंको भेट पहिले नै छ`), L(`${S.first}'s visit: ${when(c.day, c.time)}. Book a second visit as well? If it's for someone else, you choose who on the next screen.`, `${S.first} को भेट: ${when(c.day, c.time)}। अर्को भेट पनि बुक गर्ने? अरू कसैको लागि हो भने अर्को स्क्रिनमा छान्नुहोस्।`),
     btn('Keep just the one', 'sheet-close'), btn('Book a second visit', 'book-anyway', { kind: 'secondary' })); };
 FLOW.push(
   ['Booking — happy path', [

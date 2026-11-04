@@ -15,7 +15,8 @@ import { counts, img, now, patients, people, person } from './staff.jsx';
 
 // Phase 8: Nepali for this module's own lines. Sentences with a name, time or date are written with ne() where they're used.
 Object.assign(NE, {
-  // Run 6 Y09/Y15
+  // Run 6 Y09/Y15; Run 7
+  'View receipt': 'रसिद हेर्नुहोस्', 'Follow-up to book': 'बुक गर्न बाँकी फलो-अप',
   Receipt: 'रसिद', Paid: 'तिरिएको', Details: 'विवरण', Reference: 'सन्दर्भ नम्बर', 'Paid on': 'तिरेको मिति', For: 'केका लागि', Patient: 'बिरामी', 'Paid to': 'कसलाई तिरियो',
   "Show this at reception if you're asked. They can look it up by its reference.": 'सोधिए रिसेप्सनमा यो देखाउनुहोस्। उहाँहरूले सन्दर्भ नम्बरबाट खोज्न सक्नुहुन्छ।',
   'Share receipt': 'रसिद पठाउनुहोस्', 'Share this receipt': 'यो रसिद पठाउनुहोस्', 'As an image, to WhatsApp, Viber or Messages.': 'तस्बिरको रूपमा, WhatsApp, Viber वा Messages मा।', Share: 'पठाउनुहोस्',
@@ -251,7 +252,7 @@ Object.assign(SCREENS, {
     else if (S.cancelled) body = <><div className="inset">{S.cancelled.byClinic // done to the patient: Error. Their own choice: Neutral.
       ? notice('error', ne() ? `क्लिनिकले तपाईंको ${nd(S.cancelled.date)} को भेट रद्द गर्‍यो` : `The clinic cancelled your ${S.cancelled.date} visit`, "Dr. Sharma can't see patients that day. We're sorry for the change.",
         <>{tag('Cancelled', 'neutral')}{btn('Book another time', 'doctor:ps', { size: 'l' })}</>)
-      : notice('', ne() ? `तपाईंको ${nd(S.cancelled.date)} को भेट रद्द भयो` : `Your ${S.cancelled.date} visit is cancelled`, 'The time has gone back to other patients. Book again whenever you need to.',
+      : notice('', ne() ? `तपाईंको ${nd(S.cancelled.date)}${S.cancelled.time ? `, ${nd(S.cancelled.time)}` : ''} को भेट रद्द भयो` : `Your ${S.cancelled.date}${S.cancelled.time ? `, ${S.cancelled.time}` : ''} visit is cancelled`, 'The time has gone back to other patients. Book again whenever you need to.',
         <>{tag('Cancelled', 'neutral')}{btn('Book again', 'go:finddoctor', { size: 'l' })}</>)}</div>
       {S.cancelled.cal ? <div className="inset">{notice('warn', 'Remove it from your calendar', "If you added this visit to your calendar, it's still there. We can't delete it for you.",
         btn('Open calendar', 'os:Calendar', { kind: 'secondary', size: 'l' }))}</div> : null}{today}{coming}</>; // R13: the cancelled visit is gone
@@ -292,7 +293,7 @@ Object.assign(SCREENS, {
           <button key={x.i} className="pick day" role="radio" aria-checked={x.i === sel} disabled={!!x.off} data-act={`rs-day:${x.i}`} aria-label={N ? `${nd(x.wd)}, ${nd(x.date)}${x.off ? ', उपलब्ध छैन' : ''}` : `${x.wd}, ${x.date}${x.off ? ', unavailable' : ''}`}><span className="d1">{tr(x.wd)}</span><span className="d2">{tr(x.date)}</span></button>)}</div></div>
       <div className="inset stack8">{lbl('Choose a new time')}
         <div className="times" role="radiogroup" aria-label={N ? 'समय' : 'Time'}>{times.map(x =>
-          <button key={x.t} className="pick time" role="radio" aria-checked={x.t === S.rsTime} disabled={!!x.off} data-act={`rs-time:${x.t}`} aria-label={N ? `${nd(x.t)}${x.off ? ', बुक भइसक्यो' : ''}` : `${x.t}${x.off ? ', taken' : ''}`}>{tr(x.t)}</button>)}</div></div></>,
+          <button key={x.t} className="pick time" role="radio" aria-checked={x.t === S.rsTime} disabled={!!x.off} data-act={`rs-time:${x.t}`} aria-label={(own => N ? `${nd(x.t)}${own ? ', तपाईंको अहिलेको समय' : x.off ? ', बुक भइसक्यो' : ''}` : `${x.t}${own ? ', your current time' : x.off ? ', taken' : ''}`)(sel === o.cur && x.t === (S.rsKey === 'fu' ? S.followup.time : a.time))}>{tr(x.t)}</button>)}</div></div></>,
       { cta: btn(can ? (N ? `${nd(day.wd)}, ${nd(S.rsTime)} मा सार्नुहोस्` : `Move to ${day.wd}, ${S.rsTime}`) : S.rsErr ? 'Choose a new time' : 'Choose a time', 'rs-move', { disabled: !can }) });
   },
 
@@ -486,7 +487,7 @@ Object.assign(SCREENS, {
 
 // ---------- behaviour ----------
 export function openCal(key) { S.calFor = key; S.sheet = S.calOff ? 'calno' : 'cal'; render(); }
-export function switchTo(i) { usePerson(RECORDS[i].name); S.pinEntry = ''; S.pinErr = false; toHome(); S.unlocked = true; render(); } // opens their Home, not Health; T22: their PIN just opened it
+export function switchTo(i, own) { usePerson(RECORDS[i].name); if (own && !S.pin) S.pin = own; S.pinEntry = ''; S.pinErr = false; toHome(); S.unlocked = true; render(); } // Run 7: the PIN that just opened it is theirs from now on, so Health doesn't ask them to make one // opens their Home, not Health; T22: their PIN just opened it
 export const tabRoot = screen => { Object.assign(S, { stack: [], sheet: null, screen }); render(); };
 
 Object.assign(mount, {
@@ -502,6 +503,7 @@ Object.assign(ACTIONS, {
   },
   'pf-tab': () => tabRoot('pf'),
   'pf-rcpt': i => { S.rcpt = +i; go('pfrcpt'); }, // Run 6 Y15
+  'rcpt-ref': ref => { S.rcpt = Math.max(0, S.payments.findIndex(x => x.ref === ref)); go('pfrcpt'); }, // Run 7: from the paid visit itself
   appt: arg => { if (arg === 'fu') return go('cappt'); S.vOpen = arg === 'today' ? null : +arg; // Run 6 Y02: appt:i opens S.more[i]
     S.vOpen == null && S.visitDay === 'missed' ? ACTIONS['care-tab']() : go('cday'); },
   sheet: arg => { S.sheet = arg; render(); },
@@ -511,7 +513,7 @@ Object.assign(ACTIONS, {
   'cancel-fu': key => {
     if (key === 'today') { // R13: her visit today, before check-in. Run 6 Y02: or whichever visit is open; only that one goes.
       const a = openVisit(), w = a.pay?.paid && WALLETS[a.pay.how]?.[0], day = a.day === 0 ? null : dayName(a.day);
-      S.cancelled = { date: DAYS[a.day].date, day: dayName(a.day), cal: S.vOpen == null && S.cal.appt };
+      S.cancelled = { date: DAYS[a.day].date, day: dayName(a.day), time: a.time, cal: S.vOpen == null && S.cal.appt };
       if (S.vOpen == null) { S.careEmpty = true; S.cal.appt = false; } else S.more = S.more.filter((_, i) => i !== S.vOpen);
       Object.assign(S, { vOpen: null, sheet: null, stack: [], screen: 'care' });
       toast(ne() ? `${day ? nd(day) : `आज ${nd(a.time)}`} को तपाईंको भेट रद्द भयो।${w ? ` NPR ${FEE} तपाईंको ${w} वालेटमा फर्किँदैछ।` : ''}` // Phase 8
@@ -540,8 +542,8 @@ Object.assign(ACTIONS, {
       S.rsErr = { t: S.rsTime, wd: x.wd }; S.rsTime = null;
       return render();
     }
-    const from = key === 'fu' ? `${S.followup.day} slot` : a.day === 0 ? `slot today at ${a.time}` : `${dayName(a.day)} slot`;
-    const stale = S.cal[key] ? (key === 'fu' ? S.followup.day : when(a.day, a.time).replace(/^T(oday|omorrow)/, 't$1')) : null;
+    const from = key === 'fu' ? `${S.followup.day}, ${S.followup.time} slot` : a.day === 0 ? `slot today at ${a.time}` : `${dayName(a.day)}, ${a.time} slot`; // Run 7: with the time, so a same-day move is clear
+    const stale = S.cal[key] ? (key === 'fu' ? `${S.followup.day}, ${S.followup.time}` : when(a.day, a.time).replace(/^T(oday|omorrow)/, 't$1')) : null;
     if (key === 'fu') S.followup = { day: `${x.wd}, ${x.date}`, time: S.rsTime, iso: FOLLOW_DAYS[x.i][3] }; // F20
     else if (S.vOpen != null) { takeSlot(a.doc, x.i, S.rsTime); Object.assign(a, { day: x.i, time: S.rsTime }); } // Run 6 Y02: another visit moves on its own
     else { takeSlot(a.doc, x.i, S.rsTime); S.appt = { ...a, day: x.i, time: S.rsTime }; S.visitDay = 'booked'; }

@@ -270,7 +270,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   // Run 6 Y01: Ramesh's own record, not Anisha's: nothing booked, his own medicine, no reports. Each person's Home lock is their own.
   assert(await V('text=Nothing booked yet') && !(await V('text=Today, 4:30 PM')) && !(await V('.banner')) && !(await V('text=Lab report ready')), "Y01: Ramesh's Home has none of Anisha's visit, medicine or report");
   await p.click('.bnav >> text=Care'); assert(await V('text=No upcoming visits') && !(await V('text=Fri, Sep 11')), "Y01: Ramesh's Care has none of her visits");
-  await p.click('.bnav >> text=Health'); assert(await V('text=Nothing here yet'), 'Y01: no reports in his Health');
+  await p.click('.bnav >> text=Health'); assert(await V('text=No visits or reports yet'), 'Y01: no reports in his Health (Run 7: not "Nothing here yet", since he tracks a medicine)');
   await p.click('#phone .list >> text=Medicines'); assert(await V('text=Amlodipine') && !(await V('text=Paracetamol')), 'Y01: his own medicine'); await p.click('[aria-label=Back]');
   await p.click('.bnav >> text=Home'); assert(await V('text=Locked on this shared phone'), "Y01/T22: Ramesh's Home locks with his lock");
   await p.click('.bnav >> text=Health'); assert(await V('text=Locked on this shared phone') && !(await V('#phone .list >> text=Medicines')), "Y01/T22: his medicines stay behind the lock from Health too"); await p.click('.bnav >> text=Home');
@@ -430,7 +430,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   { const t = await p.textContent('#phone .csheet'); assert(t.includes('Complete this visit?') && t.includes('Same medicine twice') && t.includes('Paracetamol is listed more than once') && t.includes('Fri, Sep 11') && t.includes('10 tablets') && t.includes('“A viral infection.”'), 'F05/V17/R24: review sheet with doses, quantity, the follow-up date and a duplicate warning'); }
   await p.click('#phone .csheet >> text=Back to editing'); assert(!(await P('.csheet')) && await p.inputValue('#d-note') === 'A viral infection.' && (await p.$$('#phone .dr-med')).length === 2, 'Back to editing keeps everything');
   await p.click('[aria-label="Remove Paracetamol 650 mg"]'); assert((await p.$$('#phone .dr-med')).length === 1, 'F04: Remove takes a medicine off');
-  await p.fill('#d-note', 'A viral infection. Rest and fluids. Come back if the fever lasts more than 3 days.'); await p.click('.radio-row:has-text("No follow-up")');
+  await p.fill('#d-note', 'A viral infection. Rest and fluids. Come back if the fever is not better in 2 days.'); await p.click('.radio-row:has-text("No follow-up")');
   await p.click('.btn:text-is("Complete visit")'); assert(!(await p.textContent('#phone .csheet')).includes('Same medicine twice'), 'no duplicate, no warning'); await p.click('#phone .csheet .btn.primary'); assert(await P('text=6 of 8 seen today') && await P('.dq-t:has-text("Anisha Sharma") >> text=Completed') && await P('.dq-t:has-text("Nabin Tamang") >> text=With doctor'), 'Anisha done; Y04: Nabin is not completed without his own visit (was: 7 of 8, Nabin completed)');
   await p.evaluate(() => switchPhone()); await p.evaluate(() => { S.screen = 'cday'; S.stack = ['care']; render(); });
   assert(await P('text=Visit complete') && await P('text=No follow-up needed'), "Anisha's Care follows the doctor: visit complete, no follow-up");
@@ -541,7 +541,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   // HR
   await signStaff('CH-HR-03'); await p.click('.k-ni >> text=Staff'); assert(await P('text=15 people · 1 on leave'), 'HR staff directory, with the new doctor (HR01)');
   await p.click('[data-act="st-menu:role"]'); await p.click('[data-act="st-f:role|Nurse"]'); assert(await P('text=2 of 15 · filtered by role'), 'role filter (HR01b)');
-  await p.click('[data-act="st-person:mt"]'); assert(await P('text=CH-STF-0231'), 'staff record (HR02)');
+  await p.click('[data-act="st-person:mt"]'); assert(await P('text=CH-STF-0236'), 'staff record (HR02)');
   await p.click('.k-ni >> text=Leave requests'); assert(await P('text=1 pending · 4 already approved'), 'leave requests (HR03)');
   await p.click('[data-act="st-req:pk"]'); await p.click('#phone .btn:has-text("Approve")'); await p.click('.csheet >> text=Approve request'); assert(await P('text=Approved by Anjali Basnet, today') && await P('text=Prasant has been notified'), 'approved, with the approver (HR05)');
   await p.click('#phone >> a.k-link'); assert(await P('text=No pending requests') && await P('text=History'), 'none pending, history kept (HR03b)');
@@ -606,7 +606,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('B04b'); assert(await has('to pay with eSewa') && !(await has('paid with eSewa')), 'F09/W01: eSewa chosen, "to pay" until paid');
   // the desktop close keeps a draft
   await J('K11b'); await p.fill('#k-note', 'Draft note kept'); await p.click('#phone [aria-label^="Close"]'); assert(!(await p.$('#k-note')), 'X closes the visit');
-  await p.click('#phone .k-row:has-text("Anisha Sharma")'); await p.click('#phone >> text=Start visit'); assert(await p.inputValue('#k-note') === 'Draft note kept', 'the draft note is still there');
+  await p.click('#phone .k-row:has-text("Anisha Sharma")'); assert(await P('text=Visit in progress. Your note and medicines are kept.')); await p.click('#phone >> text=Continue visit'); assert(await p.inputValue('#k-note') === 'Draft note kept', 'the draft note is still there; Run 7: Continue visit, not Start visit');
   // follow-up on another date reaches the patient
   await J('D04c'); await p.click('#phone [aria-label^="Choose follow-up"]'); assert(!!(await p.$('.seg[data-act="cal:BS"]')), 'follow-up date opens the AD/BS wheels');
   await p.evaluate(() => { S.picker = null; S.drDraft.followDate = '18 / 09 / 2026'; render(); }); await p.click('.btn:text-is("Complete visit")');
@@ -675,7 +675,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('P07'); await p.evaluate(() => { S.pin = '1234'; }); assert(await has('Managed by Anisha Sharma'), 'F14: Ramesh is managed by Anisha');
   await p.click('#phone >> text=Ramesh Sharma'); await pin('1234'); assert(await P('text=Good morning,') && await P('text=Ramesh'), "F14: her PIN switches to him");
   // Run 6 Y01: Ramesh's own Health has nothing to lock yet, so the caregiver PIN is checked on his locked Home instead (was: his Health).
-  await p.click('.bnav >> text=Health'); assert(await P('text=Nothing here yet'), "Y01: Ramesh's Health is his own, empty");
+  await p.click('.bnav >> text=Health'); assert(await P('text=No visits or reports yet'), "Y01: Ramesh's Health is his own, empty (Run 7 wording)");
   await p.click('.bnav >> text=Home'); await p.click('#phone >> text=Locked on this shared phone'); assert(await P("text=Or Anisha's own Clinica PIN"), 'F14/R11: the caregiver path is stated');
   await pin('1234'); assert(await P('text=Nothing booked yet') && !(await P('text=Locked on this shared phone')), "F14/R11: her PIN opens his Home");
   // V18, F15/R12
@@ -742,7 +742,7 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('K11f'); await p.click('#phone [data-act="d-lab:thyroid"]'); assert(await P('text=Reviewed by Dr. Anita Joshi on Jul 5') && await P('text=Back to history'), 'T25: desktop opens it in the detail pane');
   await J('C07'); await p.evaluate(() => { S.appt.pay = { how: 'esewa', paid: true, ref: 'ESEWA-1' }; render(); }); await p.click('#phone .cta >> text=Cancel visit');
   assert((await p.textContent('.csheet')).includes("Cancel Anisha's visit today at 4:30 PM?") /* Run 6 Y10: names whose visit */ && (await p.textContent('.csheet')).includes('goes back to your eSewa wallet'), 'R13: cancel today, with the wallet refund said');
-  await p.click('.csheet .btn.destructive'); assert(await P('text=Your Aug 28 visit is cancelled') && (await p.textContent('.toast-region')).includes('going back to your eSewa wallet'), 'R13: cancelled, toast');
+  await p.click('.csheet .btn.destructive'); assert(await P('text=Your Aug 28, 4:30 PM visit is cancelled') && (await p.textContent('.toast-region')).includes('going back to your eSewa wallet'), 'R13: cancelled, toast; Run 7: the banner names the time');
   assert(await p.evaluate(() => !drToday().includes('as')), 'R13: she leaves the doctor\'s queue');
   await J('C09'); assert(!(await P('.cta >> text=Cancel visit')), 'R13: no in-app cancel once checked in');
   await J('B01'); await p.evaluate(() => { S.lang = 'ne'; render(); }); assert(await P('text=शुभ प्रभात,') && await P('.bnav >> text=गृहपृष्ठ') && await P('text=भेट बुक गर्नुहोस्'), 'F15/R12: Home in Nepali');
@@ -847,6 +847,29 @@ const assert = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('o
   await J('T04c'); assert(await P('[role=radiogroup] >> text=Lab'), 'Y19: a Lab access role');
   await J('HR02'); await p.evaluate(() => { S.stMe = 'rk'; render(); }); await p.click('#phone >> text=Change'); assert(await P('.k-ni.on >> text=Staff'), 'Y26: a role changed from a profile stays in Staff');
   await p.click('#phone >> text=Save role').catch(() => {}); await p.click('.csheet .btn.primary').catch(() => {}); assert(await P('h1:text("Maya Tuladhar")'), 'Y26: saving returns to the profile');
+  // ---- Run 7 (demo readiness) ----
+  await J('03'); assert(await P('text=Dr. Priya Sharma') && !(await has('Acharya')), 'Run 7: onboarding shows a doctor the hospital has');
+  await J('B03c'); assert((await p.textContent('.csheet')).includes("Anisha's visit: Today, 4:30 PM") && (await p.textContent('.csheet')).includes('choose who on the next screen'), 'Run 7: the second-visit sheet says whose visit it is');
+  await J('B03'); await p.evaluate(() => { S.people = { 'Anisha Sharma': { appt: { doc: 'ps', day: 0, time: '5:00 PM' }, more: [], careEmpty: false } }; S.fullName = 'Ramesh Sharma'; render(); });
+  assert(await p.isDisabled('.pick.time:has-text("5:00 PM")'), "Run 7: a slot someone else on the phone holds is taken");
+  await J('B05'); await p.evaluate(() => { S.unlocked = true; render(); }); await p.click('#phone >> text=Done'); assert(await p.evaluate(() => S.unlocked), 'Run 7: coming Home after booking keeps the Home lock open');
+  await J('C07'); await p.evaluate(() => { S.appt.pay = { how: 'esewa', paid: true, ref: 'ESEWA-48213' }; S.payments = [{ ref: 'ESEWA-48213', how: 'eSewa', doc: 'Dr. Priya Sharma', day: 0, time: '4:30 PM', for: 'Anisha Sharma' }]; render(); });
+  await p.click('#phone >> text=View receipt'); assert(await P('h1:text("Receipt")') && await has('ESEWA-48213'), 'Run 7: the receipt opens from the paid visit');
+  await J('B01'); await p.evaluate(() => { S.pin = null; render(); }); await p.click('.bnav >> text=Profile'); await p.click('#phone >> text=Switch person'); await p.click('#phone >> text=Ramesh Sharma'); await pin('1961');
+  await p.click('.bnav >> text=Profile'); await p.click('#phone >> text=Switch person'); await p.click('#phone >> text=Anisha Sharma'); await pin('1234');
+  assert(await p.evaluate(() => S.pin === '1234'), "Run 7: the PIN that switched to Anisha is hers, so Health doesn't ask her to make one");
+  await J('D03e'); await p.click('#phone >> text=Check in at Reception'); assert(await p.evaluate(() => S.app === 'staff' && S.screen === 'scheck'), 'Run 7: Not arrived opens the check-in at Reception');
+  await J('D05d'); await p.click('.csheet .btn:text-is("Take it back")'); await p.click('[data-act="d-report:cbc"]'); await p.click('.radio-row:has-text("Everything is normal")');
+  await p.click('#phone .btn:text-is("Release to Anisha")'); await p.click('.csheet .btn.primary'); await p.evaluate(() => { S.toast = null; render(); });
+  assert(await P('text=Taken back by Dr. Priya Sharma') && await P('text=They see:'), 'Run 7: the take-back stays on record after re-release, and the row says what she sees');
+  await J('D04d'); await p.fill('#dm-dose', '1 tablet'); await p.click('.radio-row:has-text("Twice a day")'); await p.click('.radio-row:has-text("3 months")');
+  assert((await p.getAttribute('#dm-qty', 'placeholder')) === 'About 184 tablets for this dose', 'Run 7: quantity worked out from the dose');
+  await J('HR04'); await p.click('#phone .btn:has-text("Approve")'); await p.click('.csheet .radio-row:has-text("Maya Tuladhar")'); await p.click('.csheet .btn:has-text("Approve")');
+  assert(await P('text=Cover: Maya Tuladhar (General medicine)') && !(await has('Approved without cover')), 'Run 7: HR records who covers');
+  await J('R04'); await p.fill('#wk-reason', 'Chest pain'); assert(await P('text=Chest pain can be an emergency'), 'Run 7: red-flag symptoms say so');
+  await p.fill('#wk-name', 'Bimal Lama'); await p.fill('#wk-age', '50'); await p.click('.radio-row:has-text("Male")'); await p.fill('#wk-doc', 'cardiology'); await p.click('#phone >> text=Add to queue');
+  assert(await P('text=Cardiology is closed today. Send to the cover doctor below, or type another doctor.'), 'Run 7: the closed-department error matches the screen');
+  await J('HR09b'); await p.focus('#phone button.att-c[tabindex="0"]'); await p.keyboard.press('Escape'); assert(await p.evaluate(() => S.stCalDay === null), 'Run 7: Escape closes the day popover');
   // Run 6 Y05: a real reload keeps what was saved — a role change and its audit entry, a check-in, a walk-in — and locks Health again.
   await J('T04c'); await p.click('[data-act="st-lvok"]'); await p.click('#phone >> text=Save role'); assert(await has('Sabina Rai is now Front desk + approves leave'), 'Y05: a role change');
   await p.click('[data-tab="reception"]'); await p.click('[data-act="st-arr:sk"]'); await p.click('#phone >> text=Check in'); await p.click('.csheet .btn.primary'); assert(await P('text=Checked in at'), 'Y05: a check-in');

@@ -30,7 +30,7 @@ Object.assign(NE, {
   'Your thyroid levels are normal. No change to your treatment.': 'तपाईंको थाइराइडको मात्रा सामान्य छ। उपचारमा कुनै परिवर्तन छैन।',
   // VISITS / PRESCRIPTIONS
   'General medicine, OPD 1': 'सामान्य चिकित्सा, OPD 1', 'General medicine, OPD 2': 'सामान्य चिकित्सा, OPD 2', 'General medicine, walk-in': 'सामान्य चिकित्सा, वाक-इन',
-  'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.': 'भाइरल संक्रमण। आराम गर्नुहोस्, प्रशस्त झोल पदार्थ पिउनुहोस्, र ज्वरोका लागि Paracetamol खानुहोस्। ज्वरो 3 दिनभन्दा बढी रहे फेरि आउनुहोस्।',
+  'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever is not better in 2 days.': 'भाइरल संक्रमण। आराम गर्नुहोस्, प्रशस्त झोल पदार्थ पिउनुहोस्, र ज्वरोका लागि Paracetamol खानुहोस्। 2 दिनमा ज्वरो कम नभए फेरि आउनुहोस्।',
   "An ear infection. Take all of the amoxicillin, even once it feels better. Come back if the pain gets worse or there's discharge.": 'कानको संक्रमण। सन्चो भएजस्तो लागे पनि Amoxicillin पूरै खानुहोस्। दुखाइ बढे वा कानबाट पीप बगे फेरि आउनुहोस्।',
   'Finish the whole course, even if you feel better sooner.': 'चाँडै सन्चो भएजस्तो लागे पनि औषधिको पूरा कोर्स सक्नुहोस्।',
   'Take all of it, even once it feels better.': 'सन्चो भएजस्तो लागे पनि सबै औषधि खानुहोस्।',
@@ -57,7 +57,7 @@ Object.assign(NE, {
   'Fingerprint unlock is off': 'औंठाछापले अनलक बन्द छ', 'A new fingerprint was added to this phone. For your safety, enter your PIN.': 'यो फोनमा नयाँ औंठाछाप थपिएको छ। तपाईंको सुरक्षाका लागि PIN हाल्नुहोस्।',
   "Your phone's own PIN may be known to others who use it. This one is only yours.": 'तपाईंको फोनको आफ्नै PIN यो फोन चलाउने अरूलाई थाहा हुन सक्छ। यो PIN तपाईंको मात्र हो।',
   "So we know it's you before you change it.": 'बदल्नुअघि तपाईं नै हो भनेर जान्न।', 'To change your mobile number.': 'मोबाइल नम्बर बदल्न।',
-  'Your old PIN stops working. Your records stay as they are.': 'पुरानो PIN अब चल्दैन। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।', 'PIN changed.': 'PIN बदलियो।', 'PIN set.': 'PIN राखियो।', 'Pay later': 'पछि तिर्छु', 'not booked yet': 'अझै बुक गरिएको छैन',
+  'Your old PIN stops working. Your records stay as they are.': 'पुरानो PIN अब चल्दैन। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।', 'PIN changed.': 'PIN बदलियो।', 'PIN set.': 'PIN राखियो।', 'No visits or reports yet': 'अहिलेसम्म कुनै भेट वा रिपोर्ट छैन', 'Pay later': 'पछि तिर्छु', 'not booked yet': 'अझै बुक गरिएको छैन',
   "The lab's reference range": 'प्रयोगशालाको सामान्य दायरा', 'Until you see your doctor': 'डाक्टरलाई नभेटुन्जेल',
   'Below 5.7% is normal; 5.7% to 6.4% is above normal. For people with diabetes, the usual aim is below 7%.': '5.7% भन्दा कम सामान्य हो; 5.7% देखि 6.4% सामान्यभन्दा माथि हो। मधुमेह भएकाहरूका लागि सामान्यतया 7% भन्दा कम राख्ने लक्ष्य हुन्छ।',
   'Until your visit, keep taking your medicines as usual. If you feel very unwell, call reception, or 102 in an emergency.': 'भेट नहुन्जेल आफ्ना औषधि सधैँझैँ खाइरहनुहोस्। धेरै अस्वस्थ महसुस भए रिसेप्सनमा, वा आपत्कालमा 102 मा फोन गर्नुहोस्।', 'Set a PIN': 'PIN राख्नुहोस्', 'Choose a 4-digit PIN': '4 अङ्कको PIN छान्नुहोस्',
@@ -102,7 +102,7 @@ export const LABS = {
 };
 export const VISITS = {
   aug28: { title: 'Visit on Aug 28', doc: ['PS', 'Dr. Priya Sharma', 'Aug 28, 4:30 PM', 'General medicine, OPD 2'], rx: 'aug28',
-    words: 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.' },
+    words: 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever is not better in 2 days.' },
   aug12: { title: 'Visit on Aug 12', doc: ['RS', 'Dr. Ramesh Shrestha', 'Aug 12, 11:00 AM', `General medicine, ${DOCTORS.rs.opd}`] /* W20: his OPD from the one doctor list */, rx: 'aug12',
     words: "An ear infection. Take all of the amoxicillin, even once it feels better. Come back if the pain gets worse or there's discharge." },
 };
@@ -265,7 +265,7 @@ Object.assign(SCREENS, {
   hempty: () => (
     <div className="screen">
       {statusBar()}{bar({ back: false, title: 'Health' })}
-      {centred(empty('qa-book.svg', 'Nothing here yet',
+      {centred(empty('qa-book.svg', S.meds.length ? 'No visits or reports yet' : 'Nothing here yet', // Run 7: not "nothing" when he tracks a medicine
         'After your first visit, what your doctor tells you, your prescriptions and your reports will appear here.',
         btn('Book a visit', 'go:finddoctor', { size: 'l' })))}
       {S.meds.length ? homeLocked() ? homeLockRow() : <div className="inset" style={{ paddingBottom: 16 }}>{list([medsItem()])}</div> : null}{/* Run 6 Y01: medicines someone tracks themselves, like Ramesh's; behind his Home lock when it's on */}
@@ -546,7 +546,8 @@ export function pinComplete() {
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
       S.pinChanged = S.afterUnlock === 'pflock' && !!S.pin; S.pin = e; if (S.pinChanged) toast(tr('PIN changed.')); else if (S.afterUnlock === 'pflock') toast(tr('PIN set.')); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
     case 'pfpin': // care.jsx — Switch person
-      if (e === pinOf(S.switchTo) || (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234'))) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
+      if (e === pinOf(S.switchTo)) return switchTo(S.switchTo, e);
+      if (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234')) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
       S.pinErr = true; return render();
     case 'pin':
       if (e === S.pin && S.fingerChanged) { // a new fingerprint on the phone: the opt-in asks again, since the risk has changed

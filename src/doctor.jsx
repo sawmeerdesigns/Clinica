@@ -2,7 +2,7 @@
 // Figma: zw3saW6ot26E6gWH20K3ux, section 551:19193. It shares one world with the patient app: Anisha's queue state is
 // her visit day, the note written here is what she reads in Health, and a released report is what she sees.
 import { Fragment } from 'react';
-import { AD_SHORT, btn, empty, homeInd, listItem, maskDob, pad, parseDob, range, start, statusBar, support } from './app.jsx';
+import { AD_SHORT, btn, empty, homeInd, listItem, maskDob, pad, parseDob, pickTab, range, start, statusBar, support } from './app.jsx';
 import { acts, ask, src, words } from './ask.jsx';
 import { DOCTORS, backTo, bar, iconBtn, initials, label, rel, row, rows, sk, tag, when } from './booking.jsx';
 import { csheet, notice, setting, signoutSheet, usePerson } from './care.jsx';
@@ -197,6 +197,7 @@ export const drLabView = (id, k) => { const l = drLabs(id).find(x => x.k === k),
     {r ? <div className="stack6"><p className="dr-label">Result</p>{drValues(r.rows)}</div> : l.value ? <div className="stack6"><p className="dr-label">Result</p><p className="dr-body"><b>{l.value}</b></p></div>
       : <p className="dr-body tertiary">The values are in the lab's report file.</p>}
     {labTrend(k)}{/* Phase 8 */}
+    {LABS[k]?.range ? <div className="stack6"><p className="dr-label">Reference range</p><p className="dr-body">{LABS[k].range}</p></div> : null}{/* Run 7 */}
     {l.words ? <div className="stack8">{lbl('What the patient was told')}<p className="note-body">{l.words}</p></div> : null}</>; };
 export const drShort = dmy => { const p = parseDob(dmy); return p ? `${AD_SHORT[p.m]} ${p.d}` : ''; }; // '18 / 09 / 2026' → 'Sep 18'
 export const drFollowLine = (f, date) => f === '2w' ? ['Follow-up in 2 weeks', `Around ${dayLabel(FU_DAY)}.`] : date ? [`Follow-up on ${drShort(date)}`, ''] : ['Follow-up needed', ''];
@@ -237,12 +238,15 @@ export const drMedText = (k, label, ph) => <div className="field-wrap"><label cl
   <div className={`field ${S.drMed[`${k}Err`] ? 'err' : ''}`}><input id={`dm-${k}`} placeholder={ph} value={S.drMed[k] || ''} onChange={e => { S.drMed[k] = e.target.value; S.drMed[`${k}Err`] = ''; paint(); }} /></div>
   {S.drMed[`${k}Err`] ? support(S.drMed[`${k}Err`], 'err') : null}</div>;
 export const drMedRadio = (k, name, opts) => <div className="stack4">{drRadio(name, opts.map(o => [o, o]), S.drMed[k], `d-mf:${k}`)}{S.drMed[`${k}Err`] ? support(S.drMed[`${k}Err`], 'err') : null}</div>;
+// Run 7: the quantity a dose, how often and how long add up to, as the field's suggestion ("About 184 tablets"). Ongoing has none.
+const drQtyHint = () => { const m = S.drMed, n = parseFloat(m.dose), f = { 'Once a day': 1, 'Twice a day': 2, '3 times a day': 3 }[m.often], d = DR_LONG[m.long];
+  return n && f && d ? `About ${Math.ceil(n * f * d)} ${/ml/i.test(m.dose) ? 'ml' : (m.form || 'tablet').toLowerCase() + 's'} for this dose` : ''; };
 export const drMedForm = () => <div className="fields">
   {drMedText('name', 'Medicine name', 'e.g. Paracetamol')}{drMedText('strength', 'Strength', 'e.g. 500 mg')}
   {drMedText('purpose', 'Purpose', 'e.g. For fever and headache')}
   {drMedRadio('form', 'Form', ['Tablet', 'Capsule', 'Liquid'])}
   {drMedText('dose', 'Dose each time', 'e.g. 1 tablet, 10 ml')}
-  {drMedText('qty', 'Quantity to dispense', 'e.g. 20 tablets')}
+  {drMedText('qty', 'Quantity to dispense', drQtyHint() || 'e.g. 20 tablets')}
   {drMedRadio('often', 'How often', ['Once a day', 'Twice a day', '3 times a day'])}
   {drMedRadio('long', 'For how long', Object.keys(DR_LONG))}
   {drDate('dm-end', 'End date', S.drMed, 'end', 'medend')}</div>;
@@ -272,6 +276,7 @@ export const drOutList = (cls = '') => S.drOut.length ? <><div className="inset"
     return <div className={`list-item static ${cls}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
       <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span>
         <span className="dq-m"><span className="past">{o.back ? 'Taken back' : 'Released'} by {o.by} at {o.at}</span>{tag(o.back ? 'Taken back' : o.follow ? 'Follow-up asked' : 'Released', `${o.back ? 'neutral' : o.follow ? 'warn' : 'success'} s12`)}</span>
+        {!o.back && o.words ? <span className="dr-body tertiary">They see: “{o.words}”</span> : null}{/* Run 7 */}
         {o.back ? null : <span>{btn('Take back', `d-retract:${o.k}`, { size: 'l', kind: 'secondary hug' })}</span>}</span></div>; }))}</div></> : null; // Take back sits under the line, so "Released by…" keeps its width
 
 // ---------- screens ----------
@@ -312,7 +317,7 @@ Object.assign(SCREENS, {
       <div className="inset"><button className="list-item" data-act="go:dhistory">{lead('lt-history.svg')}
         <span className="text"><span className="item-title">View history</span><span className="dr-body">{p.hist}</span></span>{drChev}</button></div>
       <div style={{ height: 20, flex: 'none' }}></div>
-      <div className="inset stack8">{st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? <>{tag('Not arrived', 'error s12')}<p className="dr-body">{p.name.split(' ')[0]} hasn't checked in yet. Reception checks patients in; then you can start the visit here.</p></> : btn('Start visit', 'd-start')}</div>
+      <div className="inset stack8">{st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? <>{tag('Not arrived', 'error s12')}<p className="dr-body">{p.name.split(' ')[0]} hasn't checked in yet. Reception checks patients in; then you can start the visit here.</p><div>{btn('Check in at Reception', `d-checkin:${S.dp}`, { size: 'l', kind: 'secondary hug' })}</div></> : btn(st === 'with' ? 'Continue visit' : 'Start visit', 'd-start')}</div>
     </div>, { bar: drBar('', true) });
   },
 
@@ -340,7 +345,7 @@ Object.assign(SCREENS, {
   daddmed: () => drScreen(<div className="body" style={{ gap: 16, paddingBottom: 24 }}>
       <div className="inset"><p className="dr-body tertiary">For {DR_PATIENTS[S.dp].name} · {drPid(S.dp)}</p></div>
       <div className="inset">{drMedForm()}</div>
-    </div>, { bar: drBar(S.drMed?.idx != null ? 'Edit medicine' : 'Add another medicine', true), cta: <div className="cta">{btn('Save medicine', 'd-medsave')}</div> }),
+    </div>, { bar: drBar(S.drMed?.idx != null ? 'Edit medicine' : S.drDraft?.meds.length ? 'Add another medicine' : 'Add a medicine', true), cta: <div className="cta">{btn('Save medicine', 'd-medsave')}</div> }),
 
   // Writing the note and prescribing — the wording the patient later reads in her own Health tab.
   dvisit: () => {
@@ -447,13 +452,13 @@ Object.assign(OVERLAY, {
       btn(`Finish ${n}'s visit first`, `d-resume:${id}`), btn(`Keep it open and start ${f}'s`, 'd-start:ok', { kind: 'secondary' })); },
   // Run 6 Y06: a released report can be taken back after Undo has gone; it's logged under Released today.
   drretract: () => { const r = DR_REPORTS[S.drBack], p = DR_PATIENTS[r.pid];
-    return csheet('Take this report back?', `${p.name} won't see your comment any more, and the ${r.test} goes back to Pending so you can correct it. Released today keeps a record that you took it back.`,
+    return csheet('Take this report back?', `${p.name} won't see your comment any more, and the ${r.test} goes back to Needs review so you can correct it. Released today keeps a record that you took it back.`,
       btn('Take it back', 'd-retract-ok'), btn('Go back', 'sheet-close', { kind: 'secondary' })); },
   drsignout: () => signoutSheet("You'll need to sign in again to see today's queue.", 'd-signout'),
   // Desktop adds a medicine in a sheet over the visit; the phone uses a full screen (daddmed).
   draddmed: () => <><div className="scrim" data-act="sheet-close"></div>
     <div className="csheet dr-medsheet" role="dialog" aria-modal="true" aria-labelledby="dm-t"><span className="handle"></span>
-      <div className="cs-text"><h2 className="cs-t" id="dm-t">{S.drMed?.idx != null ? 'Edit medicine' : 'Add another medicine'}</h2><p className="dr-body tertiary">For {DR_PATIENTS[S.dp].name} · {drPid(S.dp)}</p></div>
+      <div className="cs-text"><h2 className="cs-t" id="dm-t">{S.drMed?.idx != null ? 'Edit medicine' : S.drDraft?.meds.length ? 'Add another medicine' : 'Add a medicine'}</h2><p className="dr-body tertiary">For {DR_PATIENTS[S.dp].name} · {drPid(S.dp)}</p></div>
       <div className="dm-form">{drMedForm()}</div>
       <div className="cs-acts">{btn('Save medicine', 'd-medsave')}{btn('Cancel', 'sheet-close', { kind: 'secondary' })}</div></div></>,
 });
@@ -470,7 +475,7 @@ export function drRelease() { // what releasing does, on either device
     S.notifs.unshift(notif = { g: 'Today', icon: 'lt-lab.svg', t: `Your ${r.test} is ready${follow ? ' — Dr. Sharma wants to see you' : ''}`, b: 'Open Health to read what Dr. Sharma wrote.', when: 'Just now', go: 'hreport-cbc' });
   }
   // F24/R20/T11/W07/V09: recorded as released today, by the signed-in doctor, and said out loud with Undo for 5 seconds.
-  S.drOut = [{ k, follow, by: 'Dr. Priya Sharma', at: now(), rel: { ...S.drRel }, notif }, ...S.drOut.filter(o => o.k !== k)];
+  S.drOut = [{ k, follow, by: 'Dr. Priya Sharma', at: now(), rel: { ...S.drRel }, notif, words: drWords() }, ...S.drOut.filter(o => o.k !== k || o.back)]; // Run 7: a take-back stays on record when the corrected report goes out
   toast(`${r.test} released to ${DR_PATIENTS[r.pid].name}.`, ['Undo', `d-undo:${k}`]);
 }
 // Undo puts the report back as pending, with the decision and comment as they were, and takes it back off the patient's side.
@@ -550,9 +555,10 @@ Object.assign(ACTIONS, {
     S.drDraft = kept || { note: '', meds: [], follow: 'none', followDate: '' };
     S.drDraft.restored = !!kept;
     S.drKept = { ...S.drKept, [S.dp]: S.drDraft };
-    if (S.app === 'desk') { Object.assign(S, { screen: 'kqueue', stack: [], kSel: S.dp, kView: 'complete' }); return render(); } // the note is written inline
+    if (S.app === 'desk') { Object.assign(S, { screen: 'kqueue', stack: [], kSel: S.dp, kView: 'complete' }); render(); return document.getElementById('k-note')?.focus(); } // the note is written inline; Run 7: focus there, not on Complete
     go('dvisit', { replace: true });
   },
+  'd-checkin': id => { pickTab('reception'); ACTIONS['st-arr'](id); }, // Run 7: no dead end in a demo — the arrival opens at Reception
   'd-resume': id => { S.sheet = null; if (S.app === 'desk') { S.dp = id; return ACTIONS['d-start'](); } ACTIONS['d-patient'](id); ACTIONS['d-start'](); }, // V21: the "You're with …" banner; Run 6 Y04: the sheet's "Finish … first"
   'd-follow': v => { S.drDraft.follow = v; render(); },
   'd-complete': () => { S.sheet = 'drdone'; render(); }, // F05/R08/T12/V17: review first
@@ -594,7 +600,7 @@ Object.assign(ACTIONS, {
   'd-retract': k => { S.drBack = k; S.sheet = 'drretract'; render(); },
   'd-retract-ok': () => { const k = S.drBack, r = DR_REPORTS[k];
     drUndo(k); S.drOut = [{ k, back: true, by: 'Dr. Priya Sharma', at: now() }, ...S.drOut]; S.sheet = null;
-    toast(`${r.test} taken back from ${DR_PATIENTS[r.pid].name}. It's in Pending again.`); render(); },
+    toast(`${r.test} taken back from ${DR_PATIENTS[r.pid].name}. It needs your review again.`); render(); },
   'd-settings': sec => { S.drSec = sec; S.drPwErr = ''; drPwClear(); go('dsettings'); },
   'd-set': k => { S.drSet[k] = !S.drSet[k]; drPwClear(); render(); },
   'd-pwsave': () => {
@@ -648,7 +654,7 @@ later(() => FLOW.push(['Doctor app', [ // the presets read DR_DRAFTS, ready only
   ['D05', 'Reports', 'Reports tab', "Lab results waiting for the doctor's review before a patient can see them.", DW({ screen: 'dreports' })],
   ['D05b', 'No reports pending', 'All released', "The reports queue's empty state.", DW({ screen: 'dreports', drPending: [] })],
   ['D05c', 'Reports — released today', 'After releasing', 'New (Run 6 Y06): each report released today says who released it and when, and can be taken back after the few seconds of Undo have gone.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null }] })],
-  ['D05d', 'Take a report back', 'Take back', 'New (Run 6 Y06): asks first. The patient stops seeing the comment, the report goes back to Pending to correct, and Released today keeps a record that it was taken back.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null }], drBack: 'cbc', sheet: 'drretract' })],
+  ['D05d', 'Take a report back', 'Take back', 'New (Run 6 Y06): asks first. The patient stops seeing the comment, the report goes back to Needs review to correct, and Released today keeps a record that it was taken back.', DW({ screen: 'dreports', drPending: ['lipid'], released: { cbc: { follow: false, words: DR_REPORTS.cbc.normal } }, drOut: [{ k: 'cbc', follow: false, by: 'Dr. Priya Sharma', at: '4:52 PM', rel: { choice: 'normal', comment: '', edited: false }, notif: null }], drBack: 'cbc', sheet: 'drretract' })],
   ['D06', 'Report detail', "Taps Anisha's CBC", 'Raw lab values, a release decision, and a comment for the patient — the values themselves never reach the patient app.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'normal', comment: DR_REPORTS.cbc.normal } })],
   ['D06b', 'Report — flag follow-up', 'I need to see them again', 'The alternate branch when a result needs a conversation, not just a release. On her side, the report then asks her to book a follow-up.', DW({ screen: 'dreport', stack: ['dreports'], drRep: 'cbc', drRel: { choice: 'follow', comment: DR_FOLLOW } })],
   ['D06c', 'Report detail — Kabita', "Taps Kabita's lipid panel", "A second patient's own report, not a reused stand-in.", DW({ screen: 'dreport', stack: ['dreports'], drRep: 'lipid', drRel: { choice: 'normal', comment: DR_REPORTS.lipid.normal } })],

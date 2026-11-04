@@ -159,7 +159,7 @@ export function answer(turn) {
       noteCard('lt-lock.svg', 'Enter your Clinica PIN', 'On a shared phone, your records stay locked until you enter your PIN.', '',
         <button className="btn secondary l" data-act="ask-unlock">{tr('Unlock with PIN')}</button>)];
     case 'lastvisit': return [say('Your visit with Dr. Priya Sharma on Aug 28, General medicine.'),
-      words('Dr. Priya Sharma', 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.'),
+      words('Dr. Priya Sharma', 'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever is not better in 2 days.'),
       <div className="card">{lead('lt-rx.svg')}{medText({ ...RX[0], how: '1 tablet, three times a day, after food' })}</div>,
       say(fu ? (ne() ? `तपाईंको फलो-अप ${nd(fu.day)}, ${nd(fu.time)} का लागि बुक भएको छ।` : `Your follow-up is booked for ${fu.day}, ${fu.time}.`) : "A follow-up in 2 weeks isn't booked yet."),
       src('icon-description-16.svg', 'From your visit on Aug 28'),
