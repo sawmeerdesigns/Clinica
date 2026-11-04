@@ -43,7 +43,12 @@ export const drWords = (k = S.drRep) => S.drRel.comment.trim() || drSuggest(k); 
 export const drComment = (r, k) => <div className="field-wrap"><label className="dr-label" htmlFor="d-comment">Comment for {r.first}</label>
   <div className="field textarea"><textarea id="d-comment" value={S.drRel.comment} placeholder={S.drRel.choice ? `Suggested: ${drSuggest(k)}` : 'Choose what the patient should see first'}
     onChange={e => { S.drRel.comment = e.target.value; S.drRel.edited = true; paint(); }} /></div>
-  {S.drRel.choice && !S.drRel.comment.trim() ? <p className="dr-body tertiary">Leave it blank to send the suggested text.</p> : null}</div>;
+  {S.drRel.choice && !S.drRel.comment.trim() ? <p className="dr-body tertiary">Leave it blank to send the suggested text.</p> : null}
+  {S.drRel.choice ? drPreview(r) : null}</div>;
+// Run 6 Y25: what the patient's report page will show once released, as she'll see it.
+export const drPreview = r => <div className="stack8 dr-preview">{lbl(`What ${r.first} will see`)}<div className="card neutral stack8">
+  <p className="item-title">{r.test}</p><p className="note-body">{drWords()}</p>
+  {S.drRel.choice === 'follow' ? <p className="body-s"><b>Dr. Sharma asked to see you.</b> With a Book follow-up button.</p> : null}</div></div>;
 
 export const EXTRA_STATE_DR = () => ({
   app: 'patient', saved: {}, drSigned: false, drErr: false, drId: '', drPw: '', drNoPatients: false,
@@ -63,7 +68,20 @@ export function drStatus(id) {
   if (id !== 'as') return S.drq[id];
   return ({ checkedin: 'waiting', turn: 'waiting', with: 'with', done: 'done' })[S.visitDay] || 'notarrived';
 }
-export const drToday = () => Object.keys(DR_PATIENTS).filter(id => id === 'as' ? !S.careEmpty && S.appt.day === 0 && S.appt.doc === 'ps' : id in S.drq); // walk-ins join via staff.jsx; Run 6 Y02: her visit with Dr. Sharma
+export const drToday = () => { drExtra(); return Object.keys(DR_PATIENTS).filter(id => id === 'as' ? !S.careEmpty && S.appt.day === 0 && S.appt.doc === 'ps' : id in S.drq && (!DR_PATIENTS[id].extra || drExtraKeys.has(id))); }; // walk-ins join via staff.jsx; Run 6 Y02: her visit with Dr. Sharma
+// Run 6 follow-on: Dr. Sharma's other visits booked in the app for today — a second one of Anisha's, or one for her father — join the queue as booked, not arrived.
+// Worked out from the patient records each time, so a cancel or a reload needs nothing extra. ponytail: their notes don't reach the patient app; only the 4:30 visit does.
+let drExtraKeys = new Set();
+const RAMESH_DR = { name: 'Ramesh Sharma', ini: 'RS', info: 'Male · 65 · CH-0954', hist: '' };
+function drExtra() {
+  const rec = n => S.fullName === n ? S : S.people?.[n], a = rec('Anisha Sharma'), r = rec('Ramesh Sharma');
+  const today = (p, all) => p ? [...(all && !p.careEmpty && p.appt ? [p.appt] : []), ...(p.more || [])].filter(v => v.day === 0 && v.doc === 'ps') : [];
+  drExtraKeys = new Set([...today(a, false).map(v => [v, DR_PATIENTS.as, DR_HISTORY.as]), ...today(r, true).map(v => [v, RAMESH_DR, []])].map(([v, p, h]) => {
+    const k = `${p.ini.toLowerCase()}-${v.time.replace(/\D/g, '')}`, why = v.reason || 'Booked in the app';
+    DR_PATIENTS[k] ||= { name: p.name, ini: p.ini, info: p.info, reason: why, short: why, time: v.time, hist: p.hist, extra: true };
+    DR_HISTORY[k] ||= h; if (!(k in S.drq)) S.drq[k] = 'notarrived';
+    return k; }));
+}
 export const drTime = id => id === 'as' ? S.appt.time : DR_PATIENTS[id].time;
 export const drBusy = () => drToday().find(id => drStatus(id) === 'with' && id !== S.dp); // Run 6 Y04: someone else still with the doctor
 export const DR_TAG = { done: ['Completed', 'neutral'], with: ['With doctor', 'success'], waiting: ['Waiting', 'warn'], notarrived: ['Not arrived', 'error'] };
@@ -164,9 +182,9 @@ export const drVisitList = id => {
       <button className="list-item" data-act={`d-hv:${v.i}`}>{lead('lt-history.svg')}<span className="text"><span className="item-title">{v.date}</span><span className="body-s">{`${v.doc} · ${v.reason}`}</span>
         {tag(v.own ? 'Seen by you' : 'Other doctor', `${v.own ? 'success' : 'info'} s12`)}</span>{chev}</button>))}</div>
     {drLabs(id).length ? <><p className="dr-label">Lab results</p><div className="mt-list">{sepJoin(drLabs(id).map(l => // T25: her lab results, each opening the report
-      <button className="list-item" data-act={`d-lab:${l.k}`}>{lead('lt-lab.svg')}<span className="text"><span className="item-title">{l.title}</span><span className="body-s">{l.sub}</span>
-        {labSeries(l.k).length > 1 ? <span className="body-s">{`${labSeries(l.k).map(x => LABS[x].value).join(' → ')}, ${labSeries(l.k).map(x => LABS[x].date.split(',')[0]).join(' → ')}`}</span> : null}{/* Phase 8: the trend, in the list too */}
-        {tag(l.pending ? 'Needs your review' : 'Reviewed', `${l.pending ? 'warn' : 'neutral'} s12`)}</span>{chev}</button>))}</div></> : null}</>;
+      <button className="list-item" data-act={`d-lab:${l.k}`}>{lead('lt-lab.svg')}<span className="text"><span className="item-title">{l.title}</span><span className="body-s">{l.sub}{LABS[l.k]?.value && labSeries(l.k).at(-1) !== l.k ? ` · ${LABS[l.k].value}` : ''}</span>{/* Run 6 Y26: an earlier result shows its own value, not the trend */}
+        {labSeries(l.k).length > 1 && labSeries(l.k).at(-1) === l.k ? <span className="body-s">{`${labSeries(l.k).map(x => LABS[x].value).join(' → ')}, ${labSeries(l.k).map(x => LABS[x].date.split(',')[0]).join(' → ')}`}</span> : null}{/* Phase 8: the trend, in the list too */}
+        {(f => tag(l.pending ? 'Needs your review' : f ? 'Follow-up asked' : 'Released', `${l.pending ? 'warn' : f ? 'warn' : 'neutral'} s12`))(l.follow || S.drOut.find(o => o.k === l.k && !o.back)?.follow)}</span>{chev}</button>))}</div></> : null}</>;
 };
 // T25: a patient's lab results for the doctor: Anisha's from Health (labOf follows a release), anyone else's from the reports waiting here.
 export const drLabs = id => (id === 'as' ? Object.keys(LABS).map(k => ({ k, ...labOf(k) }))
@@ -201,8 +219,11 @@ export const drOtherVisit = (id, v) => {
 export const DR_TODAY = TODAY; // the demo's one today (data.js)
 export const drDateErr = v => { if (!v) return ''; const p = parseDob(v); return !p ? 'Enter a real date, as DD / MM / YYYY.' : new Date(p.y, p.m, p.d) <= DR_TODAY ? 'Choose a date after today.' : ''; };
 export const drDate = (id, label, obj, k, pick, hint = '') => <div className="field-wrap"><label className="label" htmlFor={id}>{label}</label>
-  <div className={`field ${obj[`${k}Err`] ? 'err' : ''}`}><input id={id} inputMode="numeric" placeholder="Select or type a date" value={obj[k] || ''}
-    onChange={e => { obj[k] = maskDob(e.target.value); obj[`${k}Err`] = ''; paint(); }} onBlur={() => { obj[`${k}Err`] = drDateErr(obj[k]); paint(); }} />
+  <div className={`field ${obj[`${k}Err`] ? 'err' : ''}`}><input id={id} placeholder="DD / MM / YYYY" value={obj[k] || ''}
+    onChange={e => { const v = e.target.value; obj[k] = /[a-z]/i.test(v) ? v : maskDob(v); obj[`${k}Err`] = ''; paint(); }} // Run 6 Y13: "Nov 28, 2026" is kept as typed…
+    onBlur={() => { const t = /[a-z]/i.test(obj[k] || '') && new Date(obj[k]); // …and becomes 28 / 11 / 2026 on leaving the field
+      if (t && !isNaN(t)) obj[k] = `${pad(t.getDate())} / ${pad(t.getMonth() + 1)} / ${t.getFullYear()}`;
+      obj[`${k}Err`] = drDateErr(obj[k]); paint(); }} />
     <button type="button" className="cal-btn" data-act={`d-pick:${pick}`} aria-label={`Choose ${label.toLowerCase()}`}><img src={`${A}icon-calendar.svg`} width="20" height="20" alt="" /></button></div>
   {obj[`${k}Err`] ? support(obj[`${k}Err`], 'err') : hint ? support(hint) : null}</div>;
 
@@ -227,14 +248,15 @@ export const drMedForm = () => <div className="fields">
   {drDate('dm-end', 'End date', S.drMed, 'end', 'medend')}</div>;
 
 // ---------- the visit being written (phone dvisit and desktop complete) ----------
-// F04/R02/T01/V01/F23: a visit starts empty. The prepared note is only a suggestion (the placeholder); a blank note sends it.
+// F04/R02/T01/V01/F23: a visit starts empty. The prepared note is only a suggestion (the placeholder).
+// Run 6 Y12: a blank note stays blank; the suggestion goes in only when the doctor chooses "Use suggested note".
 export const drNoteHint = id => DR_DRAFTS[id]?.note || '';
-export const drNoteOf = (d, id) => d.note.trim() || drNoteHint(id);
+export const drNoteOf = d => d.note.trim();
 export const drNoteField = (d, id, fid) => <div className="field-wrap"><label className="dr-label" htmlFor={fid}>Doctor's note</label>
   <div className="field textarea"><textarea id={fid} value={d.note} placeholder={drNoteHint(id) ? `Suggested: ${drNoteHint(id)}` : 'What should the patient know?'} onChange={e => { d.note = e.target.value; paint(); }} /></div>
-  {drNoteHint(id) && !d.note.trim() ? <p className="dr-body tertiary">Leave it blank to use the suggested note.</p> : null}</div>;
+  {drNoteHint(id) && !d.note.trim() ? <div>{btn('Use suggested note', 'd-usenote', { size: 'l', kind: 'secondary hug' })}</div> : null}</div>;
 export const drMedList = d => <><p className="dr-label">Medicines</p>{d.meds.length ? d.meds.map(drMedEdit) : <p className="dr-body tertiary">No medicines yet.</p>}
-  <button className="btn secondary l" data-act="d-addmed">Add another medicine</button></>;
+  <button className="btn secondary l" data-act="d-addmed">{d.meds.length ? 'Add another medicine' : 'Add a medicine'}</button></>; // Y26
 // R24: the follow-up's real date shows while choosing.
 export const drFollowRadio = d => drRadio('Follow-up', [['none', 'No follow-up'], ['2w', `In 2 weeks · ${dayLabel(FU_DAY)}`], ['other', 'Other date']], d.follow, 'd-follow');
 export const drFollowText = d => d.follow === '2w' ? `In 2 weeks · ${dayLabel(FU_DAY)}` : d.follow !== 'other' ? 'No follow-up'
@@ -249,7 +271,8 @@ export const drOutList = (cls = '') => S.drOut.length ? <><div className="inset"
   <div className="list">{sepJoin(S.drOut.map(o => { const r = DR_REPORTS[o.k], p = DR_PATIENTS[r.pid];
     return <div className={`list-item static ${cls}`}><span className="avatar" aria-hidden="true">{p.ini}</span>
       <span className="dq-t"><span className="h-s">{p.name}</span><span className="dq-id">{drPid(r.pid)}</span><span className="dq-r">{r.test}</span>
-        <span className="dq-m"><span className="past">Released by {o.by} at {o.at}</span>{tag(o.follow ? 'Follow-up asked' : 'Released', `${o.follow ? 'warn' : 'success'} s12`)}</span></span></div>; }))}</div></> : null;
+        <span className="dq-m"><span className="past">{o.back ? 'Taken back' : 'Released'} by {o.by} at {o.at}</span>{tag(o.back ? 'Taken back' : o.follow ? 'Follow-up asked' : 'Released', `${o.back ? 'neutral' : o.follow ? 'warn' : 'success'} s12`)}</span></span>
+      {o.back ? null : btn('Take back', `d-retract:${o.k}`, { size: 'l', kind: 'secondary hug' })}</div>; }))}</div></> : null;
 
 // ---------- screens ----------
 Object.assign(SCREENS, {
@@ -289,7 +312,7 @@ Object.assign(SCREENS, {
       <div className="inset"><button className="list-item" data-act="go:dhistory">{lead('lt-history.svg')}
         <span className="text"><span className="item-title">View history</span><span className="dr-body">{p.hist}</span></span>{drChev}</button></div>
       <div style={{ height: 20, flex: 'none' }}></div>
-      <div className="inset">{st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? tag('Not arrived', 'error s12') : btn('Start visit', 'd-start')}</div>
+      <div className="inset stack8">{st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? <>{tag('Not arrived', 'error s12')}<p className="dr-body">{p.name.split(' ')[0]} hasn't checked in yet. Reception checks patients in; then you can start the visit here.</p></> : btn('Start visit', 'd-start')}</div>
     </div>, { bar: drBar('', true) });
   },
 
@@ -360,7 +383,6 @@ Object.assign(SCREENS, {
         {drValues(r.rows)}
         <p className="dr-body tertiary">Reference ranges only — patients never see raw values like these, only what you tell them.</p></div>
       <div className="inset">{drRadio('What should the patient see?', [['normal', 'Everything is normal'], ['follow', 'I need to see them again']], rel.choice, 'd-choice')}</div>
-      {follow ? <div className="inset"><p className="dr-body tertiary">Releasing this shows {r.first} the same “asked to see you” card and Book follow-up action already built on her side.</p></div> : null}
       <div className="inset">{drComment(r, S.drRep)}</div>
       <div style={{ height: 20, flex: 'none' }}></div>
       <div className="inset">{btn(follow ? 'Release with follow-up request' : `Release to ${r.first}`, 'd-release', { disabled: !rel.choice })}</div>
@@ -396,7 +418,7 @@ Object.assign(mount, {
 Object.assign(OVERLAY, {
   drrelease: () => {
     const r = DR_REPORTS[S.drRep], p = DR_PATIENTS[r.pid], w = drWords(), goBack = btn('Go back', 'sheet-close', { kind: 'secondary' });
-    const sees = `${p.name} (${drPid(r.pid)}) will see your comment right away: “${w}”`;
+    const sees = `${p.name} (${drPid(r.pid)}) will see your comment right away: “${w}”. You can take it back later from Released today.`; // Y06
     return S.drRel.choice === 'follow'
       ? csheet('Release with a follow-up request?', `${sees} ${r.first} will also be asked to book a follow-up with you.`, btn('Release with follow-up request', 'd-release-ok'), goBack)
       : csheet('Release this report?', sees, btn(`Release to ${r.first}`, 'd-release-ok'), goBack);
@@ -407,7 +429,7 @@ Object.assign(OVERLAY, {
   // F05/R08/T12/V17/R24: completing a visit asks first, like release — the note, each medicine with dose and quantity,
   // the follow-up as a date, and a warning when one drug is listed twice. Back to editing keeps everything.
   drdone: () => {
-    const d = S.drDraft, p = DR_PATIENTS[S.dp], note = drNoteOf(d, S.dp), dup = drDupes(d.meds);
+    const d = S.drDraft, p = DR_PATIENTS[S.dp], note = drNoteOf(d), dup = drDupes(d.meds);
     return <><div className="scrim" data-act="sheet-close"></div>
     <div className="csheet dr-medsheet" role="dialog" aria-modal="true" aria-labelledby="dd-t"><span className="handle"></span>
       <div className="cs-text"><h2 className="cs-t" id="dd-t">Complete this visit?</h2>
@@ -423,6 +445,10 @@ Object.assign(OVERLAY, {
   drbusy: () => { const id = drBusy(), n = DR_PATIENTS[id].name, f = DR_PATIENTS[S.dp].name.split(' ')[0];
     return csheet(`${n} is still with you`, `Their visit isn't completed yet. Starting ${f}'s won't complete it: finish it first, or keep it open and come back to it from the queue.`,
       btn(`Finish ${n}'s visit first`, `d-resume:${id}`), btn(`Keep it open and start ${f}'s`, 'd-start:ok', { kind: 'secondary' })); },
+  // Run 6 Y06: a released report can be taken back after Undo has gone; it's logged under Released today.
+  drretract: () => { const r = DR_REPORTS[S.drBack], p = DR_PATIENTS[r.pid];
+    return csheet('Take this report back?', `${p.name} won't see your comment any more, and the ${r.test} goes back to Pending so you can correct it. Released today keeps a record that you took it back.`,
+      btn('Take it back', 'd-retract-ok'), btn('Go back', 'sheet-close', { kind: 'secondary' })); },
   drsignout: () => signoutSheet("You'll need to sign in again to see today's queue.", 'd-signout'),
   // Desktop adds a medicine in a sheet over the visit; the phone uses a full screen (daddmed).
   draddmed: () => <><div className="scrim" data-act="sheet-close"></div>
@@ -449,7 +475,7 @@ export function drRelease() { // what releasing does, on either device
 }
 // Undo puts the report back as pending, with the decision and comment as they were, and takes it back off the patient's side.
 export function drUndo(k) {
-  const o = S.drOut.find(x => x.k === k);
+  const o = S.drOut.find(x => x.k === k && !x.back);
   toastClear();
   if (!o) return false;
   S.drOut = S.drOut.filter(x => x !== o);
@@ -531,7 +557,7 @@ Object.assign(ACTIONS, {
   'd-follow': v => { S.drDraft.follow = v; render(); },
   'd-complete': () => { S.sheet = 'drdone'; render(); }, // F05/R08/T12/V17: review first
   'd-complete-ok': () => {
-    S.drDraft.note = drNoteOf(S.drDraft, S.dp); // a blank note sends the suggestion it showed
+    S.drDraft.note = drNoteOf(S.drDraft);
     if (S.dp === 'as') { // what Anisha now sees: her visit complete, these notes, and this follow-up advice
       Object.assign(S, { visitDay: 'done', fuAdvice: S.drDraft.follow, fuDate: S.drDraft.follow === 'other' ? S.drDraft.followDate : '' });
       S.notifs.unshift({ g: 'Today', icon: 'lt-document.svg', t: 'Your visit notes are ready', b: 'Open Health to read them.', when: 'Just now', go: 'hvisit' });
@@ -564,6 +590,11 @@ Object.assign(ACTIONS, {
     if (S.screen === 'dreports') return go('dreport');
     render();
   },
+  'd-usenote': () => { S.drDraft.note = drNoteHint(S.dp); render(); document.querySelector('.phone textarea')?.focus(); }, // Y12
+  'd-retract': k => { S.drBack = k; S.sheet = 'drretract'; render(); },
+  'd-retract-ok': () => { const k = S.drBack, r = DR_REPORTS[k];
+    drUndo(k); S.drOut = [{ k, back: true, by: 'Dr. Priya Sharma', at: now() }, ...S.drOut]; S.sheet = null;
+    toast(`${r.test} taken back from ${DR_PATIENTS[r.pid].name}. It's in Pending again.`); render(); },
   'd-settings': sec => { S.drSec = sec; S.drPwErr = ''; drPwClear(); go('dsettings'); },
   'd-set': k => { S.drSet[k] = !S.drSet[k]; drPwClear(); render(); },
   'd-pwsave': () => {

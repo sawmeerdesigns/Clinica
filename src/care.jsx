@@ -2,7 +2,7 @@
 // Figma: zw3saW6ot26E6gWH20K3ux, section 542:19194. Plugs into core.jsx (SCREENS, mount, ACTIONS, FLOW, NUM, OVERLAY)
 // and reuses pieces from booking.jsx, health.jsx and ask.jsx.
 import { Fragment } from 'react';
-import { AD_SHORT, Phone, RECORDS, bsText, family, btn, empty, endScreen, heading, homeInd, listItem, masked, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
+import { AD_SHORT, Phone, RECORDS, bsText, family, btn, empty, endScreen, heading, homeInd, listItem, masked, maskedEl, onboarding, pad, parseDob, statusBar, toBS, toHome } from './app.jsx';
 import { FOLLOW_DAYS, FOLLOW_TIMES, T, acts, ask, src, todayCard, visitCard } from './ask.jsx';
 import { DAYS, DOCTORS, bar, callBtn, dayName, downloadIcs, freeTimes, iconBtn, initials, isTaken, label, navBar, offLine, openVisit, payCard, rel, row, surname, tag, takeSlot, visits, when } from './booking.jsx';
 import { $phone, A, ACTIONS, FLOW, NE, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, later, mount, nd, ne, render, reset, toast, tr } from './core.jsx';
@@ -15,6 +15,10 @@ import { counts, img, now, patients, people, person } from './staff.jsx';
 
 // Phase 8: Nepali for this module's own lines. Sentences with a name, time or date are written with ne() where they're used.
 Object.assign(NE, {
+  // Run 6 Y09/Y15
+  Receipt: 'रसिद', Paid: 'तिरिएको', Details: 'विवरण', Reference: 'सन्दर्भ नम्बर', 'Paid on': 'तिरेको मिति', For: 'केका लागि', Patient: 'बिरामी', 'Paid to': 'कसलाई तिरियो',
+  "Show this at reception if you're asked. They can look it up by its reference.": 'सोधिए रिसेप्सनमा यो देखाउनुहोस्। उहाँहरूले सन्दर्भ नम्बरबाट खोज्न सक्नुहुन्छ।',
+  'Share receipt': 'रसिद पठाउनुहोस्', 'Share this receipt': 'यो रसिद पठाउनुहोस्', 'As an image, to WhatsApp, Viber or Messages.': 'तस्बिरको रूपमा, WhatsApp, Viber वा Messages मा।', Share: 'पठाउनुहोस्',
   'Dr. Sharma is running late': 'Dr. Sharma ढिला हुनुहुन्छ', "Your 4:30 PM slot is kept. We'll message you when she's ready.": 'तपाईंको दिउँसो 4:30 को समय कायम छ। उहाँ तयार हुनुभएपछि हामी सन्देश पठाउँछौं।',
   '10 min ago': '10 मिनेटअघि', '2 hours ago': '2 घण्टाअघि', 'Unread: ': 'नपढिएको: ',
   'Your HbA1c blood test is ready — Dr. Sharma wants to see you': 'तपाईंको HbA1c रगत जाँचको नतिजा तयार छ — Dr. Sharma तपाईंलाई भेट्न चाहनुहुन्छ',
@@ -360,7 +364,7 @@ Object.assign(SCREENS, {
   // ---------- Profile ----------
   pf: () => frame('Profile', <>
     <div className="inset"><div className="who"><span className="avatar l" aria-hidden="true">{initials(S.fullName)}</span>
-      <div><p className="who-n">{S.fullName}</p><p className="body-s">{tr('Patient at City Hospital')}</p><p className="body-s tertiary">{masked()}</p></div></div></div>
+      <div><p className="who-n">{S.fullName}</p><p className="body-s">{tr('Patient at City Hospital')}</p><p className="body-s tertiary">{maskedEl()}</p></div></div></div>
     {sect('You', list([listItem('icon-person.svg', 'Your details', 'Name, birth date and mobile number', 'go:pfdetails'),
       listItem('lt-fee.svg', 'Payments', S.payments.length ? (ne() ? `एपमा ${S.payments.length} पटक तिरिएको` : `${S.payments.length} paid in the app`) : 'Fees paid in the app, with receipts', 'go:pfpay')]))}{/* T05/W02 */}
     {sect('Settings', list([listItem('lt-translate.svg', 'Language', S.lang === 'ne' ? 'नेपाली' : 'English', 'go:pflang'),
@@ -369,7 +373,7 @@ Object.assign(SCREENS, {
     {sect('Your clinic', list([listItem('lt-hospital.svg', 'City Hospital', 'Phone, address and opening hours', 'go:pfclinic')]))}
     {sect('Help and about', list([listItem('lt-help-circle.svg', 'Help', 'Emergencies, contacting the clinic, privacy', 'go:pfhelp'), listItem('lt-info.svg', 'About Clinica', 'Version, privacy', 'go:pfabout')]))}
     {sect('This phone', list([listItem('icon-person.svg', 'Switch person', 'For a phone the family shares', 'go:pfswitch'),
-      listItem('lt-lock-open.svg', 'Sign out', masked(), 'sheet:signout'), listItem('lt-close.svg', 'Close account', 'Your records stay with the clinic', 'sheet:close')]))}</>,
+      listItem('lt-lock-open.svg', 'Sign out', maskedEl(), 'sheet:signout'), listItem('lt-close.svg', 'Close account', 'Your records stay with the clinic', 'sheet:close')]))}</>,
     { back: false, tab: 'Profile' }),
 
   pfdetails: () => {
@@ -380,7 +384,7 @@ Object.assign(SCREENS, {
       {sect('Details', list([row('icon-person.svg', 'Full name', S.fullName),
         row('lt-calendar-month.svg', 'Date of birth', p ? nd(`${p.d} ${AD_SHORT[p.m]} ${p.y}${b ? `${ne() ? ', वा' : ', or'} ${bsText(b)}` : ''}`) : 'On file at reception'),
         row('icon-person.svg', 'Sex', me.sex || 'On file at reception'), ...(S.pronouns ? [row('icon-person.svg', 'Pronouns', S.pronouns)] : []), row('lt-clipboard.svg', 'Patient number', me.no),
-        listItem('lt-call.svg', 'Mobile number', masked(), 'pf-phone')]))}</>);
+        listItem('lt-call.svg', 'Mobile number', maskedEl(), 'pf-phone')]))}</>);
   },
 
   pflang: () => frame('Language', <>
@@ -409,18 +413,30 @@ Object.assign(SCREENS, {
   pflock: () => frame('Health lock', <>
     {S.pinChanged ? <div className="inset">{notice('success', 'PIN changed', 'Use your new PIN from now on.')}</div> : null}
     {sect('Lock and unlock', <div className="list">{row('lt-lock.svg', 'Locks automatically', 'When you leave Clinica, or after 5 idle minutes')}
-      {listItem('lt-lock.svg', 'Change PIN', 'Choose a new 4-digit PIN', 'pf-pin')}<div className="sep" aria-hidden="true"></div>
+      {S.pin ? listItem('lt-lock.svg', 'Change PIN', 'Choose a new 4-digit PIN', 'pf-pin') : listItem('lt-lock.svg', 'Set a PIN', 'Choose a 4-digit PIN', 'pf-pin')}{/* Run 6 Y09/Y26 */}<div className="sep" aria-hidden="true"></div>
       {S.noSensor ? setting('Use fingerprint', 'This phone has no fingerprint sensor.', false, '', true, lead('lt-fingerprint.svg')) // disabled, with the reason
         : setting('Use fingerprint', S.finger === 'on' ? 'Fingerprint data saved on this phone could open your records' : 'Off. Your PIN opens your records.', S.finger === 'on', 'pf-finger', false, lead('lt-fingerprint.svg'))}</div>)}
-    {family().length > 1 ? sect('On this shared phone', list([setting('Also lock appointments and medicines', S.homeLock[S.fullName] !== false ? 'Home shows them after your PIN' : 'Off. Anyone with this phone sees them on Home',
+    {family().length > 1 ? sect('On this shared phone', list([!S.pin // Run 6 Y09: with no PIN yet the lock can't work, so it says so instead of looking on
+      ? setting('Also lock appointments and medicines', 'Set a PIN first. Until then, anyone with this phone sees them on Home.', false, '', true, lead('lt-calendar.svg'))
+      : setting('Also lock appointments and medicines', S.homeLock[S.fullName] !== false ? 'Home shows them after your PIN' : 'Off. Anyone with this phone sees them on Home',
       S.homeLock[S.fullName] !== false, 'pf-homelock', false, lead('lt-calendar.svg'))])) : null}{/* T22: each person chooses */}
     {sect('If you forget', list([listItem('lt-sms.svg', 'Reset your PIN', 'With a code sent by SMS', 'pf-reset')]))}
     <div className="inset"><p className="body-s">{tr("Your Clinica PIN isn't your phone's PIN. On a shared phone, it's the one thing only you know.")}</p></div></>),
 
   // T05/W02: fees paid in the app, each with its receipt. The wallet is mocked, so the receipt references are made up.
-  pfpay: () => frame('Payments', S.payments.length ? sect('Paid in the app', list(S.payments.map(x => row('lt-fee.svg', ne() ? `NPR ${FEE}, ${x.how} बाट · रसिद ${x.ref}` : `NPR ${FEE} with ${x.how} · Receipt ${x.ref}`, // Phase 8
-      ne() ? `${x.doc}, ${nd(when(x.day, x.time))}${x.for !== S.fullName ? ` · ${x.for} का लागि` : ''}` : `${x.doc}, ${when(x.day, x.time)}${x.for !== S.fullName ? ` · for ${x.for}` : ''}`))))
+  pfpay: () => frame('Payments', S.payments.length ? sect('Paid in the app', list(S.payments.map((x, i) => listItem('lt-fee.svg', ne() ? `NPR ${FEE}, ${x.how} बाट · रसिद ${x.ref}` : `NPR ${FEE} with ${x.how} · Receipt ${x.ref}`, // Phase 8
+      ne() ? `${x.doc}, ${nd(when(x.day, x.time))}${x.for !== S.fullName ? ` · ${x.for} का लागि` : ''}` : `${x.doc}, ${when(x.day, x.time)}${x.for !== S.fullName ? ` · for ${x.for}` : ''}`, `pf-rcpt:${i}`))))
     : centred(empty('icon-info-secondary-28.svg', 'No payments yet', 'Fees you pay in the app show here, with their receipt. Fees paid at reception are on the receipt they give you.'))),
+
+  // Run 6 Y15: a receipt to show at the desk or send to family: date, clinic, amount and reference, with Share.
+  pfrcpt: () => { const x = S.payments[S.rcpt] || S.payments[0];
+    return frame('Receipt', <>
+      <div className="inset"><div className="card neutral stack4"><p className="body-s">{tr('Paid')}</p><p className="h-xl">NPR {FEE}</p><p className="body-s">{ne() ? `${x.how} बाट` : `With ${x.how}`}</p></div></div>
+      {sect('Details', list([row('lt-document.svg', 'Reference', x.ref), row('lt-calendar.svg', 'Paid on', ne() ? nd(`${dayLabel(TODAY)}, 2026`) : `${dayLabel(TODAY)}, 2026`),
+        row('lt-fee.svg', 'For', ne() ? `${x.doc} सँगको भेट, ${nd(when(x.day, x.time))}` : `Visit with ${x.doc}, ${when(x.day, x.time)}`), row('icon-person.svg', 'Patient', x.for),
+        row('lt-hospital.svg', 'Paid to', 'City Hospital, Maharajgunj, Kathmandu')]))}
+      <div className="inset"><p className="body-s">{tr('Show this at reception if you\'re asked. They can look it up by its reference.')}</p></div></>,
+      { cta: btn('Share receipt', 'os:Share receipt') }); },
 
   pfclinic: () => frame('City Hospital', <>
     <div className="inset">{emergency()}</div>
@@ -485,6 +501,7 @@ Object.assign(ACTIONS, {
     after(() => { S.refreshing = false; render(); }, 1200);
   },
   'pf-tab': () => tabRoot('pf'),
+  'pf-rcpt': i => { S.rcpt = +i; go('pfrcpt'); }, // Run 6 Y15
   appt: arg => { if (arg === 'fu') return go('cappt'); S.vOpen = arg === 'today' ? null : +arg; // Run 6 Y02: appt:i opens S.more[i]
     S.vOpen == null && S.visitDay === 'missed' ? ACTIONS['care-tab']() : go('cday'); },
   sheet: arg => { S.sheet = arg; render(); },
@@ -586,7 +603,7 @@ Object.assign(NUM, {
   pf: s => ({ signout: 'P08', close: 'P10' })[s.sheet] || 'P01',
   pfdetails: s => s.phoneChanged ? 'PM08' : 'P02', pflang: () => 'P03', pfnotif: s => s.notifOff ? 'P09' : 'P04',
   pflock: s => s.pinChanged ? 'PM04' : s.noSensor ? 'HM13' : s.finger !== 'on' ? 'PM10' : 'P05',
-  pfclinic: () => 'P06', pfswitch: () => 'P07', pfpay: () => 'P12', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
+  pfclinic: () => 'P06', pfswitch: () => 'P07', pfpay: () => 'P12', pfrcpt: () => 'P12b', pfpin: () => 'P11', pfhelp: () => 'PM12', pfabout: () => 'PM13', pfadd: () => 'PM11', closed: () => 'PM09',
 });
 later(() => { NUM.confirmed = s => s.cal.appt ? 'K03' : s.booked?.for && s.booked.for !== s.fullName ? 'SB03' : 'B05'; }, ORDER.care); // over booking.jsx's; Figma sync: booked for someone else is SB03, not B05
 
@@ -615,6 +632,7 @@ FLOW.push(
     ['P02', 'Your details', 'From 01', 'Shown, not edited: change them at reception, or the next search stops matching and a duplicate record is born. Date of birth in AD and BS.', () => ({ screen: 'pfdetails', stack: PF })],
     ['P03', 'Language', 'From 01', 'The same tiles as onboarding. Changes straight away; a doctor\'s notes stay in the language they were written in.', () => ({ screen: 'pflang', stack: PF })],
     ['P12', 'Payments', 'From 01 — Payments', 'New (T05/W02): fees paid in the app, each with its receipt reference. The wallet is mocked, so references are made up.', () => ({ screen: 'pfpay', stack: PF })],
+    ['P12b', 'Receipt', 'From 12 — a payment', 'New (Run 6 Y15): a receipt to show at reception or send to family, with the date, the clinic, the amount and the reference. Share hands off to the phone.', () => ({ screen: 'pfrcpt', stack: [...PF, 'pfpay'], rcpt: 0, payments: [{ ref: 'KHALTI-48213', how: 'Khalti', doc: 'Dr. Priya Sharma', day: 0, time: '4:30 PM', for: 'Anisha Sharma' }] })],
     ['P04', 'Notifications', 'From 01, or the gear in the Notification centre', 'Switches take effect at once. Delays and cancellations are always on, so the clinic can reach you. SMS continues either way; never marketing.', () => ({ screen: 'pfnotif', stack: PF })],
   ]],
   ['Profile — lock, clinic and this phone', [

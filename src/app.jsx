@@ -54,6 +54,8 @@ export const BS_MONTHS = ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Ash
 export const digits = s => s.replace(/\D/g, '');
 export const telKey = () => S.codeFor === 'newphone' ? 'newPhone' : 'phone'; // Profile › change number reuses sign-in's screens
 export const masked = () => { const d = digits(S[telKey()] || '') || '9841000412'; return `+977 ${d.slice(0, 2)}•• ••• ${d.slice(-3)}`; };
+// Run 6 Y26: on screen the masked number; a screen reader hears "number ending in 412", not the bullets.
+export const maskedEl = () => <><span aria-hidden="true">{masked()}</span><span className="vh">{ne() ? `${nd(masked().slice(-3))} मा सकिने नम्बर` : `number ending in ${masked().slice(-3)}`}</span></>;
 export const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 export const pad = n => String(n).padStart(2, '0');
 export const todayAD = new Date();
@@ -187,7 +189,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar()}
       <div className="body">
-        {heading('Enter the code', ne() ? `${masked()} मा SMS बाट पठाइयो।` : `Sent by SMS to ${masked()}.`)}
+        {heading('Enter the code', ne() ? <>{maskedEl()} मा SMS बाट पठाइयो।</> : <>Sent by SMS to {maskedEl()}.</>)}
         <div className="inset"><div className="code-wrap">
           <div className={`code ${err ? 'err' : ''}`} id="code">{cells}
             <input className="cell-input" id="code-in" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
@@ -793,7 +795,7 @@ export function Phone() {
     if (ph.querySelector('main')) ph.parentElement.removeAttribute('role'); else ph.parentElement.setAttribute('role', 'main');
     // V05: everything behind an open sheet or dialog is inert, so it can't be tabbed to, tapped by voice or read.
     ph.querySelectorAll('[data-inert]').forEach(e => { e.inert = false; e.removeAttribute('data-inert'); });
-    const dlg = ph.querySelector('[aria-modal="true"]');
+    const dlg = [...ph.querySelectorAll('[aria-modal="true"]')].at(-1); // Run 6 Y13: the topmost, e.g. the date picker over a desktop sheet
     if (dlg) for (let el = dlg; el !== ph; el = el.parentElement) for (const sib of el.parentElement.children)
       if (sib !== el && !sib.matches('.scrim, .sheet-home, .toast-region')) { sib.inert = true; sib.setAttribute('data-inert', ''); }
     // W03: focus moves only when the screen, the app or a sheet changes — never on a paint while typing.
@@ -820,6 +822,8 @@ export function Phone() {
         const [act, arg] = a.dataset.act.split(/:(.*)/s);
         if (a.tagName === 'A') e.preventDefault();
         ACTIONS[act]?.(arg, a);
+        // Run 6 Y11: when the control that was used goes away (Undo, Reopen), focus goes to the screen's heading, not the page
+        if (!a.isConnected && (document.activeElement === document.body || !document.activeElement)) focusHeading();
       }
     }
     phoneListeners.click.forEach(f => f(e));

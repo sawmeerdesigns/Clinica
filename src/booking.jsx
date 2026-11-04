@@ -5,6 +5,7 @@ import { T, acts, answer, ask, src } from './ask.jsx';
 import { CAL_NOTE, calBtn, csheet, inCal, notice, unread } from './care.jsx';
 import { $phone, A, ACTIONS, FLOW, NE, NUM, OVERLAY, S, SCREENS, after, back, go, mount, nd, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
 import { chev, field, lbl, lead, list } from './health.jsx';
+import { labOf } from './doctor.jsx';
 import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
 import { DAY_TIMES, DOCTORS, FEE, GM, TODAY, WALLETS, week } from './data.js';
@@ -76,7 +77,7 @@ export const bar = ({ back = true, title = '', actions = null, big = false } = {
     {title ? <h1 className="title" style={big ? { fontSize: 20 } : undefined}>{tr(title)}</h1> : <div className="title"></div>}{/* W13: a titled bar is the screen's heading */}
     <div className="bar-acts">{actions || <div className="slot"></div>}</div>
   </div>);
-export const label = t => <p className="sec-label">{tr(t)}</p>; // F15/R12
+export const label = t => <h2 className="sec-label">{tr(t)}</h2>; // F15/R12; Run 6 Y21: a heading, so screen readers can jump between sections
 export const tag = (text, tone = '') => <span className={`tag ${tone}`}>{tr(text)}</span>;
 export const row = (icon, title, sub) => (
   <div className="list-item static">
@@ -224,9 +225,9 @@ Object.assign(SCREENS, {
           <button className="tile" data-act="health-go:hrx"><img src={`${A}qa-rx.svg`} width="28" height="28" alt="" />{tr('Prescriptions')}</button>
         </div></div> : null}
         {st === 'default' && !S.healthEmpty && !homeLocked() ? <div><div className="inset">{label('Recent')}</div><div className="list">
-            {sepJoin([listItem('lt-lab.svg', 'Lab report ready', 'Open Health to see it', 'lab-ready') /* T03 */,
+            {sepJoin([listItem('lt-lab.svg', 'Lab report ready', (k => k ? `${tr(labOf(k).title)} · ${tr('Open Health to see it')}` : 'Open Health to see it')(S.labs.find(k => !labOf(k).reviewing)), 'lab-ready') /* T03; Run 6 Y22: names the report it opens */,
                listItem('lt-rx.svg', 'Prescription updated', L('From Dr. Sharma, Aug 25', `Dr. Sharma बाट, ${nd('Aug 25')}`), 'health-go:hrxd'),
-               listItem('lt-followup.svg', 'Follow-up due', `${tr('Dermatology')}, ${tr('Sep 14')}`, 'stub:Follow-up')])}
+               listItem('lt-followup.svg', 'Follow-up due', `${tr('Dermatology')}, ${tr('Sep 14')} · ${tr('not booked yet')}`, 'stub:Follow-up')])}{/* Y26: not the booked one Care shows */}
           </div></div> : null}
         {st === 'walkin' ? <div className="stack7"><div className="inset">{label('Your visit')}</div>
           {rows([row('lt-doctor.svg', 'Doctor', `${DOCTORS.aj.name}, ${tr(DOCTORS.aj.spec)}`), row('lt-location.svg', 'Where', `${DOCTORS.aj.opd}, ${tr('City Hospital')}`), row('lt-fee.svg', 'Fee', L(`NPR ${FEE}, paid at reception`, `NPR ${FEE}, रिसेप्सनमा तिरिएको`))])}</div> : null}
@@ -500,7 +501,8 @@ Object.assign(ACTIONS, {
   'filter-clear': () => { S.filt = { today: false, sex: 'Any' }; S.sheet = null; render(); },
   doctor: arg => { S.doc = arg; S.day = 0; S.time = null; S.fuOf = null; go('doctor'); },
   fav: arg => { S.fav[arg] = !S.fav[arg]; render(); },
-  day: arg => { S.day = +arg; S.time = null; render(); },
+  day: (arg, el) => { S.day = +arg; S.time = null; render(); // Run 6 Y21: "See Sun, Aug 30" lands on that day's times, not the page
+    if (!el.matches('.pick')) $phone().querySelector('.pick.time:not([disabled])')?.focus(); },
   time: arg => { S.time = arg; render(); },
   book: () => { if (holds(S.doc, S.day)) { S.sheet = 'dupvisit'; return render(); } go('review'); }, // Run 6 Y02: a second visit that day asks first
   'book-anyway': () => { S.sheet = null; go('review'); },

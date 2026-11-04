@@ -45,7 +45,7 @@ export function kDetail() {
   if (!id) return <section className="k-detail center">{kEmpty('icon-person-secondary-28.svg', 'Select a patient', "Choose someone from today's list to see their visit.")}</section>;
   const p = DR_PATIENTS[id], st = drStatus(id);
   const back = (to, l) => <a href="#" className="k-link" data-act={`k-view:${to}`}><img src={`${A}icon-chevron-left-action-16.svg`} width="16" height="16" alt="" />{l}</a>;
-  if (S.kView === 'history') return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start', gap: 16 }}>{kClose}{back('visit', 'Back to visit')}{kId(p, p.info)}</div>
+  if (S.kView === 'history') return <section className="k-detail"><div className="k-hd" style={{ justifyContent: 'flex-start', gap: 16 }}>{kClose}{back(S.kHistFrom || 'visit', 'Back to visit')}{kId(p, p.info)}</div>
       <div className="stack8"><p className="dr-label">History</p>{drVisitList(id)}</div></section>;
   if (S.kView === 'hvisit') { // one visit from her history: in full if it was the doctor's own, otherwise date, department and reason
     const v = drVisits(id)[S.drHv];
@@ -59,15 +59,17 @@ export function kDetail() {
     const d = S.drDraft;
     return <section className="k-detail"><div className="k-hd"><div className="k-hl">{kClose}{kId(p, `${drPid(id)} · Today's visit · ${drTime(id)}`)}</div>{btn('Complete visit', 'k-complete', { size: 'l', kind: 'primary hug' })}</div>
       {d.restored ? draftCue('Draft kept — your note, medicines and follow-up are as you left them.') : null}
+      <a href="#" className="k-link" data-act="k-view:history">View {p.name.split(' ')[0]}'s history and labs{kChevR}</a>{/* Run 6 Y23: without leaving the visit */}
       {drNoteField(d, id, 'k-note')}
       <div className="stack12">{drMedList(d)}</div>
       <div className="stack16">{drFollowRadio(d)}
         {d.follow === 'other' ? <div style={{ maxWidth: 343 }}>{drDate('d-fudate', 'Follow-up date', d, 'followDate', 'follow', 'Optional — pick a date or type one')}</div> : null}</div></section>;
   }
   const action = st === 'done' ? tag('Visit complete', 'neutral s12') : st === 'notarrived' ? tag('Not arrived', 'error s12') : btn('Start visit', 'k-start', { size: 'l', kind: 'primary hug' });
+  const why = st === 'notarrived' ? <p className="dr-body">{p.name.split(' ')[0]} hasn't checked in yet. Reception checks patients in; then you can start the visit here.</p> : null; // Run 6 Y23
   return <section className="k-detail"><div className="k-hd"><div className="k-hl">{kClose}{kId(p, p.info)}</div>{action}</div>
     <div className="stack8"><p className="dr-label">{st === 'done' ? "Today's visit — complete" : st === 'notarrived' ? 'Scheduled visit' : "Today's visit"}</p>
-      <div className="dr-reason"><p className="dr-label tertiary">Reason for visit</p><p className="dr-l">{p.reason}</p><p className="dr-body">{drTime(id)} · General medicine · OPD 2</p></div>
+      {why}<div className="dr-reason"><p className="dr-label tertiary">Reason for visit</p><p className="dr-l">{p.reason}</p><p className="dr-body">{drTime(id)} · General medicine · OPD 2</p></div>
       <a href="#" className="k-link" data-act="k-view:history">View history{kChevR}</a></div></section>;
 }
 
@@ -151,7 +153,7 @@ Object.assign(ACTIONS, {
     if (S.kView === 'complete' && S.drDraft) S.drKept = { ...S.drKept, [S.kSel]: S.drDraft };
     Object.assign(S, { kSel: null, kView: 'visit' }); render();
   },
-  'k-view': v => { S.kView = v; render(); },
+  'k-view': v => { if (v === 'history') S.kHistFrom = S.kView === 'complete' ? 'complete' : 'visit'; S.kView = v; render(); },
   'k-start': () => { S.dp = S.kSel; ACTIONS['d-start'](); }, // the note is written inline (doctor.jsx); Run 6 Y04: it may ask first
   'k-complete': () => { S.dp = S.kSel; ACTIONS['d-complete'](); }, // F05: the review sheet; confirming completes (doctor.jsx d-complete-ok)
   'k-rep': k => { S.kRep = S.drRep = k; S.drRel = drRelNew(); render(); }, // F01/R01: the open report is drRep too; W06/F23: undecided

@@ -92,7 +92,7 @@ Also fixed, outside the catalogue:
 
 ## Run 6 findings
 
-Run 6 (Y = run 6) found five S1 problems and 21 lower ones. This pass fixes the S1s and Y10; the rest stay open.
+Run 6 (Y = run 6) found five S1 problems and 21 lower ones. Phase 9 fixed the S1s and Y10; Phase 10 fixes the rest.
 
 | Finding IDs | File:line | What changed | Status |
 |---|---|---|---|
@@ -101,27 +101,27 @@ Run 6 (Y = run 6) found five S1 problems and 21 lower ones. This pass fixes the 
 | Y03 | src/doctor.jsx:208–213, :226, :494–503 | "For how long" adds 14 days, 1 month, 3 months and Ongoing. An End date has to agree with the length: if it doesn't, Save stops with "7 days from today ends Sep 4, not Nov 28. Change one so they agree." (and Ongoing with an End date asks too). An End date with no length sets it ("For 1 month, until Sep 28"). The review sheet shows the saved, true duration. | Fixed |
 | Y04 | src/doctor.jsx:68, :272–274, :423–426, :517–530, src/desk.jsx:155 | Start visit no longer completes anyone. If someone else is With doctor, a sheet asks first: "Finish Nabin Tamang's visit first" (opens his visit) or "Keep it open and start Anisha's". Phone and desktop share it. The queue names every visit still open ("You're with …" for each). Completing still only happens through the review sheet. | Fixed |
 | Y05 | src/app.jsx:684–711, src/staff.jsx:85, :788 | See the Reload decision below: a real reload restores the whole demo state, not only drafts. | Fixed |
-| Y06 | — | A released report can't be taken back once the 10-second Undo is gone | Open (not in this pass) |
-| Y07 | — | Reopening a denied leave doesn't tell the employee and erases the denial | Open (not in this pass) |
-| Y08 | — | The booking toast covers the wallet's pay button | Open (not in this pass) |
-| Y09 | — | The appointments lock is on, but does nothing until a Health PIN exists | Open (not in this pass) |
+| Y06 | src/doctor.jsx:275, :421, :449, :594 | Every row under Released today has **Take back**. It asks first ("Take this report back?": the patient stops seeing the comment, the report goes back to Pending to correct), then runs the same restore as Undo and leaves a "Taken back by Dr. Priya Sharma at …" row, tagged Taken back. The release sheet now says "You can take it back later from Released today." | Fixed |
+| Y07 | src/staff.jsx:72, :668, :961 | Reopen keeps the decision in the request's own History section: "Denied by Anjali Basnet, today, 4:52 PM" with what was sent, then "Reopened by …" and "Prasant was told the request is being looked at again." The toast says he has been told. The audit entry is unchanged. | Fixed |
+| Y08 | src/styles.css:1019 | While a sheet or dialog is open, the toast moves to the top of the screen, so it never covers a sheet's buttons (CSS `:has([aria-modal])`). | Fixed |
+| Y09 | src/care.jsx:416, :419, src/health.jsx:434 | With no Health PIN yet, Health lock offers **Set a PIN** (not Change PIN), which uses the first-PIN wording, and "Also lock appointments and medicines" is off and disabled with "Set a PIN first. Until then, anyone with this phone sees them on Home." Saving says "PIN set." | Fixed |
 | Y10 | src/care.jsx:198–212, :267, :344 | On a phone more than one person uses, the appointment pages (visit day and follow-up) show "Booking for · Anisha Sharma", and both cancel sheets name her: "Cancel Anisha's visit today at 4:30 PM?" (Nepali too). | Fixed |
-| Y11 | — | Focus is lost when the Undo toast closes and after Reopen | Open (not in this pass) |
-| Y12 | — | The suggested note is saved when the note box is left blank | Open (not in this pass) |
-| Y13 | — | Desktop dates: typed text is mangled and the wheel picker sticks | Open (not in this pass) |
-| Y14 | — | Walk-in: the cover doctor can't be picked, and typing a name gives no feedback | Open (not in this pass) |
-| Y15 | — | The receipt is a line of text, not a receipt | Open (not in this pass) |
-| Y16 | — | The payroll export doesn't say what it contains | Open (not in this pass) |
-| Y17 | — | The HbA1c report gives no target range or what to do meanwhile | Open (not in this pass) |
-| Y18 | — | The Trustee view isn't labelled read-only and names staff on leave | Open (not in this pass) |
-| Y19 | — | The lab technician has Nurse access | Open (not in this pass) |
-| Y20 | — | The attendance calendar is hard to use by keyboard and low vision | Open (not in this pass) |
-| Y21 | — | Patient app: focus lost after showing times, and section labels aren't headings | Open (not in this pass) |
-| Y22 | — | Home says "Lab report ready", but the newest report is still under review | Open (not in this pass) |
-| Y23 | — | Doctor desktop: no history in an open visit, and no explanation for "Not arrived" | Open (not in this pass) |
-| Y24 | — | The no-cover warning on a leave request offers no way to act | Open (not in this pass) |
-| Y25 | — | Release wording: no preview of the patient's card, a developer-style hint, and history shows only "Reviewed" | Open (not in this pass) |
-| Y26 | — | Polish batch | Open (not in this pass) |
+| Y11 | src/core.jsx:100, src/app.jsx:825, src/staff.jsx:965 | A toast waits while it's hovered or has keyboard focus (WCAG 2.2.1). When the control that was used disappears (Undo, Reopen), focus goes to the screen's heading instead of the page body; Reopen puts it on Approve. | Fixed |
+| Y12 | src/doctor.jsx:252–257, :593 | A blank note stays blank ("No note." in the review). The suggestion is the placeholder plus a **Use suggested note** button that fills the box for editing. | Fixed |
+| Y13 | src/app.jsx:798, src/doctor.jsx:223–228 | Root cause of the stuck picker: with the desktop Add medicine sheet open, the date picker opened as a second dialog and the inert logic picked the *first* dialog, so the picker itself went inert. It now picks the topmost. The date fields show "DD / MM / YYYY" as the placeholder, and a typed "Nov 28, 2026" is kept as typed and becomes 28 / 11 / 2026 on leaving the field, so the picker opens on it. | Fixed |
+| Y14 | src/staff.jsx:529–533, :922 | A closed department's cover is a button ("Send to Dr. Ramesh Shrestha instead") that fills in the doctor. Typing shows what matched ("Dr. … · Department · on duty"), or "Nothing matches “…”. Try a doctor's name, a department or a symptom." | Fixed |
+| Y15 | src/care.jsx:427–442, :504, src/more.jsx:246 | Each payment opens a **Receipt** (new frame P12b): amount and wallet, reference, paid on, what it was for, patient, City Hospital's address, a line for reception, and Share receipt (the phone's share prompt). In Nepali too. | Fixed |
+| Y16 | src/staff.jsx:957 | The export toast says what's in the file: "… 14 staff, including 1 not started yet (start date in the file); 2 with leave days in August." It stays 8 seconds. | Fixed |
+| Y17 | src/health.jsx:90–98, :387–389 | HbA1c reports show "The lab's reference range" (below 5.7% normal; 5.7–6.4% above normal; below 7% the usual aim with diabetes), and a follow-up report adds "Until you see your doctor": keep taking medicines as usual, call reception or 102. See decisions. | Fixed |
+| Y18 | src/staff.jsx:250, :350, :380, :393, src/styles.css:1061 | A trustee sees a "Read-only" line on every page, "trustees see counts only" on the Staff card, doctor rows without a hover, and counts instead of names for staff on leave (Departments cards and a department's doctor list). See decisions. | Fixed |
+| Y19 | src/staff.jsx:21, :37, :178 | A new **Lab** access role (upload results for doctors to review; no queues, check-ins, prescriptions or releasing). Nirmala Lama and the Lab technician job title map to it, not Nurse. | Fixed |
+| Y20 | src/staff.jsx:728–736, src/styles.css:1063 | The calendar is one tab stop: arrow keys move a day or a week, Home/End the ends. Each day is named in full ("Friday, August 28: Present"). Present, On leave and Absent have different marks (dot, bar, ring) as well as colours, in the key too. | Fixed |
+| Y21 | src/booking.jsx:80, :504, src/health.jsx:132 | Section labels (`label`, `lbl`) are `<h2>`s. "See Sun, Aug 30" moves focus to that day's first free time. | Fixed |
+| Y22 | src/booking.jsx:228 | Home's "Lab report ready" names the report it opens: "HbA1c blood test · Open Health to see it". | Fixed |
+| Y23 | src/desk.jsx:48, :62, :69, :156, src/doctor.jsx:315 | The desktop visit editor has "View Anisha's history and labs", whose Back returns to the open visit. A Not arrived patient says why on phone and desktop: "… hasn't checked in yet. Reception checks patients in; then you can start the visit here." | Fixed |
+| Y24 | src/staff.jsx:661, :716 | A no-cover warning lists who could cover (same job, other departments, not on leave then), and stays on the record after approval as "Approved without cover: …". | Fixed |
+| Y25 | src/doctor.jsx:48–51, :187 | Under the comment, "What Anisha will see" previews her card (the test, the comment, and the follow-up request when flagged). The developer-style hint is gone. History tags read Released / Follow-up asked, as the Released list does. | Fixed |
+| Y26 | src/app.jsx:57, src/care.jsx:367, :376, :387, src/doctor.jsx:187, :258, src/booking.jsx:230, src/more.jsx:272, src/staff.jsx:80, :234, :888 | The masked number is read as "number ending in 412". "Add a medicine" when there are none. Only the latest HbA1c shows the trend; the earlier one shows its own value. Staff sign-in says "Staff ID". A role changed from a profile stays under Staff and saves back to the profile. The wallet sheet's cancel says "Pay later" (पछि तिर्छु), not रद्द. "Change PIN" only once a PIN exists (Y09). Home's Dermatology follow-up says "not booked yet", so it isn't read as the booked one in Care. A refresh restoring the open form is covered by Y05. Not done: the Absent column cut off at 900 px (narrow desktop layout is out of scope, user decision). | Fixed |
 
 ## Decisions taken
 
@@ -191,11 +191,20 @@ Phase 9 (run 6 S1 fixes):
 - **Starting a visit (Y04).** Starting never completes anyone. With someone still With doctor, the doctor chooses to finish that visit first or keep it open; several visits can be open at once.
 - **Reload (Y05).** The whole demo state survives a real reload; see Reload above for what's left out.
 
+Phase 10 (the rest of run 6):
+- **Other visits in the doctor's queue.** Dr. Sharma's queue (phone, desktop, Reception, the dashboard) also shows any other visit with her today booked in the patient app: a second one of Anisha's, or one for Ramesh (src/doctor.jsx:72–84). They're worked out from the patient records each time, so a cancel or a reload needs nothing extra, and they start as Not arrived. Only the 4:30 visit's note and status flow back to the patient app.
+- **HbA1c guidance (Y17).** The range is the lab's printed reference range, not the app's interpretation, and the meanwhile line is generic safety advice. The hospital's clinicians should confirm both wordings.
+- **Trustee and staff on leave (Y18).** Trustees see how many staff are on leave, not who; names stay in HR.
+- **Lab access (Y19).** A new access role rather than reusing Nurse. It has no screens of its own in the prototype.
+- **Take back (Y06).** Retracting is the same restore as Undo, available all day from Released today, and it's logged there. The patient isn't sent a notice that a report was taken back.
+- **Narrow desktop (Y26's 900 px header).** Not done, following the earlier decision that the narrow desktop layout isn't needed.
+
 ## Needs product input
 
 - **Privacy policy (T26).** Legal review of the sample policy, in both languages.
 - **Nepali review.** A native speaker should read the translations once, especially the pronoun options (उनी with a qualifier), "Due" → गर्नुपर्ने, and the afternoon/evening cut-off.
-- **Narrow desktop layout (V04).** Design the below-1024 px layout in Figma.
+- **Narrow desktop layout (V04).** Not needed (user decision); Y26's cut-off Absent header at 900 px stays.
+- **Clinical wording (Y17).** The HbA1c reference range and the "Until you see your doctor" line.
 
 ## check.cjs changes
 
@@ -210,3 +219,4 @@ Phase 9 (run 6 S1 fixes):
 - **Phase 7:** 16 new assertions (lock-screen weekday and medicine alert, pay tile icon, SY7, R09 pager, SB03 and D02 in the panel, Nepali on B06, B03, B05, B10, H01, H06, H07, H09, H15, H17, B07); 512 → 528 "ok", exit 0, `page errors: []`.
 - **Phase 8:** 528 → 547 "ok", exit 0, `page errors: []`. 19 new assertions: Nepali spot checks (Confirmed, B10, appointment detail and dates, a Care sentence, running late, the resend timer, the update screen, the notification centre, an Ask answer with the doctor's words and the medicine instructions, a report explanation, the trend and the privacy policy), the earlier HbA1c in the reports list, the trend on the patient report (H09b too) and on the desk's history list and lab view, the policy's sample banner and all ten sections, the staff apps staying English with Nepali chosen, and every patient frame rendering in Nepali without throwing. Changed: Phase 7's Nepali checks expect "आज, दिउँसो 4:30" and "आज दिउँसो 4:30 मा बुक गर्नुहोस्" (times are Nepali now), and P03 clicks Back by its Nepali label (पछाडि).
 - **Phase 9:** 547 → 583 "ok", exit 0, `page errors: []`, on both the dev server and `vite preview` (CI). New assertions: Y01 (Ramesh's Home, Care, Health and Medicines are his own; his Home locks and opens with his PIN, and Health doesn't open his medicines around the lock; switching back restores Anisha's; a visit booked for him lands on his Home), Y02 (her 4:30 reads "Your visit" and is disabled; a same-day second visit asks first, Keep just the one stays put; two visits kept, the soonest on Home, both in Care, the new one opens its own page and cancels on its own), Y03 (the longer lengths, a length/End date mismatch and Ongoing + End date blocked, 3 months saved and shown in the review sheet, an End date alone sets the length), Y04 (the start-visit sheet on phone and desktop, Nabin not completed, Finish first opens his visit), Y05 (`page.reload()` keeps a role change and its audit entry, a check-in and a walk-in, keeps the PIN, locks Health again, replays no toast), Y10 (the page and the cancel sheets name her). Changed by the decisions: the first booking books 5:00 then 5:30 instead of 4:30 then 5:00 (4:30 is hers), and Home shows the soonest visit, not the new one; "Cancel your visit…" is now "Cancel Anisha's visit…" (C05, R13); the doctor-phone and desktop queue counts drop by one (Nabin is no longer auto-completed: 6 → 5, 7 → 6, desktop 7 → 6); Anisha's Home after booking for Ramesh shows "Nothing booked yet" (B04 is now before her 4:30) and his Home shows the visit; W11 confirms the same-day sheet; F14's caregiver-PIN check moved from Ramesh's Health (now empty) to his locked Home.
+- **Phase 10:** 584 → 618 "ok", exit 0, `page errors: []`. New assertions for Y06 (take back after Undo, recorded), Y07 (denial kept in History, employee told, focus on Approve), Y08 (toast above the wallet sheet), Y09 (no PIN: Set a PIN, lock disabled), Y11 (toast waits while focused), Y12 (blank note stays blank, Use suggested note), Y13 (typed month name, picker over the desktop sheet takes clicks), Y14 (cover button, match feedback, no match), Y15 (receipt), Y16 (export summary), Y17 (range and meanwhile), Y18 (read-only line, no names on leave), Y19 (Lab role), Y20 (one tab stop, arrows, full day names), Y21 (h2 section labels), Y22 (Home names the report), Y23 (history from the open visit, Not arrived says why), Y24 (who could cover; kept after approval), Y25 (preview, Follow-up asked in history), Y26 (Pay later, Staff ID, role change from a profile, earlier HbA1c value), and a second same-day visit in Dr. Sharma's queue. Changed: no-PIN Health lock now says Set a PIN (was Change PIN), "Admin ID" → "Staff ID", the add-medicine button is found by its action (it reads "Add a medicine" when there are none), the masked number check allows the screen-reader text, and the Not arrived hint avoids the words "Start visit". `toast` is exposed on `window` for the check.

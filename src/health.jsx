@@ -57,7 +57,11 @@ Object.assign(NE, {
   'Fingerprint unlock is off': 'औंठाछापले अनलक बन्द छ', 'A new fingerprint was added to this phone. For your safety, enter your PIN.': 'यो फोनमा नयाँ औंठाछाप थपिएको छ। तपाईंको सुरक्षाका लागि PIN हाल्नुहोस्।',
   "Your phone's own PIN may be known to others who use it. This one is only yours.": 'तपाईंको फोनको आफ्नै PIN यो फोन चलाउने अरूलाई थाहा हुन सक्छ। यो PIN तपाईंको मात्र हो।',
   "So we know it's you before you change it.": 'बदल्नुअघि तपाईं नै हो भनेर जान्न।', 'To change your mobile number.': 'मोबाइल नम्बर बदल्न।',
-  'Your old PIN stops working. Your records stay as they are.': 'पुरानो PIN अब चल्दैन। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।', 'PIN changed.': 'PIN बदलियो।',
+  'Your old PIN stops working. Your records stay as they are.': 'पुरानो PIN अब चल्दैन। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।', 'PIN changed.': 'PIN बदलियो।', 'PIN set.': 'PIN राखियो।', 'Pay later': 'पछि तिर्छु', 'not booked yet': 'अझै बुक गरिएको छैन',
+  "The lab's reference range": 'प्रयोगशालाको सामान्य दायरा', 'Until you see your doctor': 'डाक्टरलाई नभेटुन्जेल',
+  'Below 5.7% is normal; 5.7% to 6.4% is above normal. For people with diabetes, the usual aim is below 7%.': '5.7% भन्दा कम सामान्य हो; 5.7% देखि 6.4% सामान्यभन्दा माथि हो। मधुमेह भएकाहरूका लागि सामान्यतया 7% भन्दा कम राख्ने लक्ष्य हुन्छ।',
+  'Until your visit, keep taking your medicines as usual. If you feel very unwell, call reception, or 102 in an emergency.': 'भेट नहुन्जेल आफ्ना औषधि सधैँझैँ खाइरहनुहोस्। धेरै अस्वस्थ महसुस भए रिसेप्सनमा, वा आपत्कालमा 102 मा फोन गर्नुहोस्।', 'Set a PIN': 'PIN राख्नुहोस्', 'Choose a 4-digit PIN': '4 अङ्कको PIN छान्नुहोस्',
+  'Set a PIN first. Until then, anyone with this phone sees them on Home.': 'पहिले PIN राख्नुहोस्। त्यतिन्जेल यो फोन चलाउने जो कोहीले तिनलाई गृहपृष्ठमा देख्छन्।',
   // Medicines: save errors, the form's placeholders and the tracker's demo data (shown by meds.jsx)
   "Enter the medicine's name.": 'औषधिको नाम लेख्नुहोस्।', 'Enter how many you have, as a number — for example 20 tablets.': 'तपाईंसँग कति छ, अङ्कमा लेख्नुहोस् — जस्तै 20 ट्याब्लेट।',
   'e.g. Paracetamol': 'जस्तै Paracetamol', 'e.g. Tablet, capsule, syrup': 'जस्तै ट्याब्लेट, क्याप्सुल, सिरप', 'e.g. 500 mg': 'जस्तै 500 mg',
@@ -82,13 +86,16 @@ export const RX = [
 
 export const RX2 = [{ name: 'Amoxicillin 500 mg', for: 'For the ear infection', how: '1 capsule 3 times a day', dur: 'For 7 days, finished Aug 19' }];
 // Lab reports reach the patient only once a doctor has looked at them.
+// Run 6 Y17: the lab's printed reference range, so a value means something. Clinical wording to be confirmed by the hospital.
+const HBA1C_RANGE = 'Below 5.7% is normal; 5.7% to 6.4% is above normal. For people with diabetes, the usual aim is below 7%.';
 export const LABS = {
   // T28 class: dated before the Aug 28 demo day (it read Sep 2, reviewed Sep 4).
   hba1c: { title: 'HbA1c blood test', sub: 'Aug 24, City Hospital lab', month: 'August 2026', date: 'Aug 24, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true, value: '7.2%',
-    words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Aug 26' },
+    words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Aug 26', range: HBA1C_RANGE,
+    meanwhile: 'Until your visit, keep taking your medicines as usual. If you feel very unwell, call reception, or 102 in an emergency.' }, // Run 6 Y17
   // Phase 8: the same test two months earlier, from her Jun 20 walk-in, so HbA1c has a trend (labTrend, doctor.jsx). Metformin started after it.
   hba1cJun: { title: 'HbA1c blood test', sub: 'Jun 20, City Hospital lab', month: 'June 2026', date: 'Jun 20, 2026', tag: ['Ready', 'success'], pages: 1, value: '6.1%',
-    words: "Your blood sugar is a little above normal. We'll check it again in two months.", by: 'Reviewed by Dr. Anita Joshi on Jun 22' },
+    words: "Your blood sugar is a little above normal. We'll check it again in two months.", by: 'Reviewed by Dr. Anita Joshi on Jun 22', range: HBA1C_RANGE },
   cbc: { title: 'CBC blood test', sub: 'Aug 28, City Hospital lab', month: 'August 2026', tag: ['Being reviewed', 'neutral'], reviewing: true },
   thyroid: { title: 'Thyroid panel', sub: 'Jul 3, City Hospital lab', month: 'July 2026', date: 'Jul 3, 2026', tag: ['Ready', 'success'], pages: 2,
     words: 'Your thyroid levels are normal. No change to your treatment.', by: 'Reviewed by Dr. Anita Joshi on Jul 5' },
@@ -122,7 +129,7 @@ extraState(() => ({
 }), ORDER.health);
 
 // ---------- pieces ----------
-export const lbl = t => <p className="sec-label lh20">{tr(t)}</p>; // F15/R12
+export const lbl = t => <h2 className="sec-label lh20">{tr(t)}</h2>; // F15/R12; Run 6 Y21: a heading
 export const chev = <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" />;
 export const lead = icon => <span className="lead-tile"><img src={`${A}${icon}`} width="20" height="20" alt="" /></span>;
 export const list = items => <div className="list">{sepJoin(items)}</div>;
@@ -377,6 +384,8 @@ Object.assign(SCREENS, {
           <p className="note-body">{tr(l.words)}</p>
           <p className="body-s tertiary">{dated(l.by)}</p></div>
         {labTrend(S.report) ? <div className="inset">{labTrend(S.report)}</div> : null}{/* Phase 8: a repeated test shows previous → latest */}
+        {l.range ? <div className="inset stack8">{lbl("The lab's reference range")}<p className="body-s">{tr(l.range)}</p></div> : null}{/* Run 6 Y17 */}
+        {l.meanwhile && l.follow ? <div className="inset">{notice('', 'Until you see your doctor', l.meanwhile)}</div> : null}
         {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'report-fu', { size: 'l' }))}</div> : null}{/* W11 */}
         <div className="inset stack8">{lbl('Report')}
           <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{reportTitle(l.title)}</span><span className="body-s">{ne() ? `PDF, ${l.pages} पेज` : `PDF, ${l.pages} page${l.pages > 1 ? 's' : ''}`}</span></span>{chev}</button></div>
@@ -421,7 +430,8 @@ Object.assign(SCREENS, {
       hreport: ['Enter your PIN', 'To open your lab report.'], home: ['Enter your PIN', 'To see your appointments and medicines.'] /* T22 */ }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
     <>{S.pinErr ? errLine(ne() ? `PIN मिलेन। अझै ${S.pinTries} पटक प्रयास गर्न सक्नुहुन्छ।` : `That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
       <button className="btn secondary l hug" data-act="forgot">{tr('Forgot your PIN?')}</button></>),
-  pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null),
+  pinnew: () => S.pin ? pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null)
+    : pinScreen('Choose a PIN for your health records', "Your phone's own PIN may be known to others who use it. This one is only yours.", S.pinMismatch ? errLine(MISMATCH) : null), // Run 6 Y09: a first PIN from Profile
   pinnewconfirm: () => pinScreen('Enter it again', "So we know it's right."),
 
   finger: () => (
@@ -534,7 +544,7 @@ export function pinComplete() {
       S.stack = []; S.screen = 'finger'; return render();
     case 'pinnewconfirm':
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
-      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; if (S.pinChanged) toast(tr('PIN changed.')); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
+      S.pinChanged = S.afterUnlock === 'pflock' && !!S.pin; S.pin = e; if (S.pinChanged) toast(tr('PIN changed.')); else if (S.afterUnlock === 'pflock') toast(tr('PIN set.')); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
     case 'pfpin': // care.jsx — Switch person
       if (e === pinOf(S.switchTo) || (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234'))) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
       S.pinErr = true; return render();
