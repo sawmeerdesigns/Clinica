@@ -5,12 +5,73 @@ import { RECORDS, appBar, btn, digits, empty, heading, homeInd, listItem, masked
 import { acts, answer, ask, resolveAskLock, src, words } from './ask.jsx';
 import { backTo, bar, callBtn, label, navBar, offLine, row, rows, tag, when } from './booking.jsx';
 import { csheet, notice, pinOf, switchTo } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, onLeave, paint, render, reset, sepJoin, toast, tr } from './core.jsx';
-import { labOf } from './doctor.jsx';
+import { A, ACTIONS, FLOW, NE, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, extraState, go, mount, nd, ne, onLeave, paint, render, reset, sepJoin, toast, tr } from './core.jsx';
+import { labOf, labTrend } from './doctor.jsx';
 import { med, ring } from './meds.jsx';
 import { openSys } from './more.jsx';
 import { img, now, person, results } from './staff.jsx';
 import { DOCTORS } from './data.js';
+
+// Phase 8: Nepali for this module's own lines — incl. the canned clinical text below (RX, LABS, VISITS, PRESCRIPTIONS) and the
+// Medicines tracker's demo data. The data stays English; the screens pass it through tr(). Medicine names stay Latin.
+Object.assign(NE, {
+  // RX / RX2
+  'For fever and headache': 'ज्वरो र टाउको दुखाइका लागि', '1 tablet 3 times a day, after food': 'दिनको 3 पटक 1 ट्याब्लेट, खाना खाएपछि',
+  'For 5 days, until Sep 2': '5 दिनसम्म, सेप्टेम्बर 2 सम्म', 'Tablet — 1, 3 times a day, after food': 'ट्याब्लेट — दिनको 3 पटक 1, खाना खाएपछि',
+  '5 days · Dispense 15 tablets': '5 दिन · 15 ट्याब्लेट दिनुहोस्', 'For the runny nose': 'नाक बगेकोका लागि', '1 tablet at night': 'राति 1 ट्याब्लेट',
+  'Tablet — 1 at night': 'ट्याब्लेट — राति 1', '5 days · Dispense 5 tablets': '5 दिन · 5 ट्याब्लेट दिनुहोस्', 'For the ear infection': 'कानको संक्रमणका लागि',
+  '1 capsule 3 times a day': 'दिनको 3 पटक 1 क्याप्सुल', 'For 7 days, finished Aug 19': '7 दिनसम्म, अगस्ट 19 मा सकियो',
+  // LABS
+  'HbA1c blood test': 'HbA1c रगत जाँच', 'CBC blood test': 'CBC रगत जाँच', 'Thyroid panel': 'थाइराइड जाँच',
+  'Aug 24, City Hospital lab': 'अगस्ट 24, सिटी हस्पिटल ल्याब', 'Jun 20, City Hospital lab': 'जुन 20, सिटी हस्पिटल ल्याब', // Phase 8: the trend
+  "Your blood sugar is a little above normal. We'll check it again in two months.": 'तपाईंको रगतमा चिनीको मात्रा सामान्यभन्दा अलि बढी छ। दुई महिनापछि फेरि जाँच्नेछौं।',
+  'Over time': 'समयसँगै', 'Higher in the latest test': 'पछिल्लो जाँचमा बढी', 'Lower in the latest test': 'पछिल्लो जाँचमा कम', 'No change in the latest test': 'पछिल्लो जाँचमा उस्तै', 'Aug 28, City Hospital lab': 'अगस्ट 28, सिटी हस्पिटल ल्याब', 'Jul 3, City Hospital lab': 'जुलाई 3, सिटी हस्पिटल ल्याब',
+  'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.': 'तपाईंको रगतमा चिनीको मात्रा हुनुपर्नेभन्दा बढी छ। अब के गर्ने भनेर कुरा गर्न कृपया फलो-अप बुक गर्नुहोस्।',
+  'Your thyroid levels are normal. No change to your treatment.': 'तपाईंको थाइराइडको मात्रा सामान्य छ। उपचारमा कुनै परिवर्तन छैन।',
+  // VISITS / PRESCRIPTIONS
+  'General medicine, OPD 1': 'सामान्य चिकित्सा, OPD 1', 'General medicine, OPD 2': 'सामान्य चिकित्सा, OPD 2', 'General medicine, walk-in': 'सामान्य चिकित्सा, वाक-इन',
+  'A viral infection. Rest, drink plenty of fluids, and take paracetamol for the fever. Come back if the fever lasts more than 3 days.': 'भाइरल संक्रमण। आराम गर्नुहोस्, प्रशस्त झोल पदार्थ पिउनुहोस्, र ज्वरोका लागि Paracetamol खानुहोस्। ज्वरो 3 दिनभन्दा बढी रहे फेरि आउनुहोस्।',
+  "An ear infection. Take all of the amoxicillin, even once it feels better. Come back if the pain gets worse or there's discharge.": 'कानको संक्रमण। सन्चो भएजस्तो लागे पनि Amoxicillin पूरै खानुहोस्। दुखाइ बढे वा कानबाट पीप बगे फेरि आउनुहोस्।',
+  'Finish the whole course, even if you feel better sooner.': 'चाँडै सन्चो भएजस्तो लागे पनि औषधिको पूरा कोर्स सक्नुहोस्।',
+  'Take all of it, even once it feels better.': 'सन्चो भएजस्तो लागे पनि सबै औषधि खानुहोस्।',
+  // Health, visits, follow-ups, prescriptions
+  'Last visit Aug 28, General medicine': 'पछिल्लो भेट अगस्ट 28, सामान्य चिकित्सा', '2 medicines to take now': 'अहिले खानुपर्ने 2 औषधि', 'All stocked up': 'सबै पर्याप्त छ',
+  'None yet': 'अहिलेसम्म छैन', '1 due around Sep 11': 'सेप्टेम्बर 11 तिर 1 वटा',
+  'After your first visit, what your doctor tells you, your prescriptions and your reports will appear here.': 'पहिलो भेटपछि, डाक्टरले भनेका कुरा, तपाईंका प्रेस्क्रिप्सन र रिपोर्टहरू यहाँ देखिनेछन्।',
+  'Around Sep 11. Book now to get a time that suits you.': 'सेप्टेम्बर 11 तिर। आफूलाई मिल्ने समय पाउन अहिले नै बुक गर्नुहोस्।', 'Come back only if it gets worse.': 'झन् बिग्रिएमा मात्र फेरि आउनुहोस्।',
+  Due: 'गर्नुपर्ने', 'Around Sep 11 · asked for at your Aug 28 visit': 'सेप्टेम्बर 11 तिर · तपाईंको अगस्ट 28 को भेटमा भनिएको',
+  'Sep 14 · asked for at your Jul 3 visit': 'सेप्टेम्बर 14 · तपाईंको जुलाई 3 को भेटमा भनिएको',
+  'When a doctor prescribes medicine, it appears here with how to take it.': 'डाक्टरले औषधि लेखिदिएपछि, कसरी खाने भन्ने सहित यहाँ देखिन्छ।',
+  '2 medicines': '2 औषधि', '1 medicine, finished': '1 औषधि, सकियो', 'Prescribed by Dr. Priya Sharma': 'Dr. Priya Sharma ले लेख्नुभएको',
+  'NMC reg. no. 12345': 'NMC दर्ता नं. 12345', 'City Hospital, Aug 28, 2026': 'सिटी हस्पिटल, अगस्ट 28, 2026', 'Prescription no. RX-0828-4821': 'प्रेस्क्रिप्सन नं. RX-0828-4821',
+  "This screen stays on while it's open.": 'खुला रहेसम्म यो स्क्रिन बन्द हुँदैन।',
+  // Lab reports
+  "When your doctor orders a test, the report appears here once they've looked at it.": 'डाक्टरले जाँच गराउन भन्नुभएपछि, उहाँले हेरिसकेपछि रिपोर्ट यहाँ देखिन्छ।',
+  'Dr. Sharma asked to see you': 'Dr. Sharma ले तपाईंलाई भेट्न चाहनुभएको छ', 'Book a follow-up to talk about this report.': 'यो रिपोर्टबारे कुरा गर्न फलो-अप बुक गर्नुहोस्।',
+  'City Hospital Laboratory': 'सिटी हस्पिटल ल्याबोरेटरी', 'Maharajgunj, Kathmandu': 'महाराजगञ्ज, काठमाडौं', 'Page 1 of 1': 'पेज 1 / 1',
+  'Your doctor is reviewing this report': 'तपाईंको डाक्टरले यो रिपोर्ट हेर्दै हुनुहुन्छ',
+  "Results reach you once Dr. Priya Sharma has looked at them, so they come with an explanation. We'll message you when it's ready. Feeling worse? Don't wait for it — call the clinic.": 'Dr. Priya Sharma ले हेरिसकेपछि मात्र नतिजा तपाईंसम्म आउँछ, त्यसैले साथमा व्याख्या पनि हुन्छ। तयार भएपछि हामी तपाईंलाई खबर गर्छौं। झन् बिसन्चो लाग्दैछ? यसको लागि नपर्खनुहोस् — क्लिनिकमा फोन गर्नुहोस्।',
+  "Saved to your phone's Files.": 'तपाईंको फोनको Files मा सेभ भयो।', 'Open file': 'फाइल खोल्नुहोस्',
+  // PIN and the Health lock
+  'PIN did not match': 'PIN मिलेन', 'PIN keypad': 'PIN किप्याड', Delete: 'मेटाउनुहोस्', "Those PINs didn't match. Choose one again.": 'दुवै PIN मिलेनन्। फेरि छान्नुहोस्।',
+  'Fingerprint unlock is off': 'औंठाछापले अनलक बन्द छ', 'A new fingerprint was added to this phone. For your safety, enter your PIN.': 'यो फोनमा नयाँ औंठाछाप थपिएको छ। तपाईंको सुरक्षाका लागि PIN हाल्नुहोस्।',
+  "Your phone's own PIN may be known to others who use it. This one is only yours.": 'तपाईंको फोनको आफ्नै PIN यो फोन चलाउने अरूलाई थाहा हुन सक्छ। यो PIN तपाईंको मात्र हो।',
+  "So we know it's you before you change it.": 'बदल्नुअघि तपाईं नै हो भनेर जान्न।', 'To change your mobile number.': 'मोबाइल नम्बर बदल्न।',
+  'Your old PIN stops working. Your records stay as they are.': 'पुरानो PIN अब चल्दैन। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।', 'PIN changed.': 'PIN बदलियो।',
+  // Medicines: save errors, the form's placeholders and the tracker's demo data (shown by meds.jsx)
+  "Enter the medicine's name.": 'औषधिको नाम लेख्नुहोस्।', 'Enter how many you have, as a number — for example 20 tablets.': 'तपाईंसँग कति छ, अङ्कमा लेख्नुहोस् — जस्तै 20 ट्याब्लेट।',
+  'e.g. Paracetamol': 'जस्तै Paracetamol', 'e.g. Tablet, capsule, syrup': 'जस्तै ट्याब्लेट, क्याप्सुल, सिरप', 'e.g. 500 mg': 'जस्तै 500 mg',
+  'e.g. 20 tablets, or 100 ml': 'जस्तै 20 ट्याब्लेट, वा 100 ml', 'e.g. 1 tablet': 'जस्तै 1 ट्याब्लेट', 'e.g. Twice a day, after meals': 'जस्तै दिनको 2 पटक, खाना खाएपछि',
+  'Acetaminophen tablets': 'Acetaminophen ट्याब्लेट', 'Metformin hydrochloride tablets': 'Metformin hydrochloride ट्याब्लेट', 'Cetirizine hydrochloride syrup': 'Cetirizine hydrochloride सिरप',
+  'Cetirizine 10 mg (syrup)': 'Cetirizine 10 mg (सिरप)', Tablet: 'ट्याब्लेट', Syrup: 'सिरप', '1 tablet': '1 ट्याब्लेट',
+  'Twice a day': 'दिनको 2 पटक', 'After breakfast': 'बिहानको खानापछि', 'At night': 'राति', 'Twice daily': 'दिनको 2 पटक', 'Once daily': 'दिनको 1 पटक', 'As needed': 'आवश्यक पर्दा',
+  '1 tablet, twice a day': 'दिनको 2 पटक 1 ट्याब्लेट', '1 tablet, after breakfast': 'बिहानको खानापछि 1 ट्याब्लेट', '5 ml, at night': 'राति 5 ml',
+  '3 weeks': '3 हप्ता', '2 months': '2 महिना', '1 week': '1 हप्ता',
+});
+// Phase 8: the data's dated lines, in Nepali word order ('Visit on Aug 28' → 'अगस्ट 28 को भेट'). English passes through unchanged.
+const dated = s => !ne() ? s : String(s).replace(/^Visit on (.+)$/, (_, d) => `${nd(d)} को भेट`).replace(/^Prescribed (.+)$/, (_, d) => `${nd(d)} मा लेखिएको`)
+  .replace(/^Reviewed by (.+) on (.+)$/, (_, who, d) => `${who} ले ${nd(d)} मा हेर्नुभएको`);
+const reportTitle = t => ne() ? `${tr(t)} रिपोर्ट` : `${t} report`; // '<title> report'
 
 export const RX = [
   { name: 'Paracetamol 500 mg', for: 'For fever and headache', how: '1 tablet 3 times a day, after food', dur: 'For 5 days, until Sep 2',
@@ -23,8 +84,11 @@ export const RX2 = [{ name: 'Amoxicillin 500 mg', for: 'For the ear infection', 
 // Lab reports reach the patient only once a doctor has looked at them.
 export const LABS = {
   // T28 class: dated before the Aug 28 demo day (it read Sep 2, reviewed Sep 4).
-  hba1c: { title: 'HbA1c blood test', sub: 'Aug 24, City Hospital lab', month: 'August 2026', date: 'Aug 24, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true,
+  hba1c: { title: 'HbA1c blood test', sub: 'Aug 24, City Hospital lab', month: 'August 2026', date: 'Aug 24, 2026', tag: ['Needs follow-up', 'warn'], pages: 1, follow: true, value: '7.2%',
     words: 'Your blood sugar is higher than it should be. Please book a follow-up so we can talk about what to do next.', by: 'Reviewed by Dr. Priya Sharma on Aug 26' },
+  // Phase 8: the same test two months earlier, from her Jun 20 walk-in, so HbA1c has a trend (labTrend, doctor.jsx). Metformin started after it.
+  hba1cJun: { title: 'HbA1c blood test', sub: 'Jun 20, City Hospital lab', month: 'June 2026', date: 'Jun 20, 2026', tag: ['Ready', 'success'], pages: 1, value: '6.1%',
+    words: "Your blood sugar is a little above normal. We'll check it again in two months.", by: 'Reviewed by Dr. Anita Joshi on Jun 22' },
   cbc: { title: 'CBC blood test', sub: 'Aug 28, City Hospital lab', month: 'August 2026', tag: ['Being reviewed', 'neutral'], reviewing: true },
   thyroid: { title: 'Thyroid panel', sub: 'Jul 3, City Hospital lab', month: 'July 2026', date: 'Jul 3, 2026', tag: ['Ready', 'success'], pages: 2,
     words: 'Your thyroid levels are normal. No change to your treatment.', by: 'Reviewed by Dr. Anita Joshi on Jul 5' },
@@ -42,7 +106,7 @@ export const PRESCRIPTIONS = {
 
 extraState(() => ({
   unlocked: false, afterUnlock: null, healthEmpty: false, lockWhy: null, fingerChanged: false, pinChanged: false,
-  labs: ['cbc', 'hba1c', 'thyroid'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false, // labs newest first: CBC Aug 28, HbA1c Aug 24
+  labs: ['cbc', 'hba1c', 'thyroid', 'hba1cJun'], report: 'thyroid', visit: 'aug28', rx: 'aug28', rxNone: false, // labs newest first: CBC Aug 28, HbA1c Aug 24 … HbA1c Jun 20 (Phase 8)
   homeLock: {}, // T22: name → false when that person turned off "Also lock appointments and medicines"
   pin: null, pinEntry: '', pinFirst: '', pinErr: false, pinMismatch: false, pinTries: 5, pinWait: 30,
   finger: null, bio: null, bioFails: 0, sheet: null, codeFor: null,
@@ -64,28 +128,29 @@ export const lead = icon => <span className="lead-tile"><img src={`${A}${icon}`}
 export const list = items => <div className="list">{sepJoin(items)}</div>;
 
 // Content/Medicine: what it is, what it is FOR, how to take it, for how long.
-export const medText = m => <span className="med-t"><span className="m1">{m.name}</span><span className="m2">{m.for}</span><span className="m3">{m.how}</span><span className="m4">{m.dur}</span></span>;
+export const medText = m => <span className="med-t"><span className="m1">{m.name}</span><span className="m2">{tr(m.for)}</span><span className="m3">{tr(m.how)}</span><span className="m4">{tr(m.dur)}</span></span>;
 export const medRow = (m, act) => act
   ? <button className="list-item" data-act={act}>{lead('lt-rx.svg')}{medText(m)}{chev}</button>
   : <div className="list-item static">{lead('lt-rx.svg')}{medText(m)}</div>;
 
 export const docCard = (ini, name, l2, l3) => <div className="card appt">
   <span className="avatar l" aria-hidden="true">{ini}</span>
-  <span className="appt-t"><span className="h-s">{name}</span><span className="when">{l2}</span><span className="where">{l3}</span></span></div>;
+  <span className="appt-t"><span className="h-s">{name}</span><span className="when">{tr(dated(l2))}</span><span className="where">{tr(l3)}</span></span></div>;
 
 export const reportRow = (title, sub, status, act) => <button className="list-item" data-act={act}>{lead('lt-lab.svg')}
-  <span className="report-t"><span className="text"><span className="h-s">{title}</span><span className="body-s">{sub}</span></span>{status}</span>{chev}</button>;
+  <span className="report-t"><span className="text"><span className="h-s">{tr(title)}</span><span className="body-s">{tr(sub)}</span></span>{status}</span>{chev}</button>;
 
 export const centred = inner => <div className="body" style={{ justifyContent: 'center' }}>{inner}</div>;
 
 // ---------- PIN ----------
-export const pinDots = (n, err) => <><div className="pin-dots" role="img" aria-label={err ? 'PIN did not match' : `${n} of 4 digits entered`}>
+export const pinDots = (n, err) => <><div className="pin-dots" role="img" aria-label={tr(err ? 'PIN did not match' : digitsIn(n))}>
   {[0, 1, 2, 3].map(i => <span key={i} className={`dot ${err ? 'err' : i < n ? 'on' : ''}`}></span>)}</div>
-  <p className="vh" aria-live="polite">{n && !err ? `${n} of 4 digits entered` : ''}</p></>; // R26: each digit is announced
-export const keypad = () => <div className="inset"><div className="keypad" aria-label="PIN keypad">
+  <p className="vh" aria-live="polite">{n && !err ? digitsIn(n) : ''}</p></>; // R26: each digit is announced
+const digitsIn = n => ne() ? `4 मध्ये ${n} अङ्क हालियो` : `${n} of 4 digits entered`; // Phase 8
+export const keypad = () => <div className="inset"><div className="keypad" aria-label={tr('PIN keypad')}>
   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <button key={d} className="key" data-act={`pin-digit:${d}`}>{d}</button>)}
   <span className="key blank"></span><button className="key" data-act="pin-digit:0">0</button>
-  <button className="key" data-act="pin-del" aria-label="Delete"><img src={`${A}icon-backspace.svg`} width="24" height="24" alt="" /></button>
+  <button className="key" data-act="pin-del" aria-label={tr('Delete')}><img src={`${A}icon-backspace.svg`} width="24" height="24" alt="" /></button>
 </div></div>;
 export const MISMATCH = "Those PINs didn't match. Choose one again.";
 export const errLine = msg => <div style={{ width: 240 }}>{support(msg, 'err', 'icon-error.svg')}</div>;
@@ -111,8 +176,9 @@ export const resetSheet = () => <>
   <div className="scrim" data-act="sheet-close"></div>
   <div className="csheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
     <span className="handle"></span>
-    <div className="cs-text"><h2 className="cs-t" id="cs-t">Reset your PIN</h2>
-      <p className="lede">We'll text a code to {masked()}. If others read this phone's messages, reset at reception instead — bring your ID.</p></div>
+    <div className="cs-text"><h2 className="cs-t" id="cs-t">{tr('Reset your PIN')}</h2>
+      <p className="lede">{ne() ? `हामी ${masked()} मा कोड SMS गर्छौं। यो फोनका सन्देश अरूले पनि पढ्छन् भने, बरु रिसेप्सनमा रिसेट गर्नुहोस् — आफ्नो ID लिएर आउनुहोस्।`
+        : `We'll text a code to ${masked()}. If others read this phone's messages, reset at reception instead — bring your ID.`}</p></div>
     <div className="cs-acts">{btn('Send code', 'reset-send')}{btn('Reset at reception', 'sheet-close', { kind: 'secondary' })}</div>
   </div><div className="sheet-home"></div></>;
 OVERLAY.reset = resetSheet;
@@ -145,7 +211,7 @@ export function field(key, labelText, ph) {
   const err = S.mErr[key];
   return <div key={key} className="field-wrap">
     <label className="label" htmlFor={`mf-${key}`}>{tr(labelText)}</label>
-    <div className={`field ${err ? 'err' : ''}`}><input id={`mf-${key}`} data-f={key} placeholder={ph} value={S.mform[key] || ''}
+    <div className={`field ${err ? 'err' : ''}`}><input id={`mf-${key}`} data-f={key} placeholder={tr(ph)} value={S.mform[key] || ''}
       onChange={e => { S.mform[key] = e.target.value; delete S.mErr[key]; paint(); }} /></div>
     {err ? support(err, 'err') : null}
   </div>;
@@ -178,9 +244,9 @@ Object.assign(SCREENS, {
           {list([
             listItem('lt-followup.svg', 'Visit history', 'Last visit Aug 28, General medicine', 'go:hvisits'),
             listItem('lt-rx.svg', 'Prescriptions', '2 medicines to take now', 'go:hrx'),
-            S.offline ? null : listItem('lt-rx.svg', 'Medicines', (n => n ? `${n} running low` : 'All stocked up')(S.meds.filter(lowStock).length), 'go:mtlist'), // stock needs a live count
-            listItem('lt-lab.svg', 'Lab reports', (r => [r.filter(k => !labOf(k).reviewing).length && `${r.filter(k => !labOf(k).reviewing).length} ready`,
-              r.filter(k => labOf(k).reviewing).length && `${r.filter(k => labOf(k).reviewing).length} being reviewed`].filter(Boolean).join(', ') || 'None yet')(S.labs), 'go:hlabs'),
+            S.offline ? null : listItem('lt-rx.svg', 'Medicines', (n => n ? (ne() ? `${n} वटा सकिन लागेको` : `${n} running low`) : 'All stocked up')(S.meds.filter(lowStock).length), 'go:mtlist'), // stock needs a live count
+            listItem('lt-lab.svg', 'Lab reports', (r => [r.filter(k => !labOf(k).reviewing).length && `${r.filter(k => !labOf(k).reviewing).length} ${ne() ? 'तयार' : 'ready'}`,
+              r.filter(k => labOf(k).reviewing).length && `${r.filter(k => labOf(k).reviewing).length} ${ne() ? 'जाँच हुँदै' : 'being reviewed'}`].filter(Boolean).join(', ') || 'None yet')(S.labs), 'go:hlabs'),
             listItem('lt-clipboard.svg', 'Follow-ups', '1 due around Sep 11', 'go:hfollow'),
           ].filter(Boolean))}
         </div>
@@ -203,9 +269,9 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Visit history' })}
       <div className="body" style={{ gap: 12 }}>
-        <div><div className="inset">{lbl('August 2026')}</div>{list([row('General medicine', 'Aug 28, Dr. Priya Sharma', 'visit:aug28'), row('General medicine', 'Aug 12, Dr. Ramesh Shrestha', 'visit:aug12')])}</div>
-        <div><div className="inset">{lbl('July 2026')}</div>{list([row('Dermatology', 'Jul 3, Dr. Anita Joshi', 'stub:Visit on Jul 3')])}</div>
-        <div><div className="inset">{lbl('June 2026')}</div>{list([row('General medicine, walk-in', 'Jun 20, Dr. Anita Joshi', 'stub:Visit on Jun 20')])}</div>
+        <div><div className="inset">{lbl('August 2026')}</div>{list([row('General medicine', nd('Aug 28, Dr. Priya Sharma'), 'visit:aug28'), row('General medicine', nd('Aug 12, Dr. Ramesh Shrestha'), 'visit:aug12')])}</div>
+        <div><div className="inset">{lbl('July 2026')}</div>{list([row('Dermatology', nd('Jul 3, Dr. Anita Joshi'), 'stub:Visit on Jul 3')])}</div>
+        <div><div className="inset">{lbl('June 2026')}</div>{list([row('General medicine, walk-in', nd('Jun 20, Dr. Anita Joshi'), 'stub:Visit on Jun 20')])}</div>
       </div>
       {homeInd()}
     </div>);
@@ -215,14 +281,14 @@ Object.assign(SCREENS, {
     const v = VISITS[S.visit];
     return (
     <div className="screen">
-      {statusBar()}{bar({ title: v.title })}
+      {statusBar()}{bar({ title: dated(v.title) })}
       <div className="body g20">
         <div className="inset">{docCard(...v.doc)}</div>
-        <div className="inset stack8">{lbl('What your doctor told you')}<p className="note-body">{S.visit === 'aug28' && S.drNotes?.as || v.words}</p></div>
+        <div className="inset stack8">{lbl('What your doctor told you')}<p className="note-body">{S.visit === 'aug28' && S.drNotes?.as || tr(v.words)}</p></div>
         <div className="stack8"><div className="inset">{lbl('Prescribed')}</div>{list(PRESCRIPTIONS[v.rx].meds.map(m => medRow(m, `rx:${v.rx}`)))}</div>
         <div className="inset stack8">{lbl('Next step')}
-          {S.visit === 'aug28' && S.fuAdvice !== 'none' ? <div className="card notice"><div className="text"><p className="h-s">Follow-up in 2 weeks</p>
-            <p className="body-s">Around Sep 11. Book now to get a time that suits you.</p></div>
+          {S.visit === 'aug28' && S.fuAdvice !== 'none' ? <div className="card notice"><div className="text"><p className="h-s">{tr('Follow-up in 2 weeks')}</p>
+            <p className="body-s">{tr('Around Sep 11. Book now to get a time that suits you.')}</p></div>
             {btn('Book follow-up', 'doctor:ps', { size: 'l' })}</div>
           : notice('', 'No follow-up needed', 'Come back only if it gets worse.')}</div>
       </div>
@@ -235,7 +301,7 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Follow-ups' })}
       <div className="body g20"><div><div className="inset">{lbl('Due')}</div>{list([
-        listItem('lt-calendar.svg', 'General medicine', S.followup ? `Booked for ${S.followup.day}, ${S.followup.time} · asked for at your Aug 28 visit` : 'Around Sep 11 · asked for at your Aug 28 visit', S.followup ? 'appt:fu' : 'doctor:ps'),
+        listItem('lt-calendar.svg', 'General medicine', S.followup ? (ne() ? `${nd(S.followup.day)}, ${nd(S.followup.time)} का लागि बुक भयो · तपाईंको अगस्ट 28 को भेटमा भनिएको` : `Booked for ${S.followup.day}, ${S.followup.time} · asked for at your Aug 28 visit`) : 'Around Sep 11 · asked for at your Aug 28 visit', S.followup ? 'appt:fu' : 'doctor:ps'),
         listItem('lt-calendar.svg', 'Dermatology', 'Sep 14 · asked for at your Jul 3 visit', 'find-spec:Dermatology')])}</div></div>
       {homeInd()}
     </div>),
@@ -247,8 +313,8 @@ Object.assign(SCREENS, {
         {S.rxNone ? empty('qa-rx.svg', 'No prescriptions yet', 'When a doctor prescribes medicine, it appears here with how to take it.', <div style={{ height: 104 }}></div>) : <>
         <div><div className="inset">{lbl('Taking now')}</div>{list(RX.map(m => medRow(m)))}</div>
         <div><div className="inset">{lbl('All prescriptions')}</div>{list([
-          listItem('lt-document.svg', 'Dr. Priya Sharma, Aug 28', '2 medicines', 'rx:aug28'),
-          listItem('lt-document.svg', 'Dr. Ramesh Shrestha, Aug 12', '1 medicine, finished', 'rx:aug12')])}</div></>}
+          listItem('lt-document.svg', nd('Dr. Priya Sharma, Aug 28'), '2 medicines', 'rx:aug28'),
+          listItem('lt-document.svg', nd('Dr. Ramesh Shrestha, Aug 12'), '1 medicine, finished', 'rx:aug12')])}</div></>}
       </div>
       {homeInd()}
     </div>),
@@ -261,10 +327,10 @@ Object.assign(SCREENS, {
       <div className="body g20">
         <div className="inset">{docCard(...r.doc)}</div>
         <div><div className="inset">{lbl('Medicines')}</div>{list(r.meds.map(m => medRow(m)))}</div>
-        <div className="inset stack8">{lbl("Doctor's note")}<p className="note-body">{r.note}</p></div>
+        <div className="inset stack8">{lbl("Doctor's note")}<p className="note-body">{tr(r.note)}</p></div>
       </div>
       <div className="cta">{r.finished // a finished course isn't handed over at a counter
-        ? <p className="body-s">This course finished on {r.finished}.</p> : <button className="btn secondary" data-act="go:hpharm">{tr('Show to pharmacist')}</button>}</div>
+        ? <p className="body-s">{ne() ? `यो कोर्स ${nd(r.finished)} मा सकियो।` : `This course finished on ${r.finished}.`}</p> : <button className="btn secondary" data-act="go:hpharm">{tr('Show to pharmacist')}</button>}</div>
       {homeInd()}
     </div>);
   },
@@ -274,9 +340,9 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: 'Show to pharmacist' })}
       <div className="body g20" style={{ padding: '8px 16px 16px' }}>
-        <div className="pharm-who"><p className="pw-name">{S.fullName}, age 32</p><p>Prescribed by Dr. Priya Sharma</p><p>NMC reg. no. 12345</p><p>City Hospital, Aug 28, 2026</p></div>
-        <div className="rx-list">{RX.map(m => <div key={m.name} className="rx-line"><p className="rx-n">{m.name}</p><p className="rx-d">{m.form}</p><p className="rx-q">{m.disp}</p></div>)}</div>
-        <div className="stack6"><p className="rx-ref">Prescription no. RX-0828-4821</p><p className="body-s">This screen stays on while it's open.</p></div>
+        <div className="pharm-who"><p className="pw-name">{S.fullName}, {ne() ? 'उमेर' : 'age'} 32</p><p>{tr('Prescribed by Dr. Priya Sharma')}</p><p>{tr('NMC reg. no. 12345')}</p><p>{tr('City Hospital, Aug 28, 2026')}</p></div>
+        <div className="rx-list">{RX.map(m => <div key={m.name} className="rx-line"><p className="rx-n">{m.name}</p><p className="rx-d">{tr(m.form)}</p><p className="rx-q">{tr(m.disp)}</p></div>)}</div>
+        <div className="stack6"><p className="rx-ref">{tr('Prescription no. RX-0828-4821')}</p><p className="body-s">{tr("This screen stays on while it's open.")}</p></div>
       </div>
       <div className="cta"><button className="btn secondary" data-act="back">{tr('Done')}</button></div>
       {homeInd()}
@@ -304,13 +370,14 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{bar({ title: l.title })}
       <div className="body g20">
-        <div className="inset"><div className="card">{lead('lt-lab.svg')}<span className="text"><span className="item-title">{l.title}</span><span className="body-s">{l.sub}</span></span></div></div>
+        <div className="inset"><div className="card">{lead('lt-lab.svg')}<span className="text"><span className="item-title">{tr(l.title)}</span><span className="body-s">{tr(l.sub)}</span></span></div></div>
         <div className="inset stack8">{lbl('What your doctor says')}
-          <p className="note-body">{l.words}</p>
-          <p className="body-s tertiary">{l.by}</p></div>
+          <p className="note-body">{tr(l.words)}</p>
+          <p className="body-s tertiary">{dated(l.by)}</p></div>
+        {labTrend(S.report) ? <div className="inset">{labTrend(S.report)}</div> : null}{/* Phase 8: a repeated test shows previous → latest */}
         {l.follow ? <div className="inset">{notice('warn', 'Dr. Sharma asked to see you', 'Book a follow-up to talk about this report.', btn('Book follow-up', 'report-fu', { size: 'l' }))}</div> : null}{/* W11 */}
         <div className="inset stack8">{lbl('Report')}
-          <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{l.title} report</span><span className="body-s">PDF, {l.pages} page{l.pages > 1 ? 's' : ''}</span></span>{chev}</button></div>
+          <button className="card neutral" data-act="go:hfile">{lead('lt-document.svg')}<span className="text"><span className="item-title">{reportTitle(l.title)}</span><span className="body-s">{ne() ? `PDF, ${l.pages} पेज` : `PDF, ${l.pages} page${l.pages > 1 ? 's' : ''}`}</span></span>{chev}</button></div>
       </div>
       <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />{tr('Download report')}</button></div>
       {homeInd()}
@@ -322,14 +389,14 @@ Object.assign(SCREENS, {
     const l = labOf(S.report);
     return (
     <div className="screen">
-      {statusBar()}{bar({ title: `${l.title} report` })}
+      {statusBar()}{bar({ title: reportTitle(l.title) })}
       <div className="doc-view">
-        <div className="doc-page" role="img" aria-label={`${l.title} report from City Hospital Laboratory, page 1`}>
-          <p className="dp-lab">City Hospital Laboratory</p><p className="body-s tertiary">Maharajgunj, Kathmandu</p>
-          <p className="dp-test">{l.title} · {l.date}</p><p className="body-s">Patient: {S.fullName} · CH-2381</p>
+        <div className="doc-page" role="img" aria-label={ne() ? `सिटी हस्पिटल ल्याबोरेटरीबाट ${reportTitle(l.title)}, पेज 1` : `${l.title} report from City Hospital Laboratory, page 1`}>
+          <p className="dp-lab">{tr('City Hospital Laboratory')}</p><p className="body-s tertiary">{tr('Maharajgunj, Kathmandu')}</p>
+          <p className="dp-test">{tr(l.title)} · {tr(l.date)}</p><p className="body-s">{ne() ? 'बिरामी' : 'Patient'}: {S.fullName} · CH-2381</p>
           {[280, 280, 160, 280, 280, 160, 280].map((w, i) => <span key={i} className="dp-bar" style={{ width: w }}></span>)}
         </div>
-        <p className="body-s">Page 1 of 1</p>
+        <p className="body-s">{tr('Page 1 of 1')}</p>
       </div>
       <div className="cta"><button className="btn secondary" data-act="report-dl"><img src={`${A}icon-download.svg`} width="24" height="24" alt="" />{tr('Download report')}</button></div>
       {homeInd()}
@@ -348,9 +415,9 @@ Object.assign(SCREENS, {
   pincreate: () => pinScreen('Choose a PIN for your health records', "Your phone's own PIN may be known to others who use it. This one is only yours.",
     S.pinMismatch ? errLine(MISMATCH) : null),
   pinconfirm: () => pinScreen('Enter it again', "So we know it's right."),
-  pin: () => pinScreen(...(managedBy() ? ['Enter your PIN', `Or ${managedBy().split(' ')[0]}'s own Clinica PIN — she manages this profile.`] : { pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
+  pin: () => pinScreen(...(managedBy() ? ['Enter your PIN', ne() ? `वा ${managedBy().split(' ')[0]} को आफ्नै Clinica PIN — उहाँले यो प्रोफाइल सम्हाल्नुहुन्छ।` : `Or ${managedBy().split(' ')[0]}'s own Clinica PIN — she manages this profile.`] : { pinnew: ['Enter your current PIN', "So we know it's you before you change it."], pfphone: ['Enter your PIN', 'To change your mobile number.'],
       hreport: ['Enter your PIN', 'To open your lab report.'], home: ['Enter your PIN', 'To see your appointments and medicines.'] /* T22 */ }[S.afterUnlock] || ['Enter your PIN', 'To open your health records.']),
-    <>{S.pinErr ? errLine(`That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
+    <>{S.pinErr ? errLine(ne() ? `PIN मिलेन। अझै ${S.pinTries} पटक प्रयास गर्न सक्नुहुन्छ।` : `That PIN didn't match. ${S.pinTries} ${S.pinTries === 1 ? 'try' : 'tries'} left.`) : null}
       <button className="btn secondary l hug" data-act="forgot">{tr('Forgot your PIN?')}</button></>),
   pinnew: () => pinScreen('Choose a new PIN', 'Your old PIN stops working. Your records stay as they are.', S.pinMismatch ? errLine(MISMATCH) : null),
   pinnewconfirm: () => pinScreen('Enter it again', "So we know it's right."),
@@ -370,9 +437,10 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar()}
       <div className="body" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
-        {empty('icon-lock.svg', 'Too many tries', `For your safety, wait before trying again, or reset your PIN with a code sent to ${masked()}.`,
+        {empty('icon-lock.svg', 'Too many tries', ne() ? `तपाईंको सुरक्षाका लागि, फेरि प्रयास गर्नुअघि पर्खनुहोस्, वा ${masked()} मा पठाइएको कोडबाट PIN रिसेट गर्नुहोस्।`
+          : `For your safety, wait before trying again, or reset your PIN with a code sent to ${masked()}.`,
           btn('Reset with an SMS code', 'forgot', { size: 'l' }), false, 'h1')}
-        <p className="wait">You can try again in <span id="pinwait">{mmss(S.pinWait)}</span></p>
+        <p className="wait">{ne() ? <><span id="pinwait">{mmss(S.pinWait)}</span> पछि फेरि प्रयास गर्न सक्नुहुन्छ</> : <>You can try again in <span id="pinwait">{mmss(S.pinWait)}</span></>}</p>
       </div>
       {homeInd()}
       </div>),
@@ -415,7 +483,8 @@ document.addEventListener('visibilitychange', () => {
 
 // A PDF of the report, through the browser's own save prompt.
 export function downloadReport(l) {
-  const lines = ['City Hospital Laboratory', 'Maharajgunj, Kathmandu', `${l.title} - ${l.date}`, `Patient: ${S.fullName} - CH-2381`, '', l.words, l.by];
+  const lines = ['City Hospital Laboratory', // the PDF stays English: its built-in Helvetica has no Devanagari
+    'Maharajgunj, Kathmandu', `${l.title} - ${l.date}`, `Patient: ${S.fullName} - CH-2381`, '', l.words, l.by];
   const text = lines.map((t, i) => `BT /F1 ${i ? 11 : 14} Tf 50 ${780 - i * 22} Td (${t.replace(/[()\\]/g, '\\$&')}) Tj ET`).join('\n');
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
@@ -426,7 +495,7 @@ export function downloadReport(l) {
   pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offs.map(o => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
   const url = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }));
   Object.assign(document.createElement('a'), { href: url, download: `${l.title} report.pdf` }).click();
-  openSys({ title: `${l.title} report.pdf`, sub: "Saved to your phone's Files.", confirm: 'Open file', href: url }); // the phone's own save prompt
+  openSys({ title: `${l.title} report.pdf`, sub: tr("Saved to your phone's Files."), confirm: tr('Open file'), href: url }); // the phone's own save prompt
 }
 
 export const PIN_SCREENS = ['pincreate', 'pinconfirm', 'pin', 'pinnew', 'pinnewconfirm', 'pfpin'];
@@ -463,7 +532,7 @@ export function pinComplete() {
       S.stack = []; S.screen = 'finger'; return render();
     case 'pinnewconfirm':
       if (e !== S.pinFirst) { S.pinMismatch = true; return backTo('pinnew'); }
-      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; if (S.pinChanged) toast('PIN changed.'); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
+      S.pin = e; S.pinChanged = S.afterUnlock === 'pflock'; if (S.pinChanged) toast(tr('PIN changed.')); /* W03 */ return unlock(); // then straight back into Health, or to Health lock
     case 'pfpin': // care.jsx — Switch person
       if (e === pinOf(S.switchTo) || (RECORDS[S.switchTo].managedBy === S.fullName && e === (S.pin || '1234'))) return switchTo(S.switchTo); // F14/R11: the caregiver's own PIN
       S.pinErr = true; return render();
@@ -556,7 +625,7 @@ Object.assign(NUM, {
   hlocked: s => s.bio === 'fail' ? 'H16' : s.bio ? 'H15' : s.lockWhy === 'report' ? 'HM01' : s.lockWhy === 'left' ? 'HM06' : 'H01',
   health: s => s.offline ? 'GX03' : 'H02', hvisits: () => 'H03', hvisit: s => s.visit === 'aug12' ? 'HM09' : 'H04', hrx: s => s.rxNone ? 'HM11' : 'H05',
   hrxd: s => s.rx === 'aug12' ? 'HM10' : 'H06', hpharm: () => 'H07', hfollow: () => 'HM08', hfile: () => 'HM05',
-  hlabs: s => !s.labs.length ? 'HM12' : s.labs.includes('cbc') ? 'H08' : 'HM04', hreport: s => s.report === 'hba1c' ? 'HM03' : 'H09', hreviewing: () => 'H10', hempty: () => 'H11',
+  hlabs: s => !s.labs.length ? 'HM12' : s.labs.includes('cbc') ? 'H08' : 'HM04', hreport: s => s.report === 'hba1c' ? 'HM03' : s.report === 'hba1cJun' ? 'H09b' : 'H09', hreviewing: () => 'H10', hempty: () => 'H11',
   pincreate: () => 'H12', pinconfirm: () => 'H13', finger: () => 'H14',
   pin: s => s.sheet ? 'H20' : s.pinErr ? 'H18' : s.fingerChanged ? 'HM07' : ({ hreport: 'HM02', pinnew: 'PM01', pfphone: 'PM05' })[s.afterUnlock] || 'H17',
   toomany: s => s.sheet ? 'H20' : 'H19',
@@ -579,6 +648,7 @@ FLOW.push(
     ['H07', 'Show to pharmacist', 'Read across a counter', "Read across a counter: 24 and 20px, all in primary ink, and the screen stays awake. What to dispense, with the prescriber's NMC number and a prescription number — and no purpose line.", () => ({ screen: 'hpharm', stack: ['health', 'hrx', 'hrxd'], ...U })],
     ['H08', 'Lab reports', 'Taps a ready report', "Each report's state as a tag: Being reviewed in Neutral, Ready in Success.", () => ({ screen: 'hlabs', stack: ['health'], ...U })],
     ['H09', 'Report detail', 'Released reports only', "Reachable only once released. Leads with the doctor's explanation and says who reviewed it, and when.", () => ({ screen: 'hreport', stack: ['health', 'hlabs'], ...U })],
+    ['H09b', 'Report detail — trend', 'A test done more than once', "HbA1c, Jun 20 and Aug 24: previous → latest with dates, the direction in words and an arrow, and a small line for those who read one. Nothing relies on colour. The doctor's history shows the same trend.", () => ({ screen: 'hreport', stack: ['health', 'hlabs'], report: 'hba1cJun', ...U })], // Phase 8
   ]],
   ['Health — unhappy paths', [
     ['H10', 'Report being reviewed', 'Branch from 08 — a report not yet released', 'Results reach the patient after the doctor sees them. The screen says why, and points to the phone if they feel worse.', () => ({ screen: 'hreviewing', stack: ['health', 'hlabs'], ...U })],

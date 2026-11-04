@@ -7,40 +7,72 @@ import { Phone, RECORDS, btn, family, empty, homeInd, statusBar, toHome } from '
 import { T, acts, answer, ask, feedback, say, src, words } from './ask.jsx';
 import { BOOKING_STACK, DOCTORS, bookFor, filtMatch, freeTimes, label, plural, rel, row, rows, tag, when } from './booking.jsx';
 import { MAPS, NOTIFS, emergency, setting } from './care.jsx';
-import { A, ACTIONS, FLOW, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, fresh, go, later, render, reset } from './core.jsx';
+import { A, ACTIONS, FLOW, NE, NUM, ORDER, OVERLAY, S, SCREENS, after, back, every, fresh, go, later, nd, ne, render, reset, tr } from './core.jsx';
 import { errLine, keypad, list, openHealth, pinDots, unlock } from './health.jsx';
 import { MED_NOTIFS, ring } from './meds.jsx';
 import { FEE, FU_DAY, TODAY, dayLabel } from './data.js';
 import { clock, filtered, img, now, patients, people, person, results } from './staff.jsx';
 
-export const radioRow = (on, label, act) => <button className="radio-row" role="radio" aria-checked={on} data-act={act}><span className="ring"></span>{label}</button>;
+// Phase 8: Nepali for this module's own lines: the sheets, the lock screen, the blocking screens and the phone's own prompts.
+// MORE_NOTIFS shows in the Notification centre (care.jsx), which passes its lines through tr().
+Object.assign(NE, {
+  'Who is this visit for?': 'यो भेट कसका लागि हो?', 'People whose clinic records use this phone number. To add someone, ask at reception.': 'क्लिनिकको रेकर्डमा यही फोन नम्बर भएका मानिसहरू। अरू कसैलाई थप्न रिसेप्सनमा सोध्नुहोस्।',
+  'Filter doctors': 'डाक्टर फिल्टर गर्नुहोस्', 'Only doctors with a time left today': 'आज समय बाँकी भएका डाक्टर मात्र', Any: 'जो पनि', 'No doctors match': 'कुनै डाक्टर मिलेनन्',
+  'Clear filters': 'फिल्टर हटाउनुहोस्', 'Enter your Clinica PIN': 'आफ्नो Clinica PIN हाल्नुहोस्', 'To see your visit notes.': 'भेटको टिप्पणी हेर्न।', 'To see your health records.': 'स्वास्थ्य रेकर्ड हेर्न।',
+  "That PIN didn't match. Try again.": 'PIN मिलेन। फेरि प्रयास गर्नुहोस्।', 'Let Clinica use the microphone?': 'Clinica लाई माइक्रोफोन प्रयोग गर्न दिने?',
+  "Clinica listens only while you're asking a question.": 'तपाईंले प्रश्न सोध्दा मात्र Clinica ले सुन्छ।', "Don't allow": 'अनुमति नदिनुहोस्', Allow: 'अनुमति दिनुहोस्',
+  // the lock screen and the Notification centre
+  'Lock screen': 'लक स्क्रिन', Locked: 'लक गरिएको', now: 'अहिले', '5m ago': '5 मिनेटअघि', '10m ago': '10 मिनेटअघि', 'Just now': 'अहिले भर्खरै', '1 hour ago': '1 घण्टाअघि',
+  'A lab report is ready': 'ल्याब रिपोर्ट तयार छ', 'Open Clinica to see it.': 'हेर्न Clinica खोल्नुहोस्।', 'Time for your medicine': 'औषधि खाने समय भयो', 'Open Clinica to log it.': 'टिप्न Clinica खोल्नुहोस्।',
+  'Your 4:30 PM visit is running late': 'तपाईंको दिउँसो 4:30 को भेट ढिला हुँदैछ', "Your slot is kept. We'll message you when it's time.": 'तपाईंको समय सुरक्षित छ। पालो आएपछि हामी खबर पठाउनेछौं।',
+  'Dr. Sharma is back on time': 'Dr. Sharma फेरि समयमै हुनुहुन्छ', 'Your 4:30 PM slot is on time. Check in when you arrive.': 'तपाईंको दिउँसो 4:30 को समय ठीक छ। आइपुगेपछि चेक इन गर्नुहोस्।',
+  'City Hospital cancelled your visit': 'सिटी हस्पिटलले तपाईंको भेट रद्द गर्‍यो', "Dr. Sharma can't see patients that day. Book another time.": 'Dr. Sharma ले त्यो दिन बिरामी हेर्न सक्नुहुन्न। अर्को समय बुक गर्नुहोस्।',
+  'A follow-up is due': 'फलो-अपको समय भयो', 'Book a time that suits you.': 'आफूलाई मिल्ने समय बुक गर्नुहोस्।', 'Your visit notes are ready': 'तपाईंको भेटको टिप्पणी तयार छ',
+  'Open Health to read them.': 'पढ्न स्वास्थ्य खोल्नुहोस्।',
+  // update and maintenance
+  'Update Clinica to keep going': 'जारी राख्न Clinica अपडेट गर्नुहोस्', 'This version is out of date. The update is free.': 'यो संस्करण पुरानो भयो। अपडेट निःशुल्क छ।', Update: 'अपडेट गर्नुहोस्',
+  'Clinica is down for maintenance': 'मर्मतका लागि Clinica बन्द छ', 'Scheduled until 6:00 AM. Your records are safe.': 'बिहान 6:00 सम्मका लागि तय गरिएको। तपाईंका रेकर्ड सुरक्षित छन्।',
+  // the phone's own prompts
+  Ambulance: 'एम्बुलेन्स', 'City Hospital reception': 'सिटी हस्पिटल रिसेप्सन', 'Call +977 1-4412345': '+977 1-4412345 मा फोन गर्नुहोस्',
+  'Open Maps for directions to': 'Maps मा यहाँसम्मको बाटो खोल्ने:', 'City Hospital, Maharajgunj, Kathmandu': 'सिटी हस्पिटल, महाराजगञ्ज, काठमाडौं',
+  'OPD 2, City Hospital, Maharajgunj': 'OPD 2, सिटी हस्पिटल, महाराजगञ्ज', 'Open Maps': 'Maps खोल्नुहोस्', "Open your phone's settings for Clinica?": 'Clinica का लागि फोनको सेटिङ खोल्ने?',
+  'You can turn on notifications or calendar access there.': 'त्यहाँ सूचना वा क्यालेन्डर पहुँच खोल्न सक्नुहुन्छ।', 'Open Settings': 'सेटिङ खोल्नुहोस्',
+  'You can delete the old visit there.': 'त्यहाँ पुरानो भेट मेटाउन सक्नुहुन्छ।', 'Open Calendar': 'क्यालेन्डर खोल्नुहोस्', "Saved to your phone's Files.": 'तपाईंको फोनको Files मा सेभ भयो।',
+  'Open file': 'फाइल खोल्नुहोस्',
+});
+// Phase 8: prompt lines built with a date, amount or name. Translated at render: SYS_NUM matches the English.
+const SYS_NE = [[/^Open your calendar at (.+)\?$/, d => `${nd(d)} मा क्यालेन्डर खोल्ने?`], [/^Pay NPR (\d+) with (\w+)\?$/, (n, w) => `${w} बाट NPR ${n} तिर्ने?`],
+  [/^Pay with (\w+)$/, w => `${w} बाट तिर्नुहोस्`], [/^Consultation fee for your visit with (.+)\.$/, d => `${d} सँगको भेटको परामर्श शुल्क।`]];
+export const sysTr = s => { if (!ne() || NE[s]) return tr(s); for (const [re, f] of SYS_NE) { const m = String(s).match(re); if (m) return f(...m.slice(1)); } return s; };
+
+export const radioRow = (on, label, act) => <button className="radio-row" role="radio" aria-checked={on} data-act={act}><span className="ring"></span>{tr(label)}</button>;
 export const sheetOf = (inner, label) => <><div className="scrim" data-act="sheet-close"></div>
-  <div className="sheet" role="dialog" aria-modal="true" aria-label={label}><span className="grabber"></span>{inner}</div><div className="sheet-home"></div></>;
+  <div className="sheet" role="dialog" aria-modal="true" aria-label={tr(label)}><span className="grabber"></span>{inner}</div><div className="sheet-home"></div></>;
 
 Object.assign(OVERLAY, {
   // Only people whose records use this phone number. Choosing closes the sheet — a single choice needs no Done.
   bookfor: () => sheetOf(<>
-    <div className="stack4"><p className="h-s">Who is this visit for?</p><p className="body-s">People whose clinic records use this phone number. To add someone, ask at reception.</p></div>
-    <div className="stack4" role="radiogroup" aria-label="Booking for"><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>Booking for</p>
+    <div className="stack4"><p className="h-s">{tr('Who is this visit for?')}</p><p className="body-s">{tr('People whose clinic records use this phone number. To add someone, ask at reception.')}</p></div>
+    <div className="stack4" role="radiogroup" aria-label={tr('Booking for')}><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>{tr('Booking for')}</p>
       {[S.fullName, ...family().map(r => r.name).filter(n => n !== S.fullName)].map(n => /* F22: only this number's people */
-        <Fragment key={n}>{radioRow((S.bookFor || S.fullName) === n, n === S.fullName ? `${n} (you)` : n, `book-for:${n}`)}</Fragment>)}</div>
+        <Fragment key={n}>{radioRow((S.bookFor || S.fullName) === n, n === S.fullName ? `${n} (${ne() ? 'तपाईं' : 'you'})` : n, `book-for:${n}`)}</Fragment>)}</div>
     {btn('Cancel', 'sheet-close', { kind: 'secondary' })}</>, 'Who is this visit for?'),
 
   // Two filters that matter here. The button states the count before it's applied.
   filter: () => {
     const f = S.fdraft, n = Object.keys(DOCTORS).filter(id => DOCTORS[id].spec === S.specialty && filtMatch(id, f)).length;
     return sheetOf(<>
-      <p className="h-s">Filter doctors</p>
+      <p className="h-s">{tr('Filter doctors')}</p>
       <div className="list" style={{ margin: '0 -16px' }}>{setting('Available today', 'Only doctors with a time left today', f.today, 'fd-today')}</div>
-      <div className="stack4" role="radiogroup" aria-label="Doctor"><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>Doctor</p>
+      <div className="stack4" role="radiogroup" aria-label={tr('Doctor')}><p className="sec-label lh20" style={{ color: 'var(--text-primary)' }}>{tr('Doctor')}</p>
         <div className="radio-inline">{['Any', 'Female', 'Male'].map(v => <Fragment key={v}>{radioRow(f.sex === v, v, `fd-sex:${v}`)}</Fragment>)}</div></div>
-      <div className="stack12">{btn(n ? `Show ${plural(n, 'doctor')}` : 'No doctors match', 'filter-apply', { disabled: !n })}{btn('Clear filters', 'filter-clear', { kind: 'secondary' })}</div></>, 'Filter doctors');
+      <div className="stack12">{btn(n ? (ne() ? `${n} जना डाक्टर देखाउनुहोस्` : `Show ${plural(n, 'doctor')}`) : 'No doctors match', 'filter-apply', { disabled: !n })}{btn('Clear filters', 'filter-clear', { kind: 'secondary' })}</div></>, 'Filter doctors');
   },
 
   // The real PIN step, as a sheet over the conversation.
   askpin: () => sheetOf(<>
-    <div className="stack4" style={{ textAlign: 'center' }}><p className="h-s">Enter your Clinica PIN</p>
-      <p className="body-s">{S.chat.findLast?.(t => t.then)?.then === 'lastvisit' ? 'To see your visit notes.' : 'To see your health records.'}</p></div>
+    <div className="stack4" style={{ textAlign: 'center' }}><p className="h-s">{tr('Enter your Clinica PIN')}</p>
+      <p className="body-s">{tr(S.chat.findLast?.(t => t.then)?.then === 'lastvisit' ? 'To see your visit notes.' : 'To see your health records.')}</p></div>
     <div className="entry" style={{ padding: 0 }}>{pinDots(S.pinEntry.length, S.pinErr)}{S.pinErr ? errLine("That PIN didn't match. Try again.") : null}</div>
     <div style={{ margin: '0 -16px' }}>{keypad()}</div>
     {btn('Cancel', 'sheet-close', { kind: 'secondary' })}</>, 'Enter your Clinica PIN'),
@@ -48,8 +80,8 @@ Object.assign(OVERLAY, {
   // The phone's own permission prompt. Tapping outside does nothing: the OS alert is modal.
   micperm: () => <><div className="scrim"></div>
     <div className="sys-alert" role="alertdialog" aria-modal="true" aria-labelledby="sa-t">
-      <div className="sa-text"><p className="sa-t" id="sa-t">Let Clinica use the microphone?</p><p className="body-s">Clinica listens only while you're asking a question.</p></div>
-      <div className="sa-btns"><button data-act="mic-deny">Don't allow</button><button data-act="mic-allow"><b>Allow</b></button></div>
+      <div className="sa-text"><p className="sa-t" id="sa-t">{tr('Let Clinica use the microphone?')}</p><p className="body-s">{tr("Clinica listens only while you're asking a question.")}</p></div>
+      <div className="sa-btns"><button data-act="mic-deny">{tr("Don't allow")}</button><button data-act="mic-allow"><b>{tr('Allow')}</b></button></div>
     </div></>,
 });
 
@@ -78,20 +110,20 @@ export const blocking = (icon, title, body, actions, after = null) => (
 Object.assign(SCREENS, {
   lockscreen: () => (
     <div className="screen lock">
-      <h1 className="vh">Lock screen</h1>{/* W13 */}<img src={`${A}lt-lock.svg`} width="20" height="20" alt="Locked" />
-      <p className="l-clock">9:41</p><p className="l-date">{`${TODAY.toLocaleDateString('en-GB', { weekday: 'long' })}, ${TODAY.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`}</p>{/* Figma sync: weekday from TODAY (was a hard-coded Thursday; Aug 28, 2026 is a Friday) */}
+      <h1 className="vh">{tr('Lock screen')}</h1>{/* W13 */}<img src={`${A}lt-lock.svg`} width="20" height="20" alt={tr('Locked')} />
+      <p className="l-clock">9:41</p><p className="l-date">{tr(`${TODAY.toLocaleDateString('en-GB', { weekday: 'long' })}, ${TODAY.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`)}</p>{/* Figma sync: weekday from TODAY (was a hard-coded Thursday; Aug 28, 2026 is a Friday) */}
       <div style={{ height: 32 }}></div>
-      {LOCK_NOTIFS.map(n => <a key={n.act} href="#" className="l-card" data-act={n.act}><span className="l-app"><b>CLINICA</b><span>{n.when}</span></span>
-        <span className="l-t">{n.t}</span><span className="l-b">{n.b}</span></a>)}
+      {LOCK_NOTIFS.map(n => <a key={n.act} href="#" className="l-card" data-act={n.act}><span className="l-app"><b>CLINICA</b><span>{tr(n.when)}</span></span>
+        <span className="l-t">{tr(n.t)}</span><span className="l-b">{tr(n.b)}</span></a>)}
       <div className="l-home"></div>
     </div>),
 
   // When the app can't be used, a way to reach help stays on screen.
   update: () => blocking('icon-download-secondary-28.svg', 'Update Clinica to keep going', 'This version is out of date. The update is free.',
-    <>{btn('Update', 'os:App store', { size: 'l' })}<a className="btn secondary l" href="tel:+97710000000">Call the clinic</a></>,
-    <p className="body-s" style={{ padding: '0 16px' }}>In an emergency, call <a className="link" href="tel:102">102</a>.</p>),
+    <>{btn('Update', 'os:App store', { size: 'l' })}<a className="btn secondary l" href="tel:+97710000000">{tr('Call the clinic')}</a></>,
+    <p className="body-s" style={{ padding: '0 16px' }}>{ne() ? <>आपतकालमा <a className="link" href="tel:102">102</a> मा फोन गर्नुहोस्।</> : <>In an emergency, call <a className="link" href="tel:102">102</a>.</>}</p>),
   maint: () => blocking('icon-settings-secondary-28.svg', 'Clinica is down for maintenance', 'Scheduled until 6:00 AM. Your records are safe.',
-    <><a className="btn primary l" href="tel:+97714412345">Call reception</a><a className="btn secondary l" href="tel:102">Call 102</a></>),
+    <><a className="btn primary l" href="tel:+97714412345">{tr('Call reception')}</a><a className="btn secondary l" href="tel:102">{tr('Call 102')}</a></>),
 });
 
 Object.assign(ACTIONS, {
@@ -233,10 +265,10 @@ export function interceptLink(e) {
 OVERLAY.sys = () => {
   const p = S.sys, link = p.href ? { href: p.href, ...(p.blank || !p.href.startsWith('tel:') ? { target: '_blank', rel: 'noopener' } : {}) } : { href: '#' };
   return <><div className="scrim" data-act="sheet-close"></div>
-  <div className="as" role="dialog" aria-modal="true" aria-label={p.title}>
-    <div className="as-group"><div className="as-msg"><p className="as-t">{p.title}</p><p>{p.sub}</p></div>
-      <a className="as-btn" {...link}>{p.confirm}</a></div>
-    <button className="as-btn as-cancel" data-act="sheet-close">Cancel</button>
+  <div className="as" role="dialog" aria-modal="true" aria-label={sysTr(p.title)}>
+    <div className="as-group"><div className="as-msg"><p className="as-t">{sysTr(p.title)}</p><p>{sysTr(p.sub)}</p></div>
+      <a className="as-btn" {...link}>{sysTr(p.confirm)}</a></div>
+    <button className="as-btn as-cancel" data-act="sheet-close">{tr('Cancel')}</button>
   </div></>;
 };
 export const SYSP = (title, sub, confirm) => () => ({ screen: 'home', sheet: 'sys', sys: { title, sub, confirm, href: '#' } });

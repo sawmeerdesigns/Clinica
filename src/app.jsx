@@ -4,13 +4,38 @@ import { cloneElement, useEffect, useLayoutEffect, useReducer, useRef, useState 
 import { ask, say, src } from './ask.jsx';
 import { backTo, bar, label, row, rows, tag, when } from './booking.jsx';
 import { emergency, setting } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast, tr } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NUM, OVERLAY, S, SCREENS, after, back, every, go, later, mount, paint, phoneListeners, render, reset, sepJoin, subscribe, takeRemount, toast, tr, NE, nd, ne } from './core.jsx';
 import { DESK_START } from './desk.jsx';
 import { DOCTOR_START, drOffline, showApp } from './doctor.jsx';
 import { centred, field, lead, list, unlock } from './health.jsx';
 import { interceptLink, notifSet, openAs } from './more.jsx';
 import { SA, STAFF_START, cell, checks, counts, img, now, patients, person, stHome, stMe } from './staff.jsx';
 
+// Phase 8: Nepali for this module's own lines (sign-in, onboarding, create profile, the date picker)
+Object.assign(NE, {
+  'Your clinic, in your pocket.': 'तपाईंको क्लिनिक, तपाईंको खल्तीमा।', 'City Hospital': 'सिटी हस्पिटल', 'You can change this any time in Profile.': 'यो जुनसुकै बेला प्रोफाइलमा बदल्न सकिन्छ।',
+  "Book with your clinic's own doctors.": 'आफ्नै क्लिनिकका डाक्टरसँग बुक गर्नुहोस्।', 'See who is in today and choose a time that suits you.': 'आज को-को हुनुहुन्छ हेर्नुहोस् र आफूलाई मिल्ने समय छान्नुहोस्।',
+  'Know the moment something changes.': 'केही बदलिनासाथ थाहा पाउनुहोस्।', "If your doctor is running late or a visit moves, we'll tell you straight away.": 'डाक्टर ढिला हुनुभयो वा भेटको समय सर्‍यो भने हामी तुरुन्तै खबर गर्छौं।',
+  'Dr. Acharya is running late': 'Dr. Acharya ढिला हुनुहुन्छ', "Your slot is kept, and we'll message you when he's ready.": 'तपाईंको समय सुरक्षित छ। उहाँ तयार हुनुभएपछि हामी खबर गर्छौं।',
+  'Everything your doctor tells you, in one place.': 'डाक्टरले भन्नुभएका सबै कुरा, एकै ठाउँमा।', 'Visits, prescriptions and reports in one place, to read again later.': 'भेट, प्रेस्क्रिप्सन र रिपोर्ट एकै ठाउँमा, पछि फेरि पढ्न।',
+  'Prescription from Dr. Acharya': 'Dr. Acharya को प्रेस्क्रिप्सन', 'Three times a day, after food': 'दिनको 3 पटक, खाना खाएपछि',
+  'A doctor in a white coat with a stethoscope': 'सेतो कोट लगाएका, स्टेथोस्कोपसहितका डाक्टर', Back: 'पछाडि', Main: 'मुख्य', 'Phone number': 'फोन नम्बर',
+  'Your new mobile number': 'तपाईंको नयाँ मोबाइल नम्बर', "We'll text a code to check it. Your records stay the same.": 'जाँच्न हामी एउटा कोड SMS गर्छौं। तपाईंका रेकर्ड जस्ताको तस्तै रहन्छन्।',
+  "Didn't get it? Check the number above is right, then send a new one.": 'कोड आएन? माथिको नम्बर सही छ कि हेर्नुहोस्, अनि नयाँ कोड पठाउनुहोस्।',
+  'That code has expired. Send a new one and enter it as soon as it arrives.': 'त्यो कोडको समय सकियो। नयाँ कोड पठाउनुहोस् र आउनासाथ हाल्नुहोस्।', '6-digit code': '6 अङ्कको कोड',
+  'For your safety, sign-in is paused for this number. Wait, or ask reception to help you sign in.': 'तपाईंको सुरक्षाका लागि यो नम्बरबाट साइन इन केही समय रोकिएको छ। पर्खनुहोस्, वा साइन इन गर्न रिसेप्सनको मद्दत लिनुहोस्।',
+  'Anyone who signs in with this number will be asked this, so each person only sees their own record.': 'यो नम्बरबाट साइन इन गर्ने सबैलाई यही सोधिन्छ, ताकि हरेकले आफ्नै रेकर्ड मात्र देखून्।',
+  'Choose date of birth': 'जन्म मिति छान्नुहोस्', 'DD / MM / YYYY': 'गते / महिना / वर्ष', 'Enter a real date, as DD / MM / YYYY.': 'सही मिति लेख्नुहोस्: गते / महिना / वर्ष।',
+  'She/her': 'उनी (महिला)', 'He/him': 'उनी (पुरुष)', 'They/them': 'उनी (लिङ्ग नतोकी)', Calendar: 'पात्रो',
+  'City Hospital has a record close to the details you entered, but not an exact match. To keep your health records together and correct, reception will check it with you.':
+    'तपाईंले हालेको विवरणसँग मिल्दोजुल्दो एउटा रेकर्ड सिटी हस्पिटलमा छ, तर पूरा मिल्दैन। तपाईंका स्वास्थ्य रेकर्ड एकै ठाउँमा र सही राख्न रिसेप्सनले तपाईंसँगै जाँच्नेछ।',
+  'Bring your ID to your next visit. You can book now; your health records will show in the app once reception confirms.':
+    'अर्को भेटमा आफ्नो परिचयपत्र (ID) ल्याउनुहोस्। अहिले नै बुक गर्न सक्नुहुन्छ; रिसेप्सनले पुष्टि गरेपछि तपाईंका स्वास्थ्य रेकर्ड एपमा देखिनेछन्।',
+  'Your records are waiting for reception': 'तपाईंका रेकर्ड रिसेप्सनको पुष्टि पर्खिरहेका छन्',
+  'Reception will confirm your details at your next visit. Your visits, prescriptions and reports will appear here then.': 'अर्को भेटमा रिसेप्सनले तपाईंको विवरण पुष्टि गर्नेछ। त्यसपछि तपाईंका भेट, प्रेस्क्रिप्सन र रिपोर्ट यहाँ देखिनेछन्।',
+  "For your security, you're signed out after a long time away. Your health records are safe.": 'तपाईंको सुरक्षाका लागि, लामो समय प्रयोग नगर्दा साइन आउट हुन्छ। तपाईंका स्वास्थ्य रेकर्ड सुरक्षित छन्।',
+  'Mobile number changed.': 'मोबाइल नम्बर बदलियो।',
+});
 export const ND = window.NepaliDate.default; // Published Bikram Sambat table (2000–2090 BS), never a formula
 
 // Demo backend
@@ -61,8 +86,8 @@ export const statusBar = light => (
 export const homeInd = light => <div className="home-ind" style={{ color: light ? '#fff' : 'var(--text-primary)' }}></div>;
 export const appBar = ({ back = true, title = '' } = {}) => (
   <div className="appbar">
-    {back && <button className="icon-btn" data-act="back" aria-label="Back"><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></button>}
-    {title ? <h1 className="title">{title}</h1> : <div className="title"></div>}<div className="slot"></div>{/* W13: a titled bar is the screen's heading */}
+    {back && <button className="icon-btn" data-act="back" aria-label={tr('Back')}><img src={`${A}icon-back.svg`} width="24" height="24" alt="" /></button>}
+    {title ? <h1 className="title">{tr(title)}</h1> : <div className="title"></div>}<div className="slot"></div>{/* W13: a titled bar is the screen's heading */}
   </div>);
 export const heading = (h, p, cls = 'h-xl', H = 'h1') => ( // W13: the screen's heading; pass 'h2' under a titled bar
   <div className="inset"><div className="heading"><H className={cls}>{tr(h)}</H>{p ? <p className="lede">{tr(p)}</p> : null}</div></div>); // F15/R12: tr() in the shared helpers
@@ -76,8 +101,9 @@ Object.assign(SCREENS, {
   splash: (act = 'splash-next') => (
     <div className="screen bold" data-act={act}>
       {statusBar(true)}
-      <div className="splash-body"><h1 className="wordmark">Clinica</h1>{/* W13 */}<p style={{ fontSize: 16, lineHeight: '24px' }}>Your clinic, in your pocket.</p></div>
-      <div className="clinic"><p style={{ fontSize: 14, lineHeight: '20px' }}>for</p><p className="h-s">City Hospital</p></div>
+      <div className="splash-body"><h1 className="wordmark">Clinica</h1>{/* W13 */}<p style={{ fontSize: 16, lineHeight: '24px' }}>{tr('Your clinic, in your pocket.')}</p></div>
+      <div className="clinic">{ne() ? <><p className="h-s">सिटी हस्पिटल</p><p style={{ fontSize: 14, lineHeight: '20px' }}>का लागि</p></> /* Phase 8: 'for' follows the name in Nepali */
+        : <><p style={{ fontSize: 14, lineHeight: '20px' }}>for</p><p className="h-s">City Hospital</p></>}</div>
       {homeInd(true)}
     </div>),
 
@@ -89,7 +115,7 @@ Object.assign(SCREENS, {
           <h1 className="h-xl">Choose your language</h1>{/* W13 */}
           <h2 className="h-xl deva" style={{ color: 'var(--text-secondary)' }}>भाषा छान्नुहोस्</h2>
         </div></div>
-        <div className="inset"><div className="tiles" role="radiogroup" aria-label="Language">
+        <div className="inset"><div className="tiles" role="radiogroup" aria-label={tr('Language')}>
           {[['en', 'English', ''], ['ne', 'नेपाली', 'deva']].map(([v, l, c]) => (
             <button key={v} className="tile" role="radio" aria-checked={S.lang === v} data-act="lang" data-v={v}>
               <img className="off" src={`${A}translate-secondary.svg`} width="28" height="28" alt="" />
@@ -97,7 +123,7 @@ Object.assign(SCREENS, {
               <span className={c}>{l}</span>
             </button>))}
         </div></div>
-        <div className="inset"><p className="body-s">You can change this any time in Profile.</p></div>
+        <div className="inset"><p className="body-s">{tr('You can change this any time in Profile.')}</p></div>
       </div>
       <div className="cta">{btn('Continue', 'go:onb1')}</div>
       {homeInd()}
@@ -106,15 +132,15 @@ Object.assign(SCREENS, {
   onb1: () => onboarding(1, "Book with your clinic's own doctors.", 'See who is in today and choose a time that suits you.',
     <div className="card">
       <div className="avatar" aria-hidden="true">SA</div>
-      <div className="doctor"><p className="h-s">Dr. Sameer Acharya</p><p className="spec">General medicine</p><span className="tag">Available today</span></div>
+      <div className="doctor"><p className="h-s">Dr. Sameer Acharya</p><p className="spec">{tr('General medicine')}</p><span className="tag">{tr('Available today')}</span></div>
     </div>),
   onb2: () => onboarding(2, 'Know the moment something changes.', "If your doctor is running late or a visit moves, we'll tell you straight away.",
-    <div className="card info"><div className="text"><p className="h-s">Dr. Acharya is running late</p>
-      <p className="body-s">Your slot is kept, and we'll message you when he's ready.</p></div></div>),
+    <div className="card info"><div className="text"><p className="h-s">{tr('Dr. Acharya is running late')}</p>
+      <p className="body-s">{tr("Your slot is kept, and we'll message you when he's ready.")}</p></div></div>),
   onb3: () => onboarding(3, 'Everything your doctor tells you, in one place.', 'Visits, prescriptions and reports in one place, to read again later.',
     <div className="card">
       <div className="lead-tile"><img src={`${A}icon-prescription.svg`} width="20" height="20" alt="" /></div>
-      <div className="text"><p className="item-title">Prescription from Dr. Acharya</p><p className="body-s">Three times a day, after food</p></div>
+      <div className="text"><p className="item-title">{tr('Prescription from Dr. Acharya')}</p><p className="body-s">{tr('Three times a day, after food')}</p></div>
     </div>),
 
   phone: () => (
@@ -128,7 +154,7 @@ Object.assign(SCREENS, {
           <div className={`field ${S.phoneErr ? 'err' : ''}`} id="tel-field">
             <span className="dial"><span className="flag-np" aria-hidden="true"></span>+977<img src={`${A}icon-chevron-down.svg`} width="20" height="20" alt="" /></span>
             <span className="divider"></span>
-            <input id="tel" type="tel" inputMode="tel" autoComplete="tel-national" placeholder="Phone number" aria-describedby="tel-msg"
+            <input id="tel" type="tel" inputMode="tel" autoComplete="tel-national" placeholder={tr('Phone number')} aria-describedby="tel-msg"
               value={S[telKey()] || ''}
               onChange={e => { S[telKey()] = e.target.value; S.phoneErr = false; paint(); }}
               onKeyDown={e => { if (e.key === 'Enter') sendCode(); }} />
@@ -137,7 +163,8 @@ Object.assign(SCREENS, {
             ? support('Nepali mobile numbers are 10 digits, starting with 9.', 'err')
             : support('Only used to sign you in and send visit updates.')}</div>
         </div></div>
-        {S.codeFor === 'newphone' ? <div style={{ height: 40, flex: 'none' }}></div> : <div className="inset"><p className="consent">By continuing, you agree to the <a href="#" data-act="go:terms">Terms of use</a> and <a href="#" data-act="go:privacy">Privacy policy</a>.</p></div>}
+        {S.codeFor === 'newphone' ? <div style={{ height: 40, flex: 'none' }}></div> : <div className="inset"><p className="consent">{ne() ? <>जारी राख्दा तपाईं <a href="#" data-act="go:terms">{tr('Terms of use')}</a> र <a href="#" data-act="go:privacy">{tr('Privacy policy')}</a> स्वीकार गर्नुहुन्छ।</>
+          : <>By continuing, you agree to the <a href="#" data-act="go:terms">Terms of use</a> and <a href="#" data-act="go:privacy">Privacy policy</a>.</>}</p></div>}
       </div>
       <div className="cta">{btn('Send code', 'send-code')}</div>
       {homeInd()}
@@ -149,9 +176,9 @@ Object.assign(SCREENS, {
       <div key={i} className={`cell ${!err && i === S.code.length ? 'focus' : ''}`}>{S.code[i] || ''}</div>);
     const msg = {
       typing: <div className="body-s" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <p style={{ fontWeight: 600, color: 'var(--text-tertiary)' }} id="resend">Resend code in {mmss(S.resend)}</p>
+                <p style={{ fontWeight: 600, color: 'var(--text-tertiary)' }} id="resend">{ne() ? `${mmss(S.resend)} पछि नयाँ कोड पठाउन सकिन्छ` : `Resend code in ${mmss(S.resend)}`}</p>
                 <p>{tr('Wrong number?')} <a href="#" className="link" data-act="back" style={{ color: 'inherit' }}>{tr('Go back to change it.')}</a></p></div>,
-      wrong: support(`That code didn't match. ${S.tries} ${S.tries === 1 ? 'try' : 'tries'} left.`, 'err', 'icon-error.svg'),
+      wrong: support(ne() ? `कोड मिलेन। अब ${S.tries} पटक प्रयास गर्न बाँकी छ।` : `That code didn't match. ${S.tries} ${S.tries === 1 ? 'try' : 'tries'} left.`, 'err', 'icon-error.svg'),
       noarrive: support("Didn't get it? Check the number above is right, then send a new one.", '', 'icon-info.svg'),
       expired: support('That code has expired. Send a new one and enter it as soon as it arrives.', 'err', 'icon-error.svg'),
     }[st];
@@ -160,11 +187,11 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar()}
       <div className="body">
-        {heading('Enter the code', `Sent by SMS to ${masked()}.`)}
+        {heading('Enter the code', ne() ? `${masked()} मा SMS बाट पठाइयो।` : `Sent by SMS to ${masked()}.`)}
         <div className="inset"><div className="code-wrap">
           <div className={`code ${err ? 'err' : ''}`} id="code">{cells}
             <input className="cell-input" id="code-in" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-              aria-label="6-digit code" aria-describedby="code-msg" aria-invalid={err || undefined} value={S.code} onChange={e => {
+              aria-label={tr('6-digit code')} aria-describedby="code-msg" aria-invalid={err || undefined} value={S.code} onChange={e => {
                 S.code = digits(e.target.value).slice(0, 6); // paste and SMS autofill fill all six at once
                 if (S.codeState !== 'typing' && S.codeState !== 'noarrive') { S.codeState = 'typing'; return render(); }
                 paint();
@@ -185,7 +212,7 @@ Object.assign(SCREENS, {
       {statusBar()}{appBar()}
       <div className="body">
         {heading('Too many tries', 'For your safety, sign-in is paused for this number. Wait, or ask reception to help you sign in.')}
-        <div className="inset">{support(<>You can try again in <span id="lock">{mmss(S.lock)}</span>.</>, 'warn', 'icon-warning-info.svg')}</div>
+        <div className="inset">{support(ne() ? <><span id="lock">{mmss(S.lock)}</span> पछि फेरि प्रयास गर्न सक्नुहुन्छ।</> : <>You can try again in <span id="lock">{mmss(S.lock)}</span>.</>, 'warn', 'icon-warning-info.svg')}</div>
         <div className="inset"><a className="btn secondary" href="tel:+97710000000">{tr('Call the clinic')}</a></div>
       </div>
       {homeInd()}
@@ -195,19 +222,20 @@ Object.assign(SCREENS, {
     <div className="screen">
       {statusBar()}{appBar({ back: false })}
       <div className="body g20">
-        {heading("Who's using the app?", `City Hospital has ${family().length} records for this number, because many families share a phone. Choose yours.`)}
+        {heading("Who's using the app?", ne() ? `धेरै परिवारले एउटै फोन चलाउने भएकाले यो नम्बरमा सिटी हस्पिटलसँग ${family().length} जनाको रेकर्ड छ। आफ्नो छान्नुहोस्।`
+          : `City Hospital has ${family().length} records for this number, because many families share a phone. Choose yours.`)}
         <div className="list">
-          {sepJoin([...family().map(r => listItem('icon-person.svg', r.name, `Born ${r.born}`, `pick:${r.name}`)),
+          {sepJoin([...family().map(r => listItem('icon-person.svg', r.name, ne() ? `जन्म ${nd(r.born)}` : `Born ${r.born}`, `pick:${r.name}`)),
             listItem('icon-add.svg', 'Someone else', 'Create a new profile', 'go:profile')])}
         </div>
-        <div className="inset"><p className="body-s tertiary">Anyone who signs in with this number will be asked this, so each person only sees their own record.</p></div>
+        <div className="inset"><p className="body-s tertiary">{tr('Anyone who signs in with this number will be asked this, so each person only sees their own record.')}</p></div>
       </div>
       {homeInd()}
     </div>),
 
   profile: () => {
     const p = parseDob(S.dob), bs = p && toBS(p.y, p.m, p.d);
-    const dobMsg = S.dobErr ? support(S.dobErr, 'err') : support(bs ? bsText(bs) : 'AD or BS — choose in the date picker.');
+    const dobMsg = S.dobErr ? support(dobText(S.dobErr), 'err') : support(bs ? tr(bsText(bs)) : 'AD or BS — choose in the date picker.');
     return (
     <div className="screen">
       {statusBar()}{appBar()}
@@ -223,8 +251,8 @@ Object.assign(SCREENS, {
           <div className="field-wrap">
             <label className="label" htmlFor="dob">{tr('Date of birth')}</label>
             <div className={`field ${S.dobErr ? 'err' : ''}`}>
-              <button type="button" className="cal-btn" data-act="open-picker" aria-label="Choose date of birth"><img src={`${A}icon-calendar.svg`} width="20" height="20" alt="" /></button>
-              <input id="dob" inputMode="numeric" autoComplete="bday" placeholder="DD / MM / YYYY" value={S.dob}
+              <button type="button" className="cal-btn" data-act="open-picker" aria-label={tr('Choose date of birth')}><img src={`${A}icon-calendar.svg`} width="20" height="20" alt="" /></button>
+              <input id="dob" inputMode="numeric" autoComplete="bday" placeholder={tr('DD / MM / YYYY')} value={S.dob}
                 onClick={() => { if (!S.dob) openPicker(); }} // F26: tapping the empty field opens the picker; a typed date stays editable
                 onChange={e => { S.dob = maskDob(e.target.value); S.dobErr = ''; paint(); }}
                 onBlur={() => { if (S.dob.length === 14) { S.dobErr = dobError(); S.dobErr ? render() : paint(); } }} />
@@ -258,8 +286,8 @@ Object.assign(SCREENS, {
       {statusBar()}{appBar()}
       <div className="body g20">
         {heading('We may already know you', 'City Hospital has a record close to the details you entered, but not an exact match. To keep your health records together and correct, reception will check it with you.')}
-        <div className="inset"><div className="card info"><div className="text"><p className="h-s">What happens next</p>
-          <p className="body-s">Bring your ID to your next visit. You can book now; your health records will show in the app once reception confirms.</p></div></div></div>
+        <div className="inset"><div className="card info"><div className="text"><p className="h-s">{tr('What happens next')}</p>
+          <p className="body-s">{tr('Bring your ID to your next visit. You can book now; your health records will show in the app once reception confirms.')}</p></div></div></div>
       </div>
       <div className="cta">{btn('Continue', 'go:waiting')}{btn('Check my details', 'back', { kind: 'secondary' })}</div>
       {homeInd()}
@@ -273,9 +301,9 @@ Object.assign(SCREENS, {
           btn('Book a visit', 'end:book', { size: 'l' }))}
       </div>
       <div className="bottom">
-        <nav className="bnav" aria-label="Main">
+        <nav className="bnav" aria-label={tr('Main')}>
           {[['Home', 'nav-home'], ['Care', 'nav-care'], ['Health', 'nav-health-active'], ['Ask', 'nav-ask'], ['Profile', 'nav-profile']].map(([l, i]) =>
-            <a key={l} href="#" aria-current={l === 'Health' ? 'page' : undefined} data-act="end:tab"><span><img src={`${A}${i}.svg`} width="24" height="24" alt="" /></span>{l}</a>)}
+            <a key={l} href="#" aria-current={l === 'Health' ? 'page' : undefined} data-act="end:tab"><span><img src={`${A}${i}.svg`} width="24" height="24" alt="" /></span>{tr(l)}</a>)}
         </nav>
         {homeInd()}
       </div>
@@ -288,7 +316,7 @@ Object.assign(SCREENS, {
       {statusBar()}
       <div className="body" style={{ justifyContent: 'center', padding: '0 16px 16px' }}>
         {empty('icon-lock.svg', 'Please sign in again', "For your security, you're signed out after a long time away. Your health records are safe.",
-          <>{btn(`Send a code to ${masked()}`, 'session-code', { size: 'l' })}{btn('Use a different number', 'session-other', { kind: 'secondary', size: 'l' })}</>, false, 'h1')}
+          <>{btn(ne() ? `${masked()} मा कोड पठाउनुहोस्` : `Send a code to ${masked()}`, 'session-code', { size: 'l' })}{btn('Use a different number', 'session-other', { kind: 'secondary', size: 'l' })}</>, false, 'h1')}
       </div>
       {homeInd()}
     </div>),
@@ -300,14 +328,7 @@ Object.assign(SCREENS, {
       ['Your records', "What the app shows comes from City Hospital. If something looks wrong, ask at reception — the clinic's record counts."],
       ['Changes', "If these terms change, we'll tell you in the app before the change takes effect."],
     ]),
-  privacy: () => legal('Privacy policy',
-    "We use your details only to run your care at City Hospital. Your care team sees your health records; they're never sold or used for ads. You can see, correct or close your account at any time.", [
-      ['What we collect', 'Your name, date of birth, sex and mobile number, your appointments, and the records City Hospital releases to you: visit notes, prescriptions and reports.'],
-      ['Who can see it', 'You, and the City Hospital staff caring for you. On a shared phone, your Clinica PIN keeps your records private from others who use it.'],
-      ['How long we keep it', "City Hospital keeps medical records for as long as Nepal's law requires, even if you close your app account."],
-      ['Your choices', 'See your details in Profile. Ask reception to correct them. Close your account from Profile at any time.'],
-      ['Questions', 'Ask at reception, or call City Hospital.'],
-    ]),
+  privacy: () => legal('Privacy policy', PRIVACY[0], PRIVACY[1], SAMPLE), // Phase 8 (T26): a complete sample policy, marked as a sample
 
   // Home and the rest of the app live in other Figma sections — this marks where this flow ends.
   end: () => (
@@ -325,9 +346,9 @@ export function onboarding(step, title, body, card) {
     <div className="screen subtle">
       {statusBar()}
       <div className="body hero-body">
-        <div className="inset"><div className="heading"><h1 className="h-display">{title}</h1>{/* W13 */}<p className="lede">{body}</p></div></div>
-        <div className="hero-inset"><div className="hero"><img src={`${A}hero.png`} alt="A doctor in a white coat with a stethoscope" />{card}</div></div>
-        <div className="dots" role="img" /* A4 */ aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(i => <i key={i} className={i === step ? 'on' : ''}></i>)}</div>
+        <div className="inset"><div className="heading"><h1 className="h-display">{tr(title)}</h1>{/* W13 */}<p className="lede">{tr(body)}</p></div></div>
+        <div className="hero-inset"><div className="hero"><img src={`${A}hero.png`} alt={tr('A doctor in a white coat with a stethoscope')} />{card}</div></div>
+        <div className="dots" role="img" /* A4 */ aria-label={ne() ? `3 मध्ये चरण ${step}` : `Step ${step} of 3`}>{[1, 2, 3].map(i => <i key={i} className={i === step ? 'on' : ''}></i>)}</div>
       </div>
       <div className="cta row">{step < 3 ? <>{btn('Skip', 'go:phone', { kind: 'secondary' })}{btn('Next', `go:onb${step + 1}`)}</> : btn('Get started', 'go:phone')}</div>
       {homeInd()}
@@ -350,14 +371,73 @@ export function empty(icon, title, body, actions, action = false, H = 'p') { // 
   </div>;
 }
 
-export function legal(title, short, sections) {
+// Phase 8 (T26): a complete, plain-language sample privacy policy. A section's text is one paragraph or a list of them.
+const SAMPLE = ['Sample policy', "Sample policy for this prototype, not legal advice; to be reviewed by the hospital's legal team before release."];
+const PRIVACY = ["City Hospital uses your details to run your care and this app. Your care team sees your health records. We never sell them or use them for ads. You can see your details, ask us to correct them, and close your account.", [
+  ['What we collect', ['Your name, date of birth, sex and mobile number.',
+    'Your appointments, the reasons you give for them, and fees you pay in the app.',
+    'The records City Hospital releases to you: visit notes, prescriptions and lab reports. Medicines you add yourself, and questions you save for your doctor.',
+    "If you speak to Ask, we use the recording only to turn it into text, and don't keep it. We don't collect your location, contacts or photos."]],
+  ['Why we use it', ['To find your hospital record, book your visits and remind you of them, show you what your doctor tells you, and reach you about your care.',
+    'To keep the app safe and working. Never for advertising, and we never sell your details.']],
+  ['Who sees it', ['You, and the City Hospital staff caring for you — doctors, nurses, reception and the lab — each seeing what their job needs.',
+    "On a phone the family shares, each person has their own profile and Clinica PIN, so nobody opens someone else's records by accident. If you manage a family member's profile, such as a parent's, you can see their records.",
+    'We share your details outside the hospital only when the law requires it, or with the SMS and payment services below, which get only what they need.']],
+  ['Your Health PIN', ["Your Clinica PIN locks your health records on this phone. Choose one only you know, not your phone's PIN. We store it encrypted, so no one at the hospital can read it.",
+    'If you forget it, reset it with a code sent by SMS, or at reception with your ID. If you turn on fingerprint, anyone whose fingerprint is saved on this phone could open your records.']],
+  ['Text messages (SMS)', ['We send sign-in codes, visit confirmations, reminders, delays and cancellations by SMS. They never include test results or what your doctor found, but anyone who reads your messages could see when and where your visit is.',
+    'We never send marketing.']],
+  ['Paying with a wallet', ['If you pay in the app, eSewa, Khalti or Fonepay handles the payment under its own privacy policy. We receive only the amount, the time and a receipt number — never your wallet PIN or password.']],
+  ['How long we keep it', ["City Hospital keeps your medical records for as long as Nepal's law requires, even if you close your app account.",
+    'When you close your account, we delete your sign-in, PIN, settings and saved questions. Records of the SMS we sent are kept for up to 1 year, to sort out delivery problems.']],
+  ['Your rights', ['See: your details and records are in the app, and reception can give you a full copy.',
+    "Correct: if something is wrong, ask at reception. The clinic's record is the one that counts.",
+    'Delete: Profile › Close account deletes your app account, sign-in and PIN. The hospital still keeps your medical records, as the law requires.']],
+  ['Contact', ["Ask at reception, call City Hospital on +977 1-4412345, or write to the hospital's privacy officer at City Hospital, Maharajgunj, Kathmandu. We'll reply within 15 days."]],
+  ['Changes', ["If we change this policy, we'll tell you in the app before the change takes effect. This version: Aug 28, 2026."]],
+]];
+// Phase 8: the legal pages in Nepali. The sample policy is translated like the rest; legal review covers both languages.
+Object.assign(NE, {
+  'Sample policy': 'नमुना नीति', [SAMPLE[1]]: 'यो प्रोटोटाइपका लागि बनाइएको नमुना नीति हो, कानुनी सल्लाह होइन। सार्वजनिक गर्नुअघि अस्पतालको कानुनी टोलीले यसलाई जाँच्नेछ।',
+  'Draft wording': 'मस्यौदा', "City Hospital's legal team will replace this wording before launch.": 'सुरु गर्नुअघि सिटी हस्पिटलको कानुनी टोलीले यो लेखाइ बदल्नेछ।', 'In short': 'छोटकरीमा',
+  [PRIVACY[0]]: 'सिटी हस्पिटलले तपाईंको विवरण तपाईंको उपचार र यो एप चलाउन प्रयोग गर्छ। तपाईंको उपचार टोलीले तपाईंका स्वास्थ्य रेकर्ड हेर्छ। हामी तिनलाई कहिल्यै बेच्दैनौं वा विज्ञापनमा प्रयोग गर्दैनौं। तपाईं आफ्नो विवरण हेर्न, सच्याउन लगाउन र खाता बन्द गर्न सक्नुहुन्छ।',
+  'What we collect': 'हामी के सङ्कलन गर्छौं', 'Your name, date of birth, sex and mobile number.': 'तपाईंको नाम, जन्म मिति, लिङ्ग र मोबाइल नम्बर।',
+  'Your appointments, the reasons you give for them, and fees you pay in the app.': 'तपाईंका अपोइन्टमेन्ट, तिनका लागि तपाईंले दिएका कारण, र एपमा तिरेका शुल्क।',
+  'The records City Hospital releases to you: visit notes, prescriptions and lab reports. Medicines you add yourself, and questions you save for your doctor.': 'सिटी हस्पिटलले तपाईंलाई दिएका रेकर्ड: भेटका टिप्पणी, प्रेस्क्रिप्सन र ल्याब रिपोर्ट। तपाईं आफैंले थपेका औषधि, र डाक्टरलाई सोध्न सेभ गरेका प्रश्न।',
+  "If you speak to Ask, we use the recording only to turn it into text, and don't keep it. We don't collect your location, contacts or photos.": 'तपाईंले बोलेर सोध्नुभयो भने, हामी त्यो रेकर्डिङ लेखाइमा बदल्न मात्र प्रयोग गर्छौं, राख्दैनौं। हामी तपाईंको स्थान, सम्पर्क वा फोटो सङ्कलन गर्दैनौं।',
+  'Why we use it': 'किन प्रयोग गर्छौं', 'To find your hospital record, book your visits and remind you of them, show you what your doctor tells you, and reach you about your care.': 'अस्पतालमा तपाईंको रेकर्ड खोज्न, भेट बुक गर्न र सम्झाउन, डाक्टरले भनेको कुरा देखाउन, र तपाईंको उपचारबारे सम्पर्क गर्न।',
+  'To keep the app safe and working. Never for advertising, and we never sell your details.': 'एपलाई सुरक्षित र चालु राख्न। विज्ञापनका लागि कहिल्यै होइन, र हामी तपाईंको विवरण कहिल्यै बेच्दैनौं।',
+  'Who sees it': 'कसले हेर्छ', 'You, and the City Hospital staff caring for you — doctors, nurses, reception and the lab — each seeing what their job needs.': 'तपाईं, र तपाईंको उपचार गर्ने सिटी हस्पिटलका कर्मचारी — डाक्टर, नर्स, रिसेप्सन र ल्याब — हरेकले आफ्नो कामका लागि चाहिने जति मात्र।',
+  "On a phone the family shares, each person has their own profile and Clinica PIN, so nobody opens someone else's records by accident. If you manage a family member's profile, such as a parent's, you can see their records.": 'परिवारले साझा गर्ने फोनमा हरेक व्यक्तिको आफ्नै प्रोफाइल र Clinica PIN हुन्छ, ताकि कसैले अर्काको रेकर्ड गल्तीले नखोलोस्। तपाईंले परिवारको कुनै सदस्यको, जस्तै आमाबुबाको, प्रोफाइल चलाउनुहुन्छ भने उहाँका रेकर्ड हेर्न सक्नुहुन्छ।',
+  'We share your details outside the hospital only when the law requires it, or with the SMS and payment services below, which get only what they need.': 'कानुनले माग्दा, वा तल उल्लेख गरिएका SMS र भुक्तानी सेवालाई, उनीहरूलाई चाहिने जति मात्र — यति बाहेक हामी तपाईंको विवरण अस्पताल बाहिर दिँदैनौं।',
+  'Your Health PIN': 'तपाईंको स्वास्थ्य PIN', "Your Clinica PIN locks your health records on this phone. Choose one only you know, not your phone's PIN. We store it encrypted, so no one at the hospital can read it.": 'तपाईंको Clinica PIN ले यो फोनमा तपाईंका स्वास्थ्य रेकर्ड लक गर्छ। तपाईंलाई मात्र थाहा हुने PIN छान्नुहोस्, फोनकै PIN होइन। हामी यसलाई इन्क्रिप्ट गरेर राख्छौं, त्यसैले अस्पतालका कसैले पनि पढ्न सक्दैनन्।',
+  'If you forget it, reset it with a code sent by SMS, or at reception with your ID. If you turn on fingerprint, anyone whose fingerprint is saved on this phone could open your records.': 'बिर्सनुभयो भने SMS मा पठाइएको कोडबाट, वा परिचयपत्र लिएर रिसेप्सनमा रिसेट गर्नुहोस्। औंठाछाप खोल्नुभयो भने, यो फोनमा औंठाछाप सेभ भएका जो कोहीले तपाईंका रेकर्ड खोल्न सक्छन्।',
+  'Text messages (SMS)': 'SMS सन्देश', 'We send sign-in codes, visit confirmations, reminders, delays and cancellations by SMS. They never include test results or what your doctor found, but anyone who reads your messages could see when and where your visit is.': 'हामी साइन इन कोड, भेटको पुष्टि, सम्झना, ढिलाइ र रद्दको खबर SMS बाट पठाउँछौं। तिनमा जाँचको नतिजा वा डाक्टरले भेटेको कुरा कहिल्यै हुँदैन, तर तपाईंका सन्देश पढ्ने जो कोहीले तपाईंको भेट कहिले र कहाँ छ भनेर देख्न सक्छन्।',
+  'We never send marketing.': 'हामी कहिल्यै विज्ञापन पठाउँदैनौं।', 'Paying with a wallet': 'वालेटबाट भुक्तानी',
+  'If you pay in the app, eSewa, Khalti or Fonepay handles the payment under its own privacy policy. We receive only the amount, the time and a receipt number — never your wallet PIN or password.': 'एपमा तिर्नुभयो भने, भुक्तानी eSewa, Khalti वा Fonepay ले आफ्नै गोपनीयता नीतिअनुसार गर्छ। हामीले रकम, समय र रसिद नम्बर मात्र पाउँछौं — तपाईंको वालेटको PIN वा पासवर्ड कहिल्यै होइन।',
+  'How long we keep it': 'कति समय राख्छौं', "City Hospital keeps your medical records for as long as Nepal's law requires, even if you close your app account.": 'एपको खाता बन्द गरे पनि, सिटी हस्पिटलले तपाईंका मेडिकल रेकर्ड नेपालको कानुनले तोकेसम्म राख्छ।',
+  'When you close your account, we delete your sign-in, PIN, settings and saved questions. Records of the SMS we sent are kept for up to 1 year, to sort out delivery problems.': 'खाता बन्द गर्दा हामी तपाईंको साइन इन, PIN, सेटिङ र सेभ गरेका प्रश्न मेटाउँछौं। पठाइएका SMS को अभिलेख, पुगेन भने समस्या मिलाउन, बढीमा 1 वर्ष राखिन्छ।',
+  'Your rights': 'तपाईंका अधिकार', 'See: your details and records are in the app, and reception can give you a full copy.': 'हेर्ने: तपाईंको विवरण र रेकर्ड एपमै छन्, र रिसेप्सनले पूरा प्रतिलिपि दिन सक्छ।',
+  "Correct: if something is wrong, ask at reception. The clinic's record is the one that counts.": 'सच्याउने: केही गलत छ भने रिसेप्सनमा सोध्नुहोस्। क्लिनिकको रेकर्ड नै मान्य हुन्छ।',
+  'Delete: Profile › Close account deletes your app account, sign-in and PIN. The hospital still keeps your medical records, as the law requires.': 'मेटाउने: प्रोफाइल › खाता बन्द गर्नुहोस् ले तपाईंको एप खाता, साइन इन र PIN मेटाउँछ। कानुनले तोकेअनुसार अस्पतालले भने तपाईंका मेडिकल रेकर्ड राखिरहन्छ।',
+  "Ask at reception, call City Hospital on +977 1-4412345, or write to the hospital's privacy officer at City Hospital, Maharajgunj, Kathmandu. We'll reply within 15 days.": 'रिसेप्सनमा सोध्नुहोस्, सिटी हस्पिटललाई +977 1-4412345 मा फोन गर्नुहोस्, वा सिटी हस्पिटल, महाराजगञ्ज, काठमाडौंका गोपनीयता अधिकृतलाई लेख्नुहोस्। हामी 15 दिनभित्र जवाफ दिन्छौं।',
+  "If we change this policy, we'll tell you in the app before the change takes effect. This version: Aug 28, 2026.": 'यो नीति बदलियो भने, लागू हुनुअघि नै हामी एपमा जानकारी दिन्छौं। यो संस्करण: अगस्ट 28, 2026।',
+  // The terms of use (still draft wording)
+  "Clinica helps you book visits and follow your care at City Hospital. It isn't for emergencies — call 102. Keep your Clinica PIN to yourself. The clinic's records are the official ones.": 'Clinica ले सिटी हस्पिटलमा भेट बुक गर्न र आफ्नो उपचारको जानकारी राख्न मद्दत गर्छ। यो आपतकालका लागि होइन — 102 मा फोन गर्नुहोस्। आफ्नो Clinica PIN कसैलाई नदिनुहोस्। क्लिनिकको रेकर्ड नै आधिकारिक हो।',
+  'Using Clinica': 'Clinica प्रयोग गर्दा', "Use the app for your own care, or for someone you're allowed to book for. Don't share your sign-in code or your Clinica PIN.": 'एप आफ्नै उपचारका लागि, वा तपाईंलाई बुक गर्ने अनुमति भएको व्यक्तिका लागि प्रयोग गर्नुहोस्। आफ्नो साइन इन कोड वा Clinica PIN कसैलाई नदिनुहोस्।',
+  'Not for emergencies': 'आपतकालका लागि होइन', "Clinica can't check symptoms or reach a doctor in a hurry. In an emergency, call 102 or go to the nearest emergency department.": 'Clinica ले लक्षण जाँच्न वा हतारमा डाक्टरलाई बोलाउन सक्दैन। आपतकालमा 102 मा फोन गर्नुहोस् वा नजिकको आपतकालीन विभाग जानुहोस्।',
+  'Your records': 'तपाईंका रेकर्ड', "What the app shows comes from City Hospital. If something looks wrong, ask at reception — the clinic's record counts.": 'एपमा देखिने कुरा सिटी हस्पिटलबाट आउँछ। केही गलत देखिए रिसेप्सनमा सोध्नुहोस् — क्लिनिकको रेकर्ड नै मान्य हुन्छ।',
+  Changes: 'परिवर्तन', "If these terms change, we'll tell you in the app before the change takes effect.": 'यी सर्त बदलिए भने, लागू हुनुअघि नै हामी एपमा जानकारी दिन्छौं।',
+});
+
+export function legal(title, short, sections, [warnT, warnB] = ['Draft wording', "City Hospital's legal team will replace this wording before launch."]) {
   return (
     <div className="screen legal">
-      {statusBar()}{appBar({ title })}
+      {statusBar()}{appBar({ title: tr(title) })}
       <div className="body g20" style={{ paddingBottom: 24 }}>
-        <div className="inset"><div className="card warn"><div className="text"><p className="h-s">Draft wording</p><p className="body-s">City Hospital's legal team will replace this wording before launch.</p></div></div></div>
-        <div className="inset"><div className="card neutral"><div className="text"><p className="h-s">In short</p><p className="body-s">{short}</p></div></div></div>
-        {sections.map(([h, p]) => <div key={h} className="inset"><div className="section"><h3 className="h-s">{h}</h3><p className="lede">{p}</p></div></div>)}
+        <div className="inset"><div className="card warn"><div className="text"><p className="h-s">{tr(warnT)}</p><p className="body-s">{tr(warnB)}</p></div></div></div>
+        <div className="inset"><div className="card neutral"><div className="text"><p className="h-s">{tr('In short')}</p><p className="body-s">{tr(short)}</p></div></div></div>
+        {sections.map(([h, p]) => <div key={h} className="inset"><div className="section"><h3 className="h-s">{tr(h)}</h3>{[].concat(p).map(x => <p key={x} className="lede">{tr(x)}</p>)}</div></div>)}
       </div>
       {homeInd()}
     </div>);
@@ -395,24 +475,24 @@ export function DobSheet() {
   pk.d = Math.min(pk.d, r.days);
   useEffect(() => { document.getElementById('w-y')?.focus(); }, []); // R25: a date of birth starts at the year
   let conv;
-  if (pk.cal === 'AD') { const b = toBS(pk.y, pk.m, pk.d); conv = b ? `That's ${bsText(b)}.` : 'No BS conversion before 2000 BS (1943 AD).'; }
-  else { const a = toAD(pk.y, pk.m, pk.d); conv = a ? `That's ${a.date} ${AD_LONG[a.month]} ${a.year} AD.` : ''; }
+  if (pk.cal === 'AD') { const b = toBS(pk.y, pk.m, pk.d); conv = b ? (ne() ? `यो ${nd(bsText(b))} हो।` : `That's ${bsText(b)}.`) : ne() ? 'वि.सं. 2000 (ई.सं. 1943) भन्दा अघिको मिति वि.सं. मा बदल्न सकिँदैन।' : 'No BS conversion before 2000 BS (1943 AD).'; }
+  else { const a = toAD(pk.y, pk.m, pk.d), t = a && `${a.date} ${AD_LONG[a.month]} ${a.year} AD`; conv = a ? (ne() ? `यो ${nd(t)} हो।` : `That's ${t}.`) : ''; }
   return (
     <div id="sheet">
       <div className="scrim" data-act="close-picker"></div>
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
         <div className="grabber"></div>
-        <p className="h-s" id="sheet-title">{pk.title || 'Date of birth'}</p>
-        <div className="segmented" role="group" aria-label="Calendar">
-          <button className="seg" aria-pressed={pk.cal === 'AD'} data-act="cal:AD">AD</button>
-          <button className="seg" aria-pressed={pk.cal === 'BS'} data-act="cal:BS">BS</button>
+        <p className="h-s" id="sheet-title">{tr(pk.title || 'Date of birth')}</p>
+        <div className="segmented" role="group" aria-label={tr('Calendar')}>
+          <button className="seg" aria-pressed={pk.cal === 'AD'} data-act="cal:AD">{tr('AD')}</button>
+          <button className="seg" aria-pressed={pk.cal === 'BS'} data-act="cal:BS">{tr('BS')}</button>
         </div>
         <div className="wheels">
           <div className="band"></div>
           {/* A wheel rebuilds when its list changes: a new calendar, or a month with a different number of days. */}
           {/* R25: Year first, then Month and Day */}
           <Wheel key={`y${pk.cal}`} id="w-y" label="Year" items={r.years} idx={r.years.indexOf(pk.y)} onPick={i => { pk.y = r.years[i]; paint(); }} />
-          <Wheel key={`m${pk.cal}`} id="w-m" label="Month" items={r.months} idx={pk.m} onPick={i => { pk.m = i; paint(); }} />
+          <Wheel key={`m${pk.cal}`} id="w-m" label="Month" items={r.months.map(tr)} idx={pk.m} onPick={i => { pk.m = i; paint(); }} />
           <Wheel key={`d${pk.cal}${r.days}`} id="w-d" label="Day" items={range(1, r.days)} idx={pk.d - 1} onPick={i => { pk.d = i + 1; paint(); }} />
         </div>
         <div className="conversion" id="conv" aria-live="polite">{conv}</div>
@@ -429,8 +509,8 @@ export function Wheel({ id, label, items, idx, onPick }) {
   useLayoutEffect(() => { ul.current.scrollTop = idx * 44; }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => clearTimeout(t.current), []);
   return (
-    <div className="wheel"><span className="wl">{label}</span>
-      <ul id={id} ref={ul} tabIndex={0} role="listbox" aria-label={label}
+    <div className="wheel"><span className="wl">{tr(label)}</span>
+      <ul id={id} ref={ul} tabIndex={0} role="listbox" aria-label={tr(label)}
         onScroll={() => { setCur(at()); clearTimeout(t.current); t.current = setTimeout(() => onPick(at()), 100); }}
         onClick={e => { const i = [...ul.current.children].indexOf(e.target.closest('li')); if (i >= 0) ul.current.scrollTo({ top: i * 44, behavior: 'smooth' }); }}
         onKeyDown={e => { const k = { ArrowDown: 1, ArrowUp: -1 }[e.key]; if (k) { e.preventDefault(); ul.current.scrollTo({ top: (at() + k) * 44 }); } }}>
@@ -461,6 +541,8 @@ export function pickerDone() {
 }
 
 // ---------- validation ----------
+// Phase 8: S.dobErr stays English (currentN() reads it); the patient sees it in Nepali.
+const dobText = e => { const y = ne() && /^(\d+) is in the future in AD/.exec(e); return y ? `ई.सं. मा ${y[1]} भविष्यको वर्ष हो। यो तपाईंको वि.सं. वर्ष हो भने मिति छान्ने ठाउँमा वि.सं. रोज्नुहोस्।` : e; };
 export function dobError() {
   if (!S.dob) return 'Enter your date of birth.';
   const p = parseDob(S.dob);
@@ -594,7 +676,7 @@ FLOW.push(
   ]],
   ['Legal', [
     ['24', 'Terms of use', 'From 06 — the consent line', "Opens from the consent line on Phone number. 'In short' first — the few things a patient needs — then the detail. Draft wording, marked as such, for City Hospital's legal team to replace.", () => ({ screen: 'terms', stack: ['phone'] })],
-    ['25', 'Privacy policy', 'From 06 — the consent line', "The same shape. 'In short' says who sees the records, that they're never sold or used for ads, and that the patient can see, correct or close their account. Retention is 'as the law requires' — the clinic's lawyers set the real terms.", () => ({ screen: 'privacy', stack: ['phone'] })],
+    ['25', 'Privacy policy', 'From 06 — the consent line', "The same shape, with a complete sample policy: what's collected and why, who sees it (care team, family profiles on a shared number), the Health PIN, SMS, wallet payments, retention, rights (see, correct, delete via Close account), contact and changes. Marked as a sample for the hospital's legal team to review.", () => ({ screen: 'privacy', stack: ['phone'] })], // Phase 8
   ]],
 );
 export let ALL = [];
@@ -741,8 +823,8 @@ export function Phone() {
       {screen}
       {S.picker && <DobSheet />}
       {/* F24/R20/T11/W07/V09: one live region for success toasts (core.jsx toast()), always present so it's announced */}
-      <div className="toast-region" role="status">{S.toast ? <div className="toast"><p>{S.toast.msg}</p>
-        {S.toast.action ? <button className="toast-act" data-act={S.toast.action[1]}>{S.toast.action[0]}</button> : null}</div> : null}</div>
+      <div className="toast-region" role="status">{S.toast ? <div className="toast"><p>{tr(S.toast.msg)}</p>{/* Phase 8: toasts in Nepali */}
+        {S.toast.action ? <button className="toast-act" data-act={S.toast.action[1]}>{tr(S.toast.action[0])}</button> : null}</div> : null}</div>
     </div>);
 }
 

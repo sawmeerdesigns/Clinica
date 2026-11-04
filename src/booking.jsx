@@ -3,13 +3,35 @@
 import { btn, empty, endScreen, family, heading, homeInd, listItem, masked, onboarding, pad, start, statusBar, support, toHome } from './app.jsx';
 import { T, acts, answer, ask, src } from './ask.jsx';
 import { CAL_NOTE, calBtn, inCal, notice, unread } from './care.jsx';
-import { $phone, A, ACTIONS, FLOW, NUM, S, SCREENS, after, back, go, mount, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
+import { $phone, A, ACTIONS, FLOW, NE, NUM, S, SCREENS, after, back, go, mount, nd, ne, paint, render, sepJoin, shownAt, toast, tr } from './core.jsx';
 import { chev, field, lbl, lead, list } from './health.jsx';
 import { openSys } from './more.jsx';
 import { img, now, patients, person } from './staff.jsx';
 import { DAY_TIMES, DOCTORS, FEE, GM, TODAY, WALLETS, week } from './data.js';
 
 // F15/R12: tr() and the Nepali strings now live in core.jsx, shared by the whole patient app.
+// Phase 8: Nepali for this module's own lines
+Object.assign(NE, {
+  Back: 'पछाडि', Close: 'बन्द गर्नुहोस्', Main: 'मुख्य', 'Your profile': 'तपाईंको प्रोफाइल', 'City Hospital': 'सिटी हस्पिटल', Time: 'समय', Clear: 'हटाउनुहोस्',
+  'Filter doctors': 'डाक्टर फिल्टर गर्नुहोस्', 'Save doctor': 'डाक्टर सेभ गर्नुहोस्', 'Remove from saved': 'सेभबाट हटाउनुहोस्', 'Clear search': 'खोज हटाउनुहोस्',
+  'Clear filters': 'फिल्टर हटाउनुहोस्', doctor: 'डाक्टर', tablets: 'ट्याब्लेट', 'View history': 'इतिहास हेर्नुहोस्', Loading: 'लोड हुँदैछ',
+  'Taking longer than usual': 'सामान्यभन्दा बढी समय लाग्दैछ', "Check your connection. We'll keep trying.": 'इन्टरनेट जडान जाँच्नुहोस्। हामी प्रयास गरिरहन्छौं।',
+  'Helps your doctor prepare. Only the clinic sees this.': 'यसले डाक्टरलाई तयारी गर्न मद्दत गर्छ। यो क्लिनिकले मात्र देख्छ।',
+  "Saved. You won't need to type this again.": 'सेभ भयो। फेरि लेख्नु पर्दैन।',
+  'Your notes will be in Health after your visit.': 'भेटपछि डाक्टरको टिप्पणी स्वास्थ्यमा आउनेछ।', "Book again when you're ready.": 'तयार हुँदा फेरि बुक गर्नुहोस्।',
+  'Next slot tomorrow': 'अर्को समय भोलि', 'No openings this week': 'यो हप्ता समय खाली छैन', 'No times left today': 'आज समय बाँकी छैन',
+  'There are no openings this week. Call the clinic to ask about the next one.': 'यो हप्ता कुनै समय खाली छैन। अर्को कहिले खुल्छ, क्लिनिकमा फोन गरेर सोध्नुहोस्।',
+  "If your doctor is running late, we'll message you. We won't guess a wait time.": 'डाक्टर ढिला हुनुभयो भने हामी तपाईंलाई खबर गर्छौं। पर्खने समयको अनुमान गर्दैनौं।',
+  'Someone else booked it while you were confirming. Everything you entered is saved.': 'तपाईंले पुष्टि गर्दै गर्दा अरू कसैले यो समय बुक गर्नुभयो। तपाईंले लेखेका सबै कुरा सेभ छन्।',
+  "Couldn't send your booking": 'बुकिङ पठाउन सकिएन', "We couldn't confirm your booking": 'बुकिङ पुष्टि गर्न सकिएन',
+  "Nothing has been booked: you're not connected. Your details are saved, so just try again when you're online.": 'केही बुक भएको छैन: तपाईं इन्टरनेटमा जोडिनुभएको छैन। तपाईंको विवरण सेभ छ, अनलाइन भएपछि फेरि प्रयास गर्नुहोस्।',
+  "It may have gone through. Trying again is safe: if it did, you'll still be booked only once.": 'बुकिङ भइसकेको हुन सक्छ। फेरि प्रयास गर्दा केही बिग्रँदैन: भइसकेको भए पनि एक पटक मात्र बुक हुन्छ।',
+  "You're booked once": 'तपाईं एक पटक मात्र बुक हुनुभयो', "Trying again didn't make a second booking.": 'फेरि प्रयास गर्दा दोस्रो बुकिङ भएन।',
+  'Arrive 15 minutes early and check in at the reception desk.': '15 मिनेट अगाडि आइपुग्नुहोस् र रिसेप्सनमा चेक इन गर्नुहोस्।',
+  'No doctors match': 'मिल्ने डाक्टर भेटिएनन्', 'Try clearing the filters, or call the clinic to ask who can see you.': 'फिल्टर हटाएर हेर्नुहोस्, वा कुन डाक्टरले हेर्न सक्नुहुन्छ भनेर क्लिनिकमा फोन गरेर सोध्नुहोस्।',
+  'Try another specialty, or call the clinic to ask who can see you.': 'अर्को विशेषज्ञता छान्नुहोस्, वा कुन डाक्टरले हेर्न सक्नुहुन्छ भनेर क्लिनिकमा फोन गरेर सोध्नुहोस्।',
+});
+const L = (en, np) => ne() ? np : en; // Phase 8: a line whose Nepali is built around names, times or numbers
 
 // F20: the booking week, labelled from real dates (Saturday closed).
 export const DAYS = week(TODAY).map((x, i) => ({ ...x, d: i === 0 ? 'Today' : x.wd }));
@@ -29,7 +51,7 @@ export const freeTimes = (doc, day) => DOCTORS[doc].times.filter(t => !isTaken(d
 export const nextOpen = (doc, from = 0) => DAYS.findIndex((_, i) => i >= from && freeTimes(doc, i).length);
 export const dayName = i => `${DAYS[i].wd}, ${DAYS[i].date}`;
 export const rel = i => i === 0 ? 'today' : i === 1 ? 'tomorrow' : `on ${dayName(i)}`;
-export const when = (i, t) => i === 0 ? `${tr('Today')}, ${t}` : i === 1 ? `${tr('Tomorrow')}, ${t}` : `${dayName(i)}, ${t}`; // Figma sync: 'आज, 4:30 PM' in Nepali
+export const when = (i, t) => tr(i === 0 ? `Today, ${t}` : i === 1 ? `Tomorrow, ${t}` : `${dayName(i)}, ${t}`); // Phase 8: 'आज, दिउँसो 4:30' in Nepali
 export const bookWhen = (i, t) => i === 0 ? `${t} today` : i === 1 ? `tomorrow, ${t}` : `${dayName(i)}, ${t}`; // 'Book 11:30 AM today', 'Book tomorrow, 9:00 AM'
 // Figma sync: Nepali puts the time first — 'आज 4:30 PM मा बुक गर्नुहोस्', not 'बुक गर्नुहोस् 4:30 PM today'.
 export const bookLabel = (i, t) => ne() ? `${when(i, t).replace(/^(आज|भोलि),/, '$1')} मा ${tr('Book')}` : `Book ${bookWhen(i, t)}`;
@@ -39,7 +61,7 @@ export const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).to
 // ---------- pieces ----------
 // extra: more attributes for the button, e.g. { 'aria-pressed': true }
 export const iconBtn = (icon, label, act, extra = {}) =>
-  <button className="icon-btn" data-act={act} aria-label={label} {...extra}><img src={`${A}${icon}`} width="24" height="24" alt="" /></button>;
+  <button className="icon-btn" data-act={act} aria-label={tr(label)} {...extra}><img src={`${A}${icon}`} width="24" height="24" alt="" /></button>;
 export const bar = ({ back = true, title = '', actions = null, big = false } = {}) => (
   <div className="appbar">
     {back ? iconBtn('icon-back.svg', 'Back', 'back') : null}
@@ -68,19 +90,20 @@ export const payBlock = () => <div className="pay-block">{label(tr("How you'll p
     <button key={id} className="pay-tile" role="radio" aria-checked={S.payWith === id} data-act={`pay:${id}`}><span className={`pay-mark ${id}`} aria-hidden="true">{mark}</span>{name}</button>)}</div></div>;
 // F09/R13/T05/V06/W02: a booked visit's fee is one of Paid · receipt / Not paid · Pay now / Pay at reception. A visit with no pay record pays at reception.
 export const payState = a => { const p = a.pay || { how: 'reception' }, w = WALLETS[p.how]?.[0];
-  return p.paid ? ['Paid', `NPR ${FEE} with ${w} · Receipt ${p.ref}`] : w ? ['Not paid', `NPR ${FEE} with ${w}. Your visit is still booked.`] : ['Pay at reception', `NPR ${FEE}, ${tr('when you check in')}`]; }; // Figma sync: Nepali
+  return p.paid ? ['Paid', L(`NPR ${FEE} with ${w} · Receipt ${p.ref}`, `NPR ${FEE}, ${w} बाट · रसिद ${p.ref}`)] : w ? ['Not paid', L(`NPR ${FEE} with ${w}. Your visit is still booked.`, `NPR ${FEE}, ${w} बाट। तपाईंको भेट अझै बुक छ।`)] : ['Pay at reception', `NPR ${FEE}, ${tr('when you check in')}`]; }; // Figma sync: Nepali
 export const payCard = a => { const [t, sub] = payState(a), due = t === 'Not paid';
   return <div className="card neutral"><span className="lead-tile"><img src={`${A}lt-fee.svg`} width="20" height="20" alt="" /></span>
     <span className="text"><span className="item-title">{tr(t)}</span><span className="body-s">{sub}</span></span>{due ? btn(tr('Pay now'), 'pay-now', { kind: 'secondary', size: 's' }) : null}</div>; };
 // The wallet hand-off, through the phone's own prompt (more.jsx). Mocked: "Pay with X" marks it paid with a made-up receipt; Cancel leaves it Not paid.
 export function payHandOff(a) {
   const w = WALLETS[a.pay.how][0]; S.payFor = a;
-  openSys({ title: `Pay NPR ${FEE} with ${w}?`, sub: `Consultation fee for your visit with ${DOCTORS[a.doc].name}.`, confirm: `Pay with ${w}`, href: '#', act: 'pay-ok' });
+  openSys(ne() ? { title: `${w} बाट NPR ${FEE} तिर्ने?`, sub: `${DOCTORS[a.doc].name} सँगको भेटको परामर्श शुल्क।`, confirm: `${w} बाट तिर्नुहोस्`, href: '#', act: 'pay-ok' }
+    : { title: `Pay NPR ${FEE} with ${w}?`, sub: `Consultation fee for your visit with ${DOCTORS[a.doc].name}.`, confirm: `Pay with ${w}`, href: '#', act: 'pay-ok' });
 }
 // W11: a follow-up booked from a report warns about a visit already booked with the same doctor.
 export const fuClash = () => { const a = S.appt;
-  return S.fuOf && !S.careEmpty && a.doc === S.doc ? notice('warn', `You already have a visit with Dr. ${surname(DOCTORS[a.doc].name)}`,
-    `${when(a.day, a.time)}. You can talk about this report then, so you may not need another visit.`) : null; };
+  return S.fuOf && !S.careEmpty && a.doc === S.doc ? notice('warn', L(`You already have a visit with Dr. ${surname(DOCTORS[a.doc].name)}`, `Dr. ${surname(DOCTORS[a.doc].name)} सँग तपाईंको भेट पहिले नै छ`),
+    L(`${when(a.day, a.time)}. You can talk about this report then, so you may not need another visit.`, `${when(a.day, a.time)}। त्यतिबेला यो रिपोर्टबारे कुरा गर्न सक्नुहुन्छ, त्यसैले अर्को भेट नचाहिन सक्छ।`)) : null; };
 export const callBtn = size => <a className={`btn secondary ${size}`} href="tel:+97710000000"><img src={`${A}icon-call.svg`} width="24" height="24" alt="" />{tr('Call the clinic')}</a>;
 
 // Item, Content/Appointment. A chevron means the whole card is interactive.
@@ -88,14 +111,14 @@ export function apptCard(a, link = false) {
   const d = DOCTORS[a.doc], T = link ? 'button' : 'div';
   return <T className="card appt" data-act={link ? 'appt:today' : undefined}>
     <span className="avatar l" aria-hidden="true">{d.ini}</span>
-    <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when(a.day, a.time)}</span><span className="where">{d.opd}, City Hospital</span></span>
+    <span className="appt-t"><span className="h-s">{d.name}</span><span className="when">{when(a.day, a.time)}</span><span className="where">{d.opd}, {tr('City Hospital')}</span></span>
     {link ? <img src={`${A}icon-chevron-right.svg`} width="20" height="20" alt="" /> : null}
   </T>;
 }
 
 export function navBar(active) {
   const tabs = [['Home', 'nav-home'], ['Care', 'nav-care'], ['Health', 'nav-health'], ['Ask', 'nav-ask'], ['Profile', 'nav-profile']];
-  return <div className="bottom"><nav className="bnav" aria-label="Main">
+  return <div className="bottom"><nav className="bnav" aria-label={tr('Main')}>
     {tabs.map(([l, i]) => <a key={l} href="#" data-act={{ Home: 'home', Care: 'care-tab', Health: 'health-tab', Ask: 'ask-tab', Profile: 'pf-tab' }[l]} aria-current={l === active ? 'page' : undefined}>
       <span><img src={`${A}${i}${l === active ? '-active' : ''}.svg`} width="24" height="24" alt="" /></span>{tr(l)}</a>)}
   </nav>{homeInd()}</div>;
@@ -114,26 +137,27 @@ export function lowBanner() {
   const m = !S.healthEmpty && !S.offline && (S.meds || []).find(x => x.left / x.perDay <= 3); // a new patient has no medicines yet
   return m ? <div className="inset"><button className="banner" data-act="health-go:mtlist">
     <img src={`${A}icon-warning-18.svg`} width="18" height="18" alt="" />
-    <span className="t"><span className="t1">{m.title.split(' ')[0]} is running low</span><span className="t2">{m.left} {m.unit} left · tap to restock</span></span>
+    <span className="t"><span className="t1">{L(`${m.title.split(' ')[0]} is running low`, `${m.title.split(' ')[0]} सकिन लाग्यो`)}</span><span className="t2">{L(`${m.left} ${m.unit} left · tap to restock`, `${m.left} ${tr(m.unit)} बाँकी · थप किन्न थिच्नुहोस्`)}</span></span>
     <img src={`${A}icon-chevron-right-16.svg`} width="16" height="16" alt="" /></button></div> : null;
 }
 
 // The card keeps its place, so Home doesn't reshuffle. On visit day it says the state, in Care's tones — never an estimate.
 export function homeVisit() {
-  const a = S.appt, d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor';
+  const a = S.appt, d = DOCTORS[a.doc], dr = `Dr. ${surname(d.name)}`, she = a.doc === 'ps' ? 'she' : 'the doctor', t = nd(a.time);
   if (S.careEmpty) return <div className="inset stack8">{label('Your next appointment')}
-    <div className="card neutral"><div className="text"><p className="h-s">Nothing booked yet</p><p className="body-s">When you book a visit, it shows here.</p></div></div></div>;
+    <div className="card neutral"><div className="text"><p className="h-s">{tr('Nothing booked yet')}</p><p className="body-s">{tr('When you book a visit, it shows here.')}</p></div></div></div>;
   const v = a.day === 0 && {
-    late: ['warn', `${dr} is running late`, `Your ${a.time} slot is kept. We'll message you when ${she}'s ready.`, 'appt:today'],
-    checkedin: ['info', "You're checked in", `Reception will call you when ${dr} is ready.`, 'appt:today'],
-    turn: ['success', `${dr} is ready for you`, `Please go to ${d.opd} now.`, 'appt:today'],
-    with: ['info', `You're with ${dr}`, 'Your notes will be in Health after your visit.', 'appt:today'],
-    done: ['success', 'Visit complete', `${dr}'s notes are in Health.`, 'health-go:hvisit'], // the notes open through the Health lock
-    missed: ['warn', `We missed you at ${a.time}`, "Book again when you're ready.", 'care-tab'],
+    late: ['warn', L(`${dr} is running late`, `${dr} ढिला हुनुहुन्छ`), L(`Your ${a.time} slot is kept. We'll message you when ${she}'s ready.`,
+      `तपाईंको ${t} को समय सुरक्षित छ। ${a.doc === 'ps' ? 'उहाँ' : 'डाक्टर'} तयार हुनुभएपछि हामी खबर गर्छौं।`), 'appt:today'], // Phase 8: Nepali
+    checkedin: ['info', "You're checked in", L(`Reception will call you when ${dr} is ready.`, `${dr} तयार हुनुभएपछि रिसेप्सनले तपाईंलाई बोलाउनेछ।`), 'appt:today'],
+    turn: ['success', L(`${dr} is ready for you`, `${dr} तपाईंलाई हेर्न तयार हुनुहुन्छ`), L(`Please go to ${d.opd} now.`, `कृपया अहिले ${d.opd} मा जानुहोस्।`), 'appt:today'],
+    with: ['info', L(`You're with ${dr}`, `तपाईं ${dr} सँग हुनुहुन्छ`), 'Your notes will be in Health after your visit.', 'appt:today'],
+    done: ['success', 'Visit complete', L(`${dr}'s notes are in Health.`, `${dr} को टिप्पणी स्वास्थ्यमा छ।`), 'health-go:hvisit'], // the notes open through the Health lock
+    missed: ['warn', L(`We missed you at ${a.time}`, `${t} मा हामीले तपाईंलाई भेटेनौं`), "Book again when you're ready.", 'care-tab'],
   }[S.visitDay];
   // W02: a wallet booking shows its fee state on Home (Paid / Not paid · Pay now); pay-at-reception visits keep Home as designed.
   if (!v) return <div className="inset stack8">{label('Your next appointment')}{apptCard(a, true)}{WALLETS[a.pay?.how] ? payCard(a) : null}</div>;
-  return <div className="inset stack8">{label("Today's visit")}<button className={`card notice ${v[0]}`} data-act={v[3]}><div className="text"><p className="h-s">{tr(v[1])}</p><p className="body-s">{v[2]}</p></div></button></div>; // Figma sync: 'You're checked in', 'Visit complete' in Nepali
+  return <div className="inset stack8">{label("Today's visit")}<button className={`card notice ${v[0]}`} data-act={v[3]}><div className="text"><p className="h-s">{tr(v[1])}</p><p className="body-s">{tr(v[2])}</p></div></button></div>; // Figma sync: 'You're checked in', 'Visit complete' in Nepali
 }
 
 // T22: on a shared number, a person with a Health PIN has Home's appointments and medicines locked too, unless they turned it off (Health lock).
@@ -142,11 +166,11 @@ export const homeLockRow = () => <div className="inset stack8">{label('Appointme
   {listItem('lt-lock.svg', 'Locked on this shared phone', 'Enter your Clinica PIN to see them', 'home-unlock')}</div></div>;
 
 // No connection: a slim line, and the saved content stays readable.
-export const offLine = () => S.offline ? <p className="off-line" role="status">You're offline. Showing what was saved at 9:12 AM.</p> : null;
+export const offLine = () => S.offline ? <p className="off-line" role="status">{L("You're offline. Showing what was saved at 9:12 AM.", `तपाईं अफलाइन हुनुहुन्छ। ${nd('9:12 AM')} मा सेभ भएको देखाइँदै।`)}</p> : null;
 
 // Skeletons shaped like Home's real layout, so nothing jumps when the content arrives.
 export const sk = (w, h, r = 'full', key) => <span key={key} className="sk" style={{ width: w, height: h, borderRadius: `var(--radius-${r})` }}></span>;
-export const homeSkeleton = () => <div className="body g20" aria-busy="true"><p className="vh" role="status">Loading</p>
+export const homeSkeleton = () => <div className="body g20" aria-busy="true"><p className="vh" role="status">{tr('Loading')}</p>
   {S.loading === 'slow' ? <div className="inset">{notice('', 'Taking longer than usual', "Check your connection. We'll keep trying.", btn('Try again', 'home-retry', { kind: 'secondary', size: 'l' }))}</div> : null}
   <div className="inset stack8" aria-hidden="true">{sk('90px', 12)}{sk('160px', 20)}</div>
   <div className="inset" aria-hidden="true">{sk('100%', 72, 'large')}</div>
@@ -161,23 +185,23 @@ Object.assign(SCREENS, {
     const photo = st === 'default' && S.fullName === 'Anisha Sharma';
     const today = st === 'cancelled' ?
       <div className="card error notice">
-        <div className="text"><p className="h-s">Your {a.time} visit was cancelled</p>
-          <p className="body-s">{d.name} can't see patients today. The clinic is sorry for the change.</p></div>
+        <div className="text"><p className="h-s">{L(`Your ${a.time} visit was cancelled`, `तपाईंको ${nd(a.time)} को भेट रद्द भयो`)}</p>
+          <p className="body-s">{L(`${d.name} can't see patients today. The clinic is sorry for the change.`, `${d.name} आज बिरामी हेर्न सक्नुहुन्न। यो परिवर्तनका लागि क्लिनिक माफी चाहन्छ।`)}</p></div>
         {btn('Book another time', 'rebook', { size: 'l' })}{callBtn('l')}
       </div> :
       <div className="card notice">
         <div className="text"><p className="h-s">{tr("You're checked in")}</p>{/* Figma sync: Nepali */}
           <p className="body-s">{tr('Walk-ins are seen between booked patients, so waits vary. Reception will call your name.')}</p></div>
-        {tag('Waiting for Dr. Anita Joshi', 'info')}
+        {tag(L(`Waiting for ${DOCTORS.aj.name}`, `${DOCTORS.aj.name} लाई पर्खँदै`), 'info')}
       </div>;
     return (
     <div className="screen">
       {statusBar()}
       <div className="appbar">
-        <h1 className="vh">Home</h1>{/* W13: Home's heading, for screen readers */}<div className="brand">Clinica</div>
-        <button className="icon-btn bell" data-act="go:notifs" aria-label={`Notifications${unread() ? ', unread' : ''}`}>
+        <h1 className="vh">{tr('Home')}</h1>{/* W13: Home's heading, for screen readers */}<div className="brand">Clinica</div>
+        <button className="icon-btn bell" data-act="go:notifs" aria-label={`${tr('Notifications')}${unread() ? L(', unread', ', नयाँ छ') : ''}`}>
           <img src={`${A}icon-bell.svg`} width="24" height="24" alt="" />{unread() ? <img className="dot" src={`${A}unread-dot.svg`} width="12" height="12" alt="" /> : null}</button>
-        <button className="icon-btn" data-act="go:history" aria-label="Your profile">
+        <button className="icon-btn" data-act="go:history" aria-label={tr('Your profile')}>
           {photo ? <img className="av32" src={`${A}avatar-anisha.png`} alt="" /> : <span className="av32 ini">{initials(S.fullName)}</span>}</button>
       </div>
       {offLine()}
@@ -192,11 +216,11 @@ Object.assign(SCREENS, {
         </div></div> : null}
         {st === 'default' && !S.healthEmpty && !homeLocked() ? <div><div className="inset">{label('Recent')}</div><div className="list">
             {sepJoin([listItem('lt-lab.svg', 'Lab report ready', 'Open Health to see it', 'lab-ready') /* T03 */,
-               listItem('lt-rx.svg', 'Prescription updated', 'From Dr. Sharma, Aug 25', 'health-go:hrxd'),
-               listItem('lt-followup.svg', 'Follow-up due', 'Dermatology, Sep 14', 'stub:Follow-up')])}
+               listItem('lt-rx.svg', 'Prescription updated', L('From Dr. Sharma, Aug 25', `Dr. Sharma बाट, ${nd('Aug 25')}`), 'health-go:hrxd'),
+               listItem('lt-followup.svg', 'Follow-up due', `${tr('Dermatology')}, ${tr('Sep 14')}`, 'stub:Follow-up')])}
           </div></div> : null}
         {st === 'walkin' ? <div className="stack7"><div className="inset">{label('Your visit')}</div>
-          {rows([row('lt-doctor.svg', 'Doctor', `${DOCTORS.aj.name}, ${DOCTORS.aj.spec}`), row('lt-location.svg', 'Where', `${DOCTORS.aj.opd}, City Hospital`), row('lt-fee.svg', 'Fee', `NPR ${FEE}, paid at reception`)])}</div> : null}
+          {rows([row('lt-doctor.svg', 'Doctor', `${DOCTORS.aj.name}, ${tr(DOCTORS.aj.spec)}`), row('lt-location.svg', 'Where', `${DOCTORS.aj.opd}, ${tr('City Hospital')}`), row('lt-fee.svg', 'Fee', L(`NPR ${FEE}, paid at reception`, `NPR ${FEE}, रिसेप्सनमा तिरिएको`))])}</div> : null}
       </div>}
       {navBar('Home')}
     </div>);
@@ -211,7 +235,7 @@ Object.assign(SCREENS, {
           <img src={`${A}icon-search.svg`} width="20" height="20" alt="" />
           <input id="q" type="search" placeholder={tr('Doctor, specialty or condition')} aria-label={tr('Search doctors')} value={S.query}
             onChange={e => { S.query = e.target.value; paint(); }} />
-          <button className="cal-btn" data-act="clear-q" aria-label="Clear search"><img src={`${A}icon-close.svg`} width="20" height="20" alt="" /></button>
+          <button className="cal-btn" data-act="clear-q" aria-label={tr('Clear search')}><img src={`${A}icon-close.svg`} width="20" height="20" alt="" /></button>
         </div></div>
       </div>
       <div className="body" style={{ gap: 16, padding: '16px 0' }}>
@@ -219,7 +243,7 @@ Object.assign(SCREENS, {
           {SPECIALTIES.map(s => <button key={s} className="tile spec" role="radio" aria-checked={S.specialty === s} data-act={`spec:${s}`}>
             <img src={specIcon(s, S.specialty === s)} width="28" height="28" alt="" />{tr(s)}</button>)}
         </div>
-        {Object.keys(DOCTORS).some(k => S.fav[k]) && !S.query.trim() ? <div className="stack4"><div className="inset">{lbl('Saved')}</div>
+        {Object.keys(DOCTORS).some(k => S.fav[k]) && !S.query.trim() ? <div className="stack4"><div className="inset">{lbl(L('Saved', 'सेभ गरिएका'))}</div>
           <div className="list">{sepJoin(Object.keys(DOCTORS).filter(k => S.fav[k]).map(docRow))}</div></div> : null}
         <div id="doclist">{docList()}</div><p className="vh" aria-live="polite">{S.query.trim() ? docCount : ''}</p>{/* W18: the result count is announced */}
       </div>
@@ -237,39 +261,40 @@ Object.assign(SCREENS, {
       <div className="body g20">
         <div className="inset"><div className="doc-head">
           <span className="avatar xl" aria-hidden="true">{d.ini}</span>
-          <div className="doc-details"><h1 className="name">{d.name}</h1>{/* W13: the bar has no title here */}<p className="spec">{d.spec}</p><p className="opd">{d.opd}, City Hospital</p>
-            {n0 === 0 ? tag(tr('Available today'), 'success') : tag(n0 === 1 ? 'Next slot tomorrow' : n0 > 0 ? `Next slot ${dayName(n0)}` : 'No openings this week', 'neutral')}</div>
+          <div className="doc-details"><h1 className="name">{d.name}</h1>{/* W13: the bar has no title here */}<p className="spec">{tr(d.spec)}</p><p className="opd">{d.opd}, {tr('City Hospital')}</p>
+            {n0 === 0 ? tag(tr('Available today'), 'success') : tag(n0 === 1 ? 'Next slot tomorrow' : n0 > 0 ? L(`Next slot ${dayName(n0)}`, `अर्को समय ${nd(dayName(n0))}`) : 'No openings this week', 'neutral')}</div>
         </div></div>
         <div className="inset"><div className="card neutral">
           <span className="lead-tile"><img src={`${A}lt-fee.svg`} width="20" height="20" alt="" /></span>
-          <span className="text"><span className="item-title">NPR {FEE}</span><span className="body-s">{tr('Consultation fee')}. {tr('Pay at reception, or with eSewa, Khalti or Fonepay.')}</span></span>{/* F09/T05/W01: no "paid at reception" when a wallet is possible */}
+          <span className="text"><span className="item-title">NPR {FEE}</span><span className="body-s">{tr('Consultation fee')}{ne() ? '। ' : '. '}{tr('Pay at reception, or with eSewa, Khalti or Fonepay.')}</span></span>{/* F09/T05/W01: no "paid at reception" when a wallet is possible */}
         </div></div>
         {S.fuOf ? <div className="inset">{fuClash()}</div> : null}
         <div className="inset stack8">
           {label(tr('Choose a day'))}
-          <div className="hscroll days" role="radiogroup" aria-label="Day">
+          <div className="hscroll days" role="radiogroup" aria-label={L('Day', 'दिन')}>
             {DAYS.map((x, i) => {
               const sel = i === S.day, off = !freeTimes(S.doc, i).length;
               return <button key={i} className="pick day" role="radio" aria-checked={sel} disabled={off && !sel} data-act={`day:${i}`}
-                aria-label={`${i === 0 ? 'Today' : x.wd}, ${x.date}${x.closed ? ', closed' : off ? ', fully booked' : ''}`}><span className="d1">{x.d}</span><span className="d2">{x.date}</span></button>;
+                aria-label={`${tr(`${i === 0 ? 'Today' : x.wd}, ${x.date}`)}${x.closed ? L(', closed', ', बन्द') : off ? L(', fully booked', ', सबै बुक भइसके') : ''}`}><span className="d1">{tr(x.d)}</span><span className="d2">{tr(x.date)}</span></button>;
             })}
           </div>
-          <p className="hint">{n0 > 1 ? `Fully booked until ${dayName(n0)}. Closed on Saturdays.` : tr('Closed on Saturdays')}</p>
+          <p className="hint">{n0 > 1 ? L(`Fully booked until ${dayName(n0)}. Closed on Saturdays.`, `${nd(dayName(n0))} सम्म सबै समय बुक भइसके। शनिबार बन्द।`) : tr('Closed on Saturdays')}</p>
         </div>
         {free.length ?
         <div className="inset stack8">
           {label(tr('Choose a time'))}
-          <div className="times" role="radiogroup" aria-label="Time">
+          <div className="times" role="radiogroup" aria-label={tr('Time')}>
             {d.times.map(t => {
               const off = isTaken(S.doc, S.day, t);
-              return <button key={t} className="pick time" role="radio" aria-checked={t === S.time} disabled={off} data-act={`time:${t}`} aria-label={`${t}${off ? ', taken' : ''}`}>{t}</button>;
+              return <button key={t} className="pick time" role="radio" aria-checked={t === S.time} disabled={off} data-act={`time:${t}`} aria-label={`${tr(t)}${off ? L(', taken', ', बुक भइसक्यो') : ''}`}>{tr(t)}</button>;
             })}
           </div>
-          <div className="note-line"><img src={`${A}icon-info-18.svg`} width="18" height="18" alt="" /><p>If your doctor is running late, we'll message you. We won't guess a wait time.</p></div>
-        </div> : empty('icon-schedule-28.svg', S.day === 0 ? 'No times left today' : `No times left on ${dayName(S.day)}`,
-          nxt >= 0 ? `The next opening is ${dayName(nxt)}. You can book that, or call the clinic to ask about coming in ${S.day === 0 ? 'today' : 'that day'}.`
+          <div className="note-line"><img src={`${A}icon-info-18.svg`} width="18" height="18" alt="" /><p>{tr("If your doctor is running late, we'll message you. We won't guess a wait time.")}</p></div>
+        </div> : empty('icon-schedule-28.svg', S.day === 0 ? 'No times left today' : L(`No times left on ${dayName(S.day)}`, `${nd(dayName(S.day))} मा समय बाँकी छैन`),
+          nxt >= 0 ? L(`The next opening is ${dayName(nxt)}. You can book that, or call the clinic to ask about coming in ${S.day === 0 ? 'today' : 'that day'}.`,
+            `अर्को खाली समय ${nd(dayName(nxt))} मा छ। त्यो बुक गर्न सक्नुहुन्छ, वा ${S.day === 0 ? 'आज' : 'त्यो दिन'} आउनेबारे क्लिनिकमा फोन गरेर सोध्नुहोस्।`)
                    : 'There are no openings this week. Call the clinic to ask about the next one.',
-          <>{nxt >= 0 ? btn(`See ${dayName(nxt)}`, `day:${nxt}`, { size: 'l' }) : null}{callBtn('l')}</>)}
+          <>{nxt >= 0 ? btn(L(`See ${dayName(nxt)}`, `${nd(dayName(nxt))} हेर्नुहोस्`), `day:${nxt}`, { size: 'l' }) : null}{callBtn('l')}</>)}
       </div>
       {free.length ? <div className="cta bordered">{btn(canBook ? bookLabel(S.day, S.time) : tr('Choose a time'), 'book', { disabled: !canBook })}</div> : null}
       {homeInd()}
@@ -281,10 +306,10 @@ Object.assign(SCREENS, {
       {statusBar()}{bar({ title: 'Visit history', big: true })}
       <div className="body">
         <div className="inset"><div className="pt-head"><span className="avatar l" aria-hidden="true">{initials(S.fullName)}</span>
-          <div><p className="name">{S.fullName}</p><p className="body-s">Female · 32 · CH-2381</p></div></div></div>
+          <div><p className="name">{S.fullName}</p><p className="body-s">{tr('Female')} · 32 · CH-2381</p></div></div></div>
         <div className="inset"><button className="list-item" data-act="stub:Visit history">
           <span className="lead-tile"><img src={`${A}lt-history.svg`} width="20" height="20" alt="" /></span>
-          <span className="text"><span className="item-title">View history</span><span className="body-s">Aug 12, Jul 3, Jun 20</span></span>
+          <span className="text"><span className="item-title">{tr('View history')}</span><span className="body-s">{tr('Aug 12, Jul 3, Jun 20')}</span></span>
           <img src={`${A}icon-chevron-right-dark.svg`} width="20" height="20" alt="" /></button></div>
       </div>
       {homeInd()}
@@ -297,7 +322,7 @@ Object.assign(SCREENS, {
         {S.fuOf ? <div className="inset stack8">{tag(tr('Follow-up'), 'info')}{fuClash()}</div> : null}{/* W11 */}
         <div className="inset">{apptCard({ doc: S.doc, day: S.day, time: S.time })}</div>
         {rows([<button className="list-item" data-act="sheet:bookfor">{lead('icon-person.svg')}<span className="text"><span className="item-title">{tr('Booking for')}</span><span className="body-s">{bookFor()}</span></span></button>,
-          feeRow(), payBlock(), row('lt-sms.svg', tr('Confirmation'), `By SMS to ${masked()}`)])}
+          feeRow(), payBlock(), row('lt-sms.svg', tr('Confirmation'), L(`By SMS to ${masked()}`, `${masked()} मा SMS बाट`))])}
         {textArea(false)}
       </div>
       {/* R10: the line above lifts Confirm off the spot where Book was, and Confirm waits for a payment choice */}
@@ -313,11 +338,11 @@ Object.assign(SCREENS, {
       {statusBar()}{bar({ title: tr('Review booking') })}
       <div className="body g20">
         <div className="inset"><div className={`card ${k === 'taken' ? 'error' : 'warn'}`} role="alert"><div className="text">{{
-          taken: <><p className="h-s">{S.time} was just taken</p><p className="body-s">Someone else booked it while you were confirming. Everything you entered is saved.</p></>,
-          offline: <><p className="h-s">Couldn't send your booking</p><p className="body-s">Nothing has been booked: you're not connected. Your details are saved, so just try again when you're online.</p></>,
-          noreply: <><p className="h-s">We couldn't confirm your booking</p><p className="body-s">It may have gone through. Trying again is safe: if it did, you'll still be booked only once.</p></>, // W14
+          taken: <><p className="h-s">{L(`${S.time} was just taken`, `${nd(S.time)} को समय भर्खरै बुक भयो`)}</p><p className="body-s">{tr('Someone else booked it while you were confirming. Everything you entered is saved.')}</p></>,
+          offline: <><p className="h-s">{tr("Couldn't send your booking")}</p><p className="body-s">{tr("Nothing has been booked: you're not connected. Your details are saved, so just try again when you're online.")}</p></>,
+          noreply: <><p className="h-s">{tr("We couldn't confirm your booking")}</p><p className="body-s">{tr("It may have gone through. Trying again is safe: if it did, you'll still be booked only once.")}</p></>, // W14
         }[k]}</div></div></div>
-        {rows([row('lt-doctor.svg', tr('Doctor'), `${d.name}, ${d.spec}`), row('icon-person.svg', tr('Booking for'), bookFor()), feeRow(true)])}{/* W01: not charged */}
+        {rows([row('lt-doctor.svg', tr('Doctor'), `${d.name}, ${tr(d.spec)}`), row('icon-person.svg', tr('Booking for'), bookFor()), feeRow(true)])}{/* W01: not charged */}
         {textArea(true)}
       </div>
       <div className="cta bordered">{{ taken: btn(tr('Choose another time'), 'another-time'), offline: btn(tr('Try again'), 'confirm'),
@@ -334,13 +359,15 @@ Object.assign(SCREENS, {
       <div className="body center">
         <div className="success-mark"><img src={`${A}icon-task-alt.svg`} width="36" height="36" alt="" /></div>
         <h1 className="h-lp">{tr('Appointment booked')}</h1>{/* W03/W13: focused on arrival */}
-        <div className="inset"><p className="confirm-line">{other ? `${first} is` : "You're"} booked with {d.name} {a.day === 0 ? `at ${a.time} today` : `${rel(a.day)} at ${a.time}`}.</p></div>
+        <div className="inset"><p className="confirm-line">{ne() ? `${other ? first : 'तपाईं'} ${d.name} सँग ${when(a.day, a.time).replace(/^(आज|भोलि),/, '$1')} मा बुक हुनुभयो।` /* Phase 8 */
+          : <>{other ? `${first} is` : "You're"} booked with {d.name} {a.day === 0 ? `at ${a.time} today` : `${rel(a.day)} at ${a.time}`}.</>}</p></div>
         {S.bookedOnce ? <div className="inset" style={{ alignSelf: 'stretch' }}>{notice('success', "You're booked once", "Trying again didn't make a second booking.")}</div> : null}{/* W14 */}
         <div className="inset stack8" style={{ alignSelf: 'stretch' }}>{apptCard(a)}{payCard(a)}</div>{/* F09/T05/W02 */}
         <div className="inset" style={{ alignSelf: 'stretch' }}><div className="notes">
-          <div className="note-line"><img src={`${A}icon-schedule.svg`} width="18" height="18" alt="" /><p>Arrive 15 minutes early and check in at the reception desk.</p></div>
+          <div className="note-line"><img src={`${A}icon-schedule.svg`} width="18" height="18" alt="" /><p>{tr('Arrive 15 minutes early and check in at the reception desk.')}</p></div>
           <div className="note-line"><img src={`${A}icon-chat.svg`} width="18" height="18" alt="" /><p>{other
-            ? `Details sent by SMS. To see ${first}'s appointments, switch to him in Profile.` : `Details sent by SMS to ${masked()}.`}</p></div>
+            ? L(`Details sent by SMS. To see ${first}'s appointments, switch to him in Profile.`, `विवरण SMS बाट पठाइयो। ${first} का अपोइन्टमेन्ट हेर्न प्रोफाइलमा उहाँमा स्विच गर्नुहोस्।`)
+            : L(`Details sent by SMS to ${masked()}.`, `विवरण ${masked()} मा SMS बाट पठाइयो।`)}</p></div>
         </div></div>
         {S.cal.appt ? <div style={{ alignSelf: 'stretch' }}>{inCal}</div> : null}
       </div>
@@ -369,32 +396,36 @@ Object.assign(SCREENS, {
 
 export function docRow(id) {
   const d = DOCTORS[id], n = nextOpen(id);
-  const t = n === 0 ? tag('Available today', 'success') : n === 1 ? tag(`Next slot tomorrow, ${freeTimes(id, 1)[0]}`, 'neutral')
-    : tag(n > 0 ? `Next slot ${d.spec !== GM ? dayName(n) : DAYS[n].date}` : 'No openings this week', 'neutral'); // specialists name the weekday (Figma 260:10739)
-  const inner = <><span className="avatar" aria-hidden="true">{d.ini}</span><span className="text doctor"><span className="h-s">{d.name}</span><span className="spec">{d.spec}</span>{t}</span></>;
+  const day = n > 0 && (d.spec !== GM ? dayName(n) : DAYS[n].date);
+  const t = n === 0 ? tag('Available today', 'success') : n === 1 ? tag(L(`Next slot tomorrow, ${freeTimes(id, 1)[0]}`, `अर्को समय भोलि, ${nd(freeTimes(id, 1)[0])}`), 'neutral')
+    : tag(n > 0 ? L(`Next slot ${day}`, `अर्को समय ${nd(day)}`) : 'No openings this week', 'neutral'); // specialists name the weekday (Figma 260:10739)
+  const inner = <><span className="avatar" aria-hidden="true">{d.ini}</span><span className="text doctor"><span className="h-s">{d.name}</span><span className="spec">{tr(d.spec)}</span>{t}</span></>;
   return d.noProfile ? <div className="list-item static">{inner}</div> : <button className="list-item" data-act={`doctor:${id}`}>{inner}{chev}</button>;
 }
 export const filtersOn = () => S.filt.today || S.filt.sex !== 'Any';
 export const filtMatch = (id, f = S.filt) => (!f.today || nextOpen(id) === 0) && (f.sex === 'Any' || DOCTORS[id].sex === f.sex);
-export const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+export const plural = (n, w) => ne() ? `${n} ${tr(w)}` : `${n} ${w}${n === 1 ? '' : 's'}`; // Phase 8: Nepali nouns don't take an s
 
 export let docCount = ''; // W18: what the search found, for the live region under the list
 export function docList() {
   const q = S.query.trim().toLowerCase(), cond = q && CONDITIONS.find(([re]) => re.test(q));
-  docCount = cond && !cond[1] ? `No ${cond?.[2]} doctors at City Hospital` : '';
-  if (cond && !cond[1]) return empty('icon-search-secondary-28.svg', `No ${cond[2]} doctors at City Hospital`,
-    `For ${cond[2] === 'eye' ? 'an eye' : 'a dental'} problem, ask reception about a referral. Or search for a doctor's name or another specialty.`,
+  const w = cond && { eye: 'आँखा', dental: 'दाँत' }[cond[2]]; // Phase 8
+  docCount = cond && !cond[1] ? L(`No ${cond?.[2]} doctors at City Hospital`, `सिटी हस्पिटलमा ${w}का डाक्टर हुनुहुन्न`) : '';
+  if (cond && !cond[1]) return empty('icon-search-secondary-28.svg', docCount,
+    L(`For ${cond[2] === 'eye' ? 'an eye' : 'a dental'} problem, ask reception about a referral. Or search for a doctor's name or another specialty.`,
+      `${w}को समस्याका लागि रिफरलबारे रिसेप्सनमा सोध्नुहोस्। वा डाक्टरको नाम वा अर्को विशेषज्ञता खोज्नुहोस्।`),
     <a className="btn secondary l" href="tel:+97710000000">{tr('Call the clinic')}</a>);
   const spec = cond ? cond[1] : S.specialty;
   const docs = Object.keys(DOCTORS).filter(id => DOCTORS[id].spec === spec && filtMatch(id) && (cond || !q || `${DOCTORS[id].name} ${DOCTORS[id].spec}`.toLowerCase().includes(q)));
-  if (!docs.length) docCount = 'No doctors match';
-  if (!docs.length) return empty('icon-search-secondary-28.svg', q ? `No doctors match “${S.query.trim()}”` : `No ${spec.toLowerCase()} doctors match`,
+  if (!docs.length) docCount = tr('No doctors match');
+  if (!docs.length) return empty('icon-search-secondary-28.svg', q ? L(`No doctors match “${S.query.trim()}”`, `“${S.query.trim()}” सँग मिल्ने डाक्टर भेटिएनन्`) : L(`No ${spec.toLowerCase()} doctors match`, `मिल्ने ${tr(spec)} डाक्टर भेटिएनन्`),
     filtersOn() ? 'Try clearing the filters, or call the clinic to ask who can see you.' : 'Try another specialty, or call the clinic to ask who can see you.',
     <>{filtersOn() ? btn('Clear filters', 'filter-clear', { size: 'l' }) : null}<a className="btn secondary l" href="tel:+97710000000">{tr('Call the clinic')}</a></>);
-  const count = docCount = filtersOn() ? plural(docs.length, 'doctor') : spec === GM && !cond ? `${plural(docs.length, 'doctor')} at City Hospital` : `${plural(docs.length, 'doctor')} in ${spec}`;
-  return <>{cond ? <div className="inset"><p className="search-hint">{S.query.trim()[0].toUpperCase() + S.query.trim().slice(1)} is usually seen in {spec}.</p></div> : null}
-    {filtersOn() ? <div className="inset filt-row"><p>{[S.filt.today && 'Available today', S.filt.sex !== 'Any' && `${S.filt.sex} doctor`].filter(Boolean).join(' · ')}</p>
-      <button className="btn secondary s" data-act="filter-clear">Clear</button></div> : null}
+  const count = docCount = filtersOn() ? plural(docs.length, 'doctor') : spec === GM && !cond ? L(`${plural(docs.length, 'doctor')} at City Hospital`, `सिटी हस्पिटलमा ${plural(docs.length, 'doctor')}`)
+    : L(`${plural(docs.length, 'doctor')} in ${spec}`, `${tr(spec)}मा ${plural(docs.length, 'doctor')}`);
+  return <>{cond ? <div className="inset"><p className="search-hint">{S.query.trim()[0].toUpperCase() + S.query.trim().slice(1)} {L(`is usually seen in ${spec}.`, `सामान्यतया ${tr(spec)}मा हेरिन्छ।`)}</p></div> : null}
+    {filtersOn() ? <div className="inset filt-row"><p>{[S.filt.today && tr('Available today'), S.filt.sex !== 'Any' && L(`${S.filt.sex} doctor`, `${tr(S.filt.sex)} डाक्टर`)].filter(Boolean).join(' · ')}</p>
+      <button className="btn secondary s" data-act="filter-clear">{tr('Clear')}</button></div> : null}
     <div className="inset"><p className="sec-label">{count}</p></div>
     <div className="list">{sepJoin(docs.map(docRow))}</div></>;
 }
@@ -413,7 +444,7 @@ export function backTo(screen) {
   render();
 }
 
-export const bookFor = () => !S.bookFor || S.bookFor === S.fullName ? `${S.fullName} (you)` : S.bookFor;
+export const bookFor = () => !S.bookFor || S.bookFor === S.fullName ? `${S.fullName} ${L('(you)', '(तपाईं)')}` : S.bookFor;
 export function bookedDone() { // the patient's own visit becomes theirs; a visit for someone else lives in that person's records
   const b = S.booked;
   // V14: the visit keeps its reason and payment (the same pay object as S.booked, so paying later updates both).
@@ -482,7 +513,7 @@ Object.assign(ACTIONS, {
     const a = S.payFor, p = a.pay, w = WALLETS[p.how][0];
     Object.assign(p, { paid: true, ref: `${w.toUpperCase()}-${48213 + S.payments.length}` });
     S.payments.unshift({ ref: p.ref, how: w, doc: DOCTORS[a.doc].name, day: a.day, time: a.time, for: a.for || S.fullName }); // Figma sync: keep day/time, not a phrase in the language of the moment
-    S.sheet = null; toast(`Paid NPR ${FEE} with ${w}. Receipt ${p.ref}.`); render();
+    S.sheet = null; toast(L(`Paid NPR ${FEE} with ${w}. Receipt ${p.ref}.`, `${w} बाट NPR ${FEE} तिरियो। रसिद ${p.ref}।`)); render();
   },
   'book-for': arg => { S.bookFor = arg; S.sheet = null; render(); }, // choosing closes the sheet: a single choice needs no Done
   'another-time': () => { S.time = null; backTo('doctor'); },
